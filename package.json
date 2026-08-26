@@ -1,0 +1,129 @@
+{
+  "name": "offyai",
+  "version": "1.0.0",
+  "description": "OffyAI - Complete AI Web UI with llama.cpp",
+  "author": "OffyAi Team",
+  "main": "main.js",
+  "scripts": {
+    "install-all": "npm install && cd frontend && npm install",
+    "frontend:build": "cd frontend && npm run build",
+    "electron:dev": "npm run frontend:build && electron .",
+    "electron:prod": "electron .",
+    "dev": "npm run electron:dev",
+    "build:frontend": "npm run frontend:build",
+    "build:electron": "npm run build:frontend && electron-builder",
+    "build:win": "npm run build:frontend && electron-builder --win",
+    "build:mac": "npm run build:frontend && electron-builder --mac",
+    "build:linux": "npm run build:frontend && electron-builder --linux",
+    "pack": "npm run build:frontend && electron-builder --dir",
+    "dist": "npm run build:electron"
+  },
+  "dependencies": {
+    "axios": "^1.15.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "express-rate-limit": "^8.3.2",
+    "gpt-tokenizer": "^3.4.0",
+    "helmet": "^8.1.0",
+    "mammoth": "^1.12.0",
+    "multer": "^2.1.1",
+    "pdf-parse": "^2.4.5",
+    "systeminformation": "^5.27.11"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^39.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.offyai.desktop",
+    "productName": "OffyAI",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "main.js",
+      "splash.html",
+      "offyai.png",
+      "favicon.ico",
+      "README.md",
+      "LICENSE.txt",
+      "preload.js",
+      "src/**/*",
+      "frontend/out/**/*",
+      "models/**/*",
+      "llama-server*",
+      "!**/node_modules/*/{README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.npm-metadata.json}"
+    ],
+    "extraResources": [
+      {
+        "from": "models",
+        "to": "models",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "llama-server.exe",
+        "to": "."
+      },
+      {
+        "from": "llama-server",
+        "to": ".",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "models/**/*",
+      "llama-server*",
+      "*.dll",
+      "*.exe",
+      "*.node",
+      "preload.js"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ],
+      "icon": "offyai.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "OffyAI",
+      "license": "LICENSE.txt"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "offyai.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "offyai.png",
+      "category": "Utility"
+    }
+  }
+}

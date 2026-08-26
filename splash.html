@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="color-scheme"
+        content="dark"
+    >
+
+    <title>OffyAI</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            overflow: hidden;
+            background: transparent;
+        }
+
+        body {
+            overflow: hidden;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #0ea5e9 0%,
+                    #7e22ce 100%
+                );
+
+            color: #ffffff;
+
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Helvetica,
+                Arial,
+                sans-serif;
+
+            user-select: none;
+
+            -webkit-user-select: none;
+
+            border-radius: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 360px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            padding: 32px;
+        }
+
+        .logo {
+            font-size: 48px;
+            line-height: 1;
+
+            font-weight: 700;
+
+            letter-spacing: -1.5px;
+
+            margin-bottom: 28px;
+
+            text-shadow:
+                0 2px 4px
+                rgba(0, 0, 0, 0.25);
+        }
+
+        .spinner {
+            width: 42px;
+            height: 42px;
+
+            flex: 0 0 auto;
+
+            border: 4px solid
+                rgba(255, 255, 255, 0.25);
+
+            border-top-color: #ffffff;
+
+            border-radius: 50%;
+
+            animation:
+                spin 0.85s linear infinite;
+
+            margin-bottom: 24px;
+        }
+
+        .status {
+            min-height: 24px;
+
+            font-size: 15px;
+
+            line-height: 24px;
+
+            font-weight: 500;
+
+            text-align: center;
+
+            color:
+                rgba(255, 255, 255, 0.95);
+        }
+
+        .progress {
+            width: 220px;
+
+            height: 4px;
+
+            margin-top: 18px;
+
+            background:
+                rgba(255, 255, 255, 0.2);
+
+            border-radius: 999px;
+
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            width: 0%;
+
+            height: 100%;
+
+            background: #ffffff;
+
+            border-radius: 999px;
+
+            transition:
+                width 350ms ease;
+        }
+
+        .version {
+            margin-top: 20px;
+
+            font-size: 11px;
+
+            color:
+                rgba(255, 255, 255, 0.55);
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .spinner {
+                animation: none;
+            }
+
+            .progress-bar {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+
+        <div class="logo">
+            OffyAI
+        </div>
+
+        <div
+            class="spinner"
+            aria-hidden="true"
+        ></div>
+
+        <div
+            class="status"
+            id="status"
+            aria-live="polite"
+        >
+            Starting OffyAI...
+        </div>
+
+        <div
+            class="progress"
+            aria-hidden="true"
+        >
+            <div
+                class="progress-bar"
+                id="progressBar"
+            ></div>
+        </div>
+
+        <div class="version">
+            Desktop Application
+        </div>
+
+    </main>
+
+    <script>
+        (() => {
+            "use strict";
+
+            /*
+             * This splash screen is intentionally passive.
+             *
+             * It does NOT:
+             *
+             * - start Electron
+             * - start llama-server
+             * - start Next.js
+             * - contact localhost
+             * - contact port 3000
+             * - contact port 8080
+             * - contact any backend
+             * - perform HTTP requests
+             * - redirect
+             * - reload
+             * - close itself
+             * - create an infinite timer
+             *
+             * Electron/main.js owns the actual application
+             * lifecycle.
+             */
+
+            const statusElement =
+                document.getElementById("status");
+
+            const progressElement =
+                document.getElementById("progressBar");
+
+            if (
+                !statusElement ||
+                !progressElement
+            ) {
+                return;
+            }
+
+            const steps = [
+                {
+                    text: "Starting OffyAI...",
+                    progress: 15,
+                    delay: 450
+                },
+                {
+                    text: "Initializing Electron...",
+                    progress: 30,
+                    delay: 450
+                },
+                {
+                    text: "Loading interface...",
+                    progress: 50,
+                    delay: 450
+                },
+                {
+                    text: "Preparing workspace...",
+                    progress: 70,
+                    delay: 450
+                },
+                {
+                    text: "Almost ready...",
+                    progress: 90,
+                    delay: 450
+                },
+                {
+                    text: "Ready",
+                    progress: 100,
+                    delay: 300
+                }
+            ];
+
+            let currentStep = 0;
+            let timer = null;
+
+            function applyStep(step) {
+                statusElement.textContent =
+                    step.text;
+
+                progressElement.style.width =
+                    `${step.progress}%`;
+            }
+
+            function runNextStep() {
+                if (
+                    currentStep >=
+                    steps.length
+                ) {
+                    /*
+                     * CRITICAL:
+                     *
+                     * Stop here permanently.
+                     *
+                     * There is deliberately no call
+                     * back to runNextStep().
+                     */
+                    timer = null;
+
+                    return;
+                }
+
+                const step =
+                    steps[currentStep];
+
+                currentStep += 1;
+
+                applyStep(step);
+
+                /*
+                 * Schedule only the next finite step.
+                 */
+                timer = window.setTimeout(
+                    runNextStep,
+                    step.delay
+                );
+            }
+
+            /*
+             * Start exactly once.
+             */
+            runNextStep();
+
+            /*
+             * Defensive cleanup if the document is
+             * unloaded before the sequence finishes.
+             */
+            window.addEventListener(
+                "beforeunload",
+                () => {
+                    if (timer !== null) {
+                        window.clearTimeout(
+                            timer
+                        );
+
+                        timer = null;
+                    }
+                },
+                {
+                    once: true
+                }
+            );
+        })();
+    </script>
+</body>
+</html>
