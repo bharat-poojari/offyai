@@ -1230,14 +1230,14 @@ class LlamaServerManager {
    * FIND EXECUTABLE
    */
   findExecutable() {
-    const candidates =
-      process.platform === "win32"
-        ? ["llama-server.exe", path.join("bin", "llama-server.exe")]
-        : ["llama-server", path.join("bin", "llama-server")];
+    const executableName =
+      process.platform === "win32" ? "llama-server.exe" : "llama-server";
+    const candidates = [
+      resolveAppPath("llama", executableName),
+      path.join(process.resourcesPath, "llama", executableName)
+    ];
 
-    for (const relative of candidates) {
-      const candidate = resolveAppPath(...relative.split(path.sep));
-
+    for (const candidate of candidates) {
       try {
         if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
           return candidate;
@@ -1245,28 +1245,6 @@ class LlamaServerManager {
       } catch {
         // Continue.
       }
-    }
-
-    try {
-      const command = process.platform === "win32" ? "where.exe" : "which";
-      const executableName =
-        process.platform === "win32" ? "llama-server.exe" : "llama-server";
-
-      const output = execFileSync(command, [executableName], {
-        encoding: "utf8",
-        windowsHide: true
-      }).trim();
-
-      if (output) {
-        return (
-          output
-            .split(/\r?\n/)
-            .map((item) => item.trim())
-            .find(Boolean) || null
-        );
-      }
-    } catch {
-      // Not in PATH.
     }
 
     return null;
@@ -1575,7 +1553,10 @@ class LlamaServerManager {
             "llama-server executable was not found.",
             "",
             "Expected:",
-            resolveAppPath("llama-server.exe")
+            resolveAppPath(
+              "llama",
+              process.platform === "win32" ? "llama-server.exe" : "llama-server"
+            )
           ].join("\n")
         );
 

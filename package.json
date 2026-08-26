@@ -53,7 +53,7 @@
       "src/**/*",
       "frontend/out/**/*",
       "models/**/*",
-      "llama-server*",
+      "llama/**/*",
       "!**/node_modules/*/{README.md,README,readme.md,readme}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
       "!**/node_modules/*.d.ts",
@@ -75,12 +75,8 @@
         ]
       },
       {
-        "from": "llama-server.exe",
-        "to": "."
-      },
-      {
-        "from": "llama-server",
-        "to": ".",
+        "from": "llama",
+        "to": "llama",
         "filter": [
           "**/*"
         ]
@@ -89,7 +85,7 @@
     "asar": true,
     "asarUnpack": [
       "models/**/*",
-      "llama-server*",
+      "llama/**/*",
       "*.dll",
       "*.exe",
       "*.node",
