@@ -1,269 +1,1518 @@
-import React, { useState, useRef } from "react";
-import { X, Upload, FileText, Image, Video, Mic, File, AlertCircle, CheckCircle } from "lucide-react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
+import {
+  X,
+  Upload,
+  FileText,
+  Image,
+  Video,
+  Mic,
+  File,
+  AlertCircle,
+  CheckCircle2,
+  FileJson,
+  FileSpreadsheet,
+  FileType2,
+  CloudUpload,
+  Plus,
+  Trash2,
+  Loader2,
+  Check,
+} from "lucide-react";
+
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+
+  "application/pdf",
+
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/json",
+
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+  "audio/mpeg",
+  "audio/wav",
+  "audio/ogg",
+  "audio/aac",
+
+  "video/mp4",
+  "video/avi",
+  "video/mov",
+  "video/webm",
+]);
+
+const ALLOWED_EXTENSIONS = /\.(txt|md|csv|json|doc|docx|xls|xlsx)$/i;
+
+const ACCEPT_ATTRIBUTE =
+  ".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.txt,.md,.csv,.json,.doc,.docx,.xls,.xlsx,.mp3,.wav,.ogg,.aac,.mp4,.avi,.mov,.webm";
+
+const FileUploadModal = ({
+  isOpen,
+  onClose,
+  onUpload,
+}) => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const fileInputRef = useRef(null);
+  const modalRef = useRef(null);
+  const dropZoneRef = useRef(null);
 
-  if (!isOpen) return null;
+  /* ---------------------------------------------------------------------- */
+  /* RESET                                                                   */
+  /* ---------------------------------------------------------------------- */
 
-  const handleFiles = async (files) => {
-    const fileArray = Array.from(files).filter(file => {
-      const allowedTypes = [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-        'application/pdf',
-        'text/plain', 'text/markdown', 'text/csv', 'application/json',
-        'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac',
-        'video/mp4', 'video/avi', 'video/mov', 'video/webm'
-      ];
-      
-      if (!allowedTypes.includes(file.type) && !file.name.match(/\.(txt|md|csv|json|doc|docx|xls|xlsx)$/i)) {
-        alert(`File type not supported: ${file.type || file.name}`);
-        return false;
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedFiles([]);
+      setDragActive(false);
+      setUploading(false);
+      setErrorMessage("");
+    }
+  }, [isOpen]);
+
+  /* ---------------------------------------------------------------------- */
+  /* KEYBOARD                                                                */
+  /* ---------------------------------------------------------------------- */
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && !uploading) {
+        onClose?.();
       }
-      
-      if (file.size > 100 * 1024 * 1024) {
-        alert(`File too large: ${file.name} (max 100MB)`);
-        return false;
-      }
-      
-      return true;
-    });
-    
-    setSelectedFiles(prev => [...prev, ...fileArray]);
-  };
+    };
 
-  const handleDrag = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (e.type === "dragenter" || e.type === "dragover") {
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, uploading, onClose]);
+
+  /* ---------------------------------------------------------------------- */
+  /* FILE VALIDATION                                                         */
+  /* ---------------------------------------------------------------------- */
+
+  const validateFile = useCallback((file) => {
+    if (!file) {
+      return {
+        valid: false,
+        reason: "Invalid file.",
+      };
+    }
+
+    const extensionAllowed =
+      ALLOWED_EXTENSIONS.test(file.name);
+
+    const mimeAllowed =
+      ALLOWED_MIME_TYPES.has(file.type);
+
+    if (!mimeAllowed && !extensionAllowed) {
+      return {
+        valid: false,
+        reason: `Unsupported file type: ${file.name}`,
+      };
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      return {
+        valid: false,
+        reason: `${file.name} exceeds the 100 MB limit.`,
+      };
+    }
+
+    return {
+      valid: true,
+    };
+  }, []);
+
+  /* ---------------------------------------------------------------------- */
+  /* ADD FILES                                                              */
+  /* ---------------------------------------------------------------------- */
+
+  const handleFiles = useCallback(
+    (files) => {
+      if (!files || uploading) return;
+
+      const incomingFiles = Array.from(files);
+
+      const validFiles = [];
+      const errors = [];
+
+      incomingFiles.forEach((file) => {
+        const validation = validateFile(file);
+
+        if (!validation.valid) {
+          errors.push(validation.reason);
+          return;
+        }
+
+        validFiles.push(file);
+      });
+
+      setSelectedFiles((previous) => {
+        const existingKeys = new Set(
+          previous.map(
+            (file) =>
+              `${file.name}-${file.size}-${file.lastModified}`
+          )
+        );
+
+        const uniqueIncoming = validFiles.filter(
+          (file) => {
+            const key = `${file.name}-${file.size}-${file.lastModified}`;
+
+            if (existingKeys.has(key)) {
+              return false;
+            }
+
+            existingKeys.add(key);
+            return true;
+          }
+        );
+
+        return [...previous, ...uniqueIncoming];
+      });
+
+      if (errors.length > 0) {
+        setErrorMessage(
+          errors.length === 1
+            ? errors[0]
+            : `${errors.length} files could not be added.`
+        );
+      } else {
+        setErrorMessage("");
+      }
+    },
+    [uploading, validateFile]
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* DRAG & DROP                                                             */
+  /* ---------------------------------------------------------------------- */
+
+  const handleDragEnter = useCallback((event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!uploading) {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    }
+  }, [uploading]);
+
+  const handleDragOver = useCallback((event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!uploading) {
+      event.dataTransfer.dropEffect = "copy";
+      setDragActive(true);
+    }
+  }, [uploading]);
+
+  const handleDragLeave = useCallback((event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (
+      event.currentTarget === event.target ||
+      !event.currentTarget.contains(event.relatedTarget)
+    ) {
       setDragActive(false);
     }
-  };
+  }, []);
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      handleFiles(files);
+  const handleDrop = useCallback(
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      setDragActive(false);
+
+      if (uploading) return;
+
+      const files = event.dataTransfer?.files;
+
+      if (files?.length) {
+        handleFiles(files);
+      }
+    },
+    [handleFiles, uploading]
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* FILE INPUT                                                              */
+  /* ---------------------------------------------------------------------- */
+
+  const handleFileInput = useCallback(
+    (event) => {
+      const files = event.target?.files;
+
+      if (files?.length) {
+        handleFiles(files);
+      }
+
+      // Allows selecting the same file again later.
+      event.target.value = "";
+    },
+    [handleFiles]
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* REMOVE FILE                                                             */
+  /* ---------------------------------------------------------------------- */
+
+  const removeFile = useCallback(
+    (index) => {
+      if (uploading) return;
+
+      setSelectedFiles((previous) =>
+        previous.filter((_, fileIndex) => fileIndex !== index)
+      );
+
+      setErrorMessage("");
+    },
+    [uploading]
+  );
+
+  const clearFiles = useCallback(() => {
+    if (uploading) return;
+
+    setSelectedFiles([]);
+    setErrorMessage("");
+  }, [uploading]);
+
+  /* ---------------------------------------------------------------------- */
+  /* FILE HELPERS                                                            */
+  /* ---------------------------------------------------------------------- */
+
+  const getFileIcon = useCallback((file) => {
+    const name = file?.name || "";
+    const type = file?.type || "";
+
+    if (type.startsWith("image/")) {
+      return <Image className="h-4 w-4" />;
     }
-  };
 
-  const handleFileInput = (e) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      handleFiles(files);
+    if (type.startsWith("video/")) {
+      return <Video className="h-4 w-4" />;
     }
-  };
 
-  const removeFile = (index) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const getFileIcon = (file) => {
-    if (file.type.startsWith('image/')) return <Image className="w-4 h-4 text-green-500" />;
-    if (file.type.startsWith('video/')) return <Video className="w-4 h-4 text-purple-500" />;
-    if (file.type.includes('pdf')) return <FileText className="w-4 h-4 text-red-500" />;
-    if (file.type.includes('audio')) return <Mic className="w-4 h-4 text-blue-500" />;
-    if (file.type.includes('text') || file.name.match(/\.(txt|md|csv|json)$/)) return <FileText className="w-4 h-4 text-orange-500" />;
-    return <File className="w-4 h-4 text-gray-500" />;
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  };
-
-  const handleUpload = () => {
-    if (selectedFiles.length > 0) {
-      setUploading(true);
-      setTimeout(() => {
-        onUpload(selectedFiles);
-        setSelectedFiles([]);
-        setUploading(false);
-        onClose();
-      }, 1000);
+    if (type.startsWith("audio/")) {
+      return <Mic className="h-4 w-4" />;
     }
-  };
 
-  const getFileTypeName = (file) => {
-    if (file.type.startsWith('image/')) return 'Image';
-    if (file.type.startsWith('video/')) return 'Video';
-    if (file.type.includes('pdf')) return 'PDF';
-    if (file.type.includes('audio')) return 'Audio';
-    if (file.type.includes('text') || file.name.match(/\.(txt|md)$/)) return 'Text';
-    if (file.name.match(/\.(csv)$/)) return 'CSV';
-    if (file.name.match(/\.(json)$/)) return 'JSON';
-    if (file.name.match(/\.(doc|docx)$/)) return 'Word Document';
-    if (file.name.match(/\.(xls|xlsx)$/)) return 'Excel Spreadsheet';
-    return 'Document';
-  };
+    if (type.includes("pdf")) {
+      return <FileText className="h-4 w-4" />;
+    }
+
+    if (
+      type.includes("json") ||
+      /\.json$/i.test(name)
+    ) {
+      return <FileJson className="h-4 w-4" />;
+    }
+
+    if (
+      type.includes("spreadsheet") ||
+      type.includes("excel") ||
+      /\.(xls|xlsx)$/i.test(name)
+    ) {
+      return <FileSpreadsheet className="h-4 w-4" />;
+    }
+
+    if (
+      type.includes("word") ||
+      /\.(doc|docx)$/i.test(name)
+    ) {
+      return <FileType2 className="h-4 w-4" />;
+    }
+
+    if (
+      type.startsWith("text/") ||
+      /\.(txt|md|csv)$/i.test(name)
+    ) {
+      return <FileText className="h-4 w-4" />;
+    }
+
+    return <File className="h-4 w-4" />;
+  }, []);
+
+  const getFileIconStyle = useCallback((file) => {
+    const type = file?.type || "";
+    const name = file?.name || "";
+
+    if (type.startsWith("image/")) {
+      return "bg-emerald-500/10 text-emerald-500";
+    }
+
+    if (type.startsWith("video/")) {
+      return "bg-violet-500/10 text-violet-500";
+    }
+
+    if (type.startsWith("audio/")) {
+      return "bg-blue-500/10 text-blue-500";
+    }
+
+    if (type.includes("pdf")) {
+      return "bg-red-500/10 text-red-500";
+    }
+
+    if (
+      type.includes("json") ||
+      /\.json$/i.test(name)
+    ) {
+      return "bg-amber-500/10 text-amber-500";
+    }
+
+    if (
+      type.includes("spreadsheet") ||
+      type.includes("excel") ||
+      /\.(xls|xlsx)$/i.test(name)
+    ) {
+      return "bg-green-500/10 text-green-600";
+    }
+
+    if (
+      type.includes("word") ||
+      /\.(doc|docx)$/i.test(name)
+    ) {
+      return "bg-blue-500/10 text-blue-600";
+    }
+
+    return "bg-gray-500/10 text-gray-500";
+  }, []);
+
+  const getFileTypeName = useCallback((file) => {
+    const type = file?.type || "";
+    const name = file?.name || "";
+
+    if (type.startsWith("image/")) return "Image";
+    if (type.startsWith("video/")) return "Video";
+    if (type.startsWith("audio/")) return "Audio";
+    if (type.includes("pdf")) return "PDF";
+
+    if (type.includes("json") || /\.json$/i.test(name)) {
+      return "JSON";
+    }
+
+    if (
+      type.includes("spreadsheet") ||
+      type.includes("excel") ||
+      /\.(xls|xlsx)$/i.test(name)
+    ) {
+      return "Spreadsheet";
+    }
+
+    if (
+      type.includes("word") ||
+      /\.(doc|docx)$/i.test(name)
+    ) {
+      return "Word";
+    }
+
+    if (type.includes("csv") || /\.csv$/i.test(name)) {
+      return "CSV";
+    }
+
+    if (
+      type.startsWith("text/") ||
+      /\.(txt|md)$/i.test(name)
+    ) {
+      return "Text";
+    }
+
+    return "Document";
+  }, []);
+
+  const formatFileSize = useCallback((bytes) => {
+    if (!Number.isFinite(bytes)) return "0 B";
+
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    }
+
+    if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    }
+
+    if (bytes < 1024 * 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    return `${(
+      bytes /
+      (1024 * 1024 * 1024)
+    ).toFixed(1)} GB`;
+  }, []);
+
+  /* ---------------------------------------------------------------------- */
+  /* SUMMARY                                                                 */
+  /* ---------------------------------------------------------------------- */
+
+  const totalSize = useMemo(
+    () =>
+      selectedFiles.reduce(
+        (total, file) => total + file.size,
+        0
+      ),
+    [selectedFiles]
+  );
+
+  const selectedCount = selectedFiles.length;
+
+  /* ---------------------------------------------------------------------- */
+  /* UPLOAD                                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  const handleUpload = useCallback(async () => {
+    if (
+      selectedFiles.length === 0 ||
+      uploading ||
+      typeof onUpload !== "function"
+    ) {
+      return;
+    }
+
+    setUploading(true);
+    setErrorMessage("");
+
+    try {
+      await Promise.resolve(
+        onUpload(selectedFiles)
+      );
+
+      setSelectedFiles([]);
+      setUploading(false);
+      onClose?.();
+    } catch (error) {
+      console.error(
+        "File upload failed:",
+        error
+      );
+
+      setUploading(false);
+
+      setErrorMessage(
+        error?.message ||
+          "Something went wrong while processing the files."
+      );
+    }
+  }, [
+    selectedFiles,
+    uploading,
+    onUpload,
+    onClose,
+  ]);
+
+  /* ---------------------------------------------------------------------- */
+  /* OUTSIDE CLICK                                                           */
+  /* ---------------------------------------------------------------------- */
+
+  const handleBackdropClick = useCallback(
+    (event) => {
+      if (
+        event.target === event.currentTarget &&
+        !uploading
+      ) {
+        onClose?.();
+      }
+    },
+    [uploading, onClose]
+  );
+
+  /* ---------------------------------------------------------------------- */
+  /* RENDER                                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  if (!isOpen) {
+    return null;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded">
-              <Upload className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+    <div
+      className="
+        fixed
+        inset-0
+        z-[100]
+        flex
+        items-center
+        justify-center
+        p-3
+        sm:p-4
+      "
+      role="presentation"
+      onMouseDown={handleBackdropClick}
+    >
+      {/* Backdrop */}
+      <div
+        className="
+          absolute
+          inset-0
+          bg-black/45
+          backdrop-blur-[6px]
+          dark:bg-black/60
+        "
+      />
+
+      {/* Modal */}
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="file-upload-title"
+        className="
+          relative
+          z-10
+          flex
+          max-h-[min(720px,calc(100vh-24px))]
+          w-full
+          max-w-xl
+          flex-col
+          overflow-hidden
+          rounded-2xl
+          border
+          border-gray-200/80
+          bg-white
+          shadow-2xl
+          shadow-black/20
+          dark:border-gray-700/80
+          dark:bg-gray-900
+          dark:shadow-black/50
+        "
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
+      >
+        {/* ================================================================ */}
+        {/* HEADER                                                           */}
+        {/* ================================================================ */}
+
+        <header
+          className="
+            flex
+            shrink-0
+            items-center
+            justify-between
+            border-b
+            border-gray-200/80
+            px-4
+            py-3.5
+            dark:border-gray-800
+            sm:px-5
+          "
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div
+              className="
+                flex
+                h-9
+                w-9
+                shrink-0
+                items-center
+                justify-center
+                rounded-xl
+                bg-blue-500/10
+                text-blue-600
+                ring-1
+                ring-blue-500/10
+                dark:bg-blue-500/15
+                dark:text-blue-400
+              "
+            >
+              <CloudUpload className="h-4.5 w-4.5" />
             </div>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 dark:text-white">
-                Upload Files
+
+            <div className="min-w-0">
+              <h2
+                id="file-upload-title"
+                className="
+                  truncate
+                  text-sm
+                  font-semibold
+                  tracking-tight
+                  text-gray-900
+                  dark:text-white
+                "
+              >
+                Upload files
               </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Add files to your message
+
+              <p
+                className="
+                  mt-0.5
+                  truncate
+                  text-[11px]
+                  text-gray-500
+                  dark:text-gray-400
+                "
+              >
+                Add documents and media to your conversation
               </p>
             </div>
           </div>
+
           <button
+            type="button"
             onClick={onClose}
             disabled={uploading}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
+            aria-label="Close upload dialog"
+            title="Close"
+            className="
+              flex
+              h-8
+              w-8
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-gray-400
+              transition-all
+              duration-150
+              hover:bg-gray-100
+              hover:text-gray-700
+              active:scale-95
+              disabled:pointer-events-none
+              disabled:opacity-40
+              dark:hover:bg-gray-800
+              dark:hover:text-gray-200
+              focus:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-blue-500
+            "
           >
-            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            <X className="h-4 w-4" />
           </button>
-        </div>
+        </header>
 
-        {/* Drag & Drop Area */}
+        {/* ================================================================ */}
+        {/* BODY                                                             */}
+        {/* ================================================================ */}
+
         <div
-          className={`border-2 border-dashed rounded-lg m-3 text-center transition-all duration-200 ${
-            dragActive 
-              ? "border-blue-400 bg-blue-50 dark:bg-blue-900/20" 
-              : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
-          } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
+          className="
+            min-h-0
+            flex-1
+            overflow-y-auto
+            overscroll-contain
+            p-3
+            sm:p-4
+          "
         >
-          <div className="p-4">
-            <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-900 dark:text-white font-medium text-sm mb-1">
-              Drag and drop files here
-            </p>
-            <p className="text-gray-500 dark:text-gray-400 text-xs mb-2">or</p>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded transition-colors text-xs"
+          {/* ============================================================ */}
+          {/* DROPZONE                                                       */}
+          {/* ============================================================ */}
+
+          <div
+            ref={dropZoneRef}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`
+              group
+              relative
+              overflow-hidden
+              rounded-xl
+              border
+              transition-all
+              duration-200
+              ${
+                dragActive
+                  ? `
+                    border-blue-500
+                    bg-blue-50/80
+                    shadow-lg
+                    shadow-blue-500/10
+                    dark:border-blue-400
+                    dark:bg-blue-950/30
+                  `
+                  : `
+                    border-dashed
+                    border-gray-300
+                    bg-gray-50/60
+                    hover:border-gray-400
+                    hover:bg-gray-50
+                    dark:border-gray-700
+                    dark:bg-gray-800/40
+                    dark:hover:border-gray-600
+                    dark:hover:bg-gray-800/70
+                  `
+              }
+              ${
+                uploading
+                  ? "pointer-events-none opacity-60"
+                  : ""
+              }
+            `}
+          >
+            {/* Active glow */}
+            {dragActive && (
+              <div
+                className="
+                  pointer-events-none
+                  absolute
+                  inset-0
+                  bg-blue-500/[0.04]
+                "
+              />
+            )}
+
+            <div
+              className="
+                relative
+                flex
+                flex-col
+                items-center
+                justify-center
+                px-4
+                py-7
+                text-center
+                sm:py-8
+              "
             >
-              <Upload className="w-3 h-3" />
-              Browse Files
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              onChange={handleFileInput}
-              className="hidden"
-              accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.pdf,.txt,.md,.csv,.json,.doc,.docx,.xls,.xlsx,.mp3,.wav,.ogg,.aac,.mp4,.avi,.mov,.webm"
-              disabled={uploading}
-            />
-            
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-              <div>Text, PDF, and DOCX files are processed locally</div>
-              <div>Images, audio, and video require a compatible model</div>
-              <div>Maximum file size: 100MB per file</div>
-            </div>
-          </div>
-        </div>
+              <div
+                className={`
+                  mb-3
+                  flex
+                  h-12
+                  w-12
+                  items-center
+                  justify-center
+                  rounded-2xl
+                  transition-all
+                  duration-300
+                  ${
+                    dragActive
+                      ? `
+                        scale-110
+                        bg-blue-500
+                        text-white
+                        shadow-lg
+                        shadow-blue-500/25
+                      `
+                      : `
+                        bg-white
+                        text-gray-400
+                        shadow-sm
+                        ring-1
+                        ring-gray-200
+                        group-hover:-translate-y-0.5
+                        group-hover:text-blue-500
+                        dark:bg-gray-800
+                        dark:text-gray-500
+                        dark:ring-gray-700
+                        dark:group-hover:text-blue-400
+                      `
+                  }
+                `}
+              >
+                {dragActive ? (
+                  <Upload className="h-5 w-5" />
+                ) : (
+                  <CloudUpload className="h-5 w-5" />
+                )}
+              </div>
 
-        {/* Selected Files List */}
-        {selectedFiles.length > 0 && (
-          <div className="mx-3 mb-3">
-            <h3 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Selected Files ({selectedFiles.length})
-            </h3>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-1.5 bg-gray-50 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600 text-xs">
-                  <div className="flex items-center gap-2">
-                    {getFileIcon(file)}
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-white truncate max-w-[150px]">
-                        {file.name}
-                      </div>
-                      <div className="text-gray-500 dark:text-gray-400">
-                        {getFileTypeName(file)} • {formatFileSize(file.size)}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => removeFile(index)}
-                    disabled={uploading}
-                    className="p-0.5 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+              <h3
+                className="
+                  text-sm
+                  font-semibold
+                  text-gray-800
+                  dark:text-gray-100
+                "
+              >
+                {dragActive
+                  ? "Drop your files here"
+                  : "Drag & drop files here"}
+              </h3>
 
-        {/* Upload Progress */}
-        {uploading && (
-          <div className="mx-3 mb-3">
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-2 text-xs">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                <div className="flex-1">
-                  <div className="font-medium text-yellow-900 dark:text-yellow-100">
-                    Processing Files...
-                  </div>
-                  <div className="text-yellow-700 dark:text-yellow-300">
-                    Please wait while we prepare your files
-                  </div>
-                </div>
+              <p
+                className="
+                  mt-1
+                  text-[11px]
+                  text-gray-500
+                  dark:text-gray-400
+                "
+              >
+                or choose files from your computer
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  fileInputRef.current?.click()
+                }
+                disabled={uploading}
+                className="
+                  mt-4
+                  inline-flex
+                  items-center
+                  gap-1.5
+                  rounded-lg
+                  bg-blue-600
+                  px-3.5
+                  py-2
+                  text-xs
+                  font-medium
+                  text-white
+                  shadow-sm
+                  shadow-blue-600/20
+                  transition-all
+                  duration-200
+                  hover:-translate-y-px
+                  hover:bg-blue-700
+                  hover:shadow-md
+                  active:translate-y-0
+                  disabled:pointer-events-none
+                  disabled:opacity-50
+                  focus:outline-none
+                  focus-visible:ring-2
+                  focus-visible:ring-blue-500
+                  focus-visible:ring-offset-2
+                  dark:focus-visible:ring-offset-gray-900
+                "
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Browse files
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ACCEPT_ATTRIBUTE}
+                onChange={handleFileInput}
+                disabled={uploading}
+                className="hidden"
+              />
+
+              <div
+                className="
+                  mt-4
+                  flex
+                  max-w-full
+                  flex-wrap
+                  items-center
+                  justify-center
+                  gap-x-3
+                  gap-y-1
+                  text-[9px]
+                  text-gray-400
+                  dark:text-gray-500
+                "
+              >
+                <span>100 MB max per file</span>
+                <span className="h-0.5 w-0.5 rounded-full bg-gray-300 dark:bg-gray-700" />
+                <span>Multiple files supported</span>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Actions */}
-        <div className="flex gap-2 p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg">
+          {/* ============================================================ */}
+          {/* ERROR                                                          */}
+          {/* ============================================================ */}
+
+          {errorMessage && (
+            <div
+              className="
+                mt-3
+                flex
+                items-start
+                gap-2.5
+                rounded-xl
+                border
+                border-red-200
+                bg-red-50
+                px-3
+                py-2.5
+                dark:border-red-900/60
+                dark:bg-red-950/20
+              "
+              role="alert"
+            >
+              <AlertCircle
+                className="
+                  mt-0.5
+                  h-4
+                  w-4
+                  shrink-0
+                  text-red-500
+                "
+              />
+
+              <p
+                className="
+                  min-w-0
+                  flex-1
+                  text-[11px]
+                  leading-relaxed
+                  text-red-700
+                  dark:text-red-300
+                "
+              >
+                {errorMessage}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setErrorMessage("")
+                }
+                className="
+                  shrink-0
+                  text-red-400
+                  hover:text-red-600
+                  dark:hover:text-red-300
+                "
+                aria-label="Dismiss error"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* SELECTED FILES HEADER                                         */}
+          {/* ============================================================ */}
+
+          {selectedCount > 0 && (
+            <div className="mt-4">
+              <div
+                className="
+                  mb-2
+                  flex
+                  min-w-0
+                  items-center
+                  justify-between
+                  gap-3
+                "
+              >
+                <div className="min-w-0">
+                  <div
+                    className="
+                      flex
+                      items-center
+                      gap-2
+                    "
+                  >
+                    <h3
+                      className="
+                        truncate
+                        text-xs
+                        font-semibold
+                        text-gray-800
+                        dark:text-gray-100
+                      "
+                    >
+                      Selected files
+                    </h3>
+
+                    <span
+                      className="
+                        rounded-md
+                        bg-gray-100
+                        px-1.5
+                        py-0.5
+                        text-[9px]
+                        font-medium
+                        text-gray-500
+                        dark:bg-gray-800
+                        dark:text-gray-400
+                      "
+                    >
+                      {selectedCount}
+                    </span>
+                  </div>
+
+                  <p
+                    className="
+                      mt-0.5
+                      text-[9px]
+                      text-gray-400
+                      dark:text-gray-500
+                    "
+                  >
+                    {formatFileSize(totalSize)} total
+                  </p>
+                </div>
+
+                {!uploading && (
+                  <button
+                    type="button"
+                    onClick={clearFiles}
+                    className="
+                      shrink-0
+                      rounded-md
+                      px-2
+                      py-1
+                      text-[10px]
+                      font-medium
+                      text-gray-400
+                      transition-colors
+                      hover:bg-red-50
+                      hover:text-red-500
+                      dark:hover:bg-red-950/30
+                    "
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              {/* ======================================================== */}
+              {/* FILE LIST                                                  */}
+              {/* ======================================================== */}
+
+              <div
+                className="
+                  max-h-52
+                  space-y-1.5
+                  overflow-y-auto
+                  overscroll-contain
+                  pr-0.5
+                "
+              >
+                {selectedFiles.map(
+                  (file, index) => (
+                    <div
+                      key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+                      className="
+                        group
+                        flex
+                        min-w-0
+                        items-center
+                        gap-2.5
+                        rounded-xl
+                        border
+                        border-gray-200/80
+                        bg-white
+                        px-2.5
+                        py-2
+                        transition-all
+                        duration-150
+                        hover:border-gray-300
+                        hover:shadow-sm
+                        dark:border-gray-800
+                        dark:bg-gray-800/60
+                        dark:hover:border-gray-700
+                      "
+                    >
+                      {/* Icon */}
+                      <div
+                        className={`
+                          flex
+                          h-8
+                          w-8
+                          shrink-0
+                          items-center
+                          justify-center
+                          rounded-lg
+                          ${getFileIconStyle(file)}
+                        `}
+                      >
+                        {getFileIcon(file)}
+                      </div>
+
+                      {/* File information */}
+                      <div className="min-w-0 flex-1">
+                        <div
+                          className="
+                            truncate
+                            text-[11px]
+                            font-medium
+                            text-gray-800
+                            dark:text-gray-100
+                          "
+                          title={file.name}
+                        >
+                          {file.name}
+                        </div>
+
+                        <div
+                          className="
+                            mt-0.5
+                            flex
+                            min-w-0
+                            items-center
+                            gap-1.5
+                            text-[9px]
+                            text-gray-400
+                            dark:text-gray-500
+                          "
+                        >
+                          <span>
+                            {getFileTypeName(file)}
+                          </span>
+
+                          <span className="h-0.5 w-0.5 shrink-0 rounded-full bg-gray-300 dark:bg-gray-700" />
+
+                          <span>
+                            {formatFileSize(file.size)}
+                          </span>
+
+                          <Check
+                            className="
+                              h-2.5
+                              w-2.5
+                              text-emerald-500
+                            "
+                          />
+                        </div>
+                      </div>
+
+                      {/* Remove */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeFile(index)
+                        }
+                        disabled={uploading}
+                        aria-label={`Remove ${file.name}`}
+                        title="Remove file"
+                        className="
+                          flex
+                          h-7
+                          w-7
+                          shrink-0
+                          items-center
+                          justify-center
+                          rounded-lg
+                          text-gray-400
+                          opacity-0
+                          transition-all
+                          duration-150
+                          hover:bg-red-50
+                          hover:text-red-500
+                          group-hover:opacity-100
+                          group-focus-within:opacity-100
+                          disabled:pointer-events-none
+                          disabled:opacity-30
+                          dark:hover:bg-red-950/30
+                          focus:opacity-100
+                          focus:outline-none
+                          focus-visible:ring-2
+                          focus-visible:ring-red-500
+                        "
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* PROCESSING                                                    */}
+          {/* ============================================================ */}
+
+          {uploading && (
+            <div
+              className="
+                mt-3
+                overflow-hidden
+                rounded-xl
+                border
+                border-blue-200
+                bg-blue-50/70
+                dark:border-blue-900/60
+                dark:bg-blue-950/20
+              "
+            >
+              <div className="flex items-center gap-3 px-3 py-2.5">
+                <div
+                  className="
+                    flex
+                    h-8
+                    w-8
+                    shrink-0
+                    items-center
+                    justify-center
+                    rounded-lg
+                    bg-blue-500/10
+                    text-blue-500
+                    dark:bg-blue-500/15
+                    dark:text-blue-400
+                  "
+                >
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="
+                      text-[11px]
+                      font-semibold
+                      text-blue-800
+                      dark:text-blue-200
+                    "
+                  >
+                    Processing files
+                  </p>
+
+                  <p
+                    className="
+                      mt-0.5
+                      truncate
+                      text-[9px]
+                      text-blue-600
+                      dark:text-blue-400
+                    "
+                  >
+                    Preparing {selectedCount}{" "}
+                    {selectedCount === 1
+                      ? "file"
+                      : "files"}{" "}
+                    for your conversation...
+                  </p>
+                </div>
+              </div>
+
+              <div className="h-0.5 w-full overflow-hidden bg-blue-100 dark:bg-blue-950">
+                <div
+                  className="
+                    h-full
+                    w-1/3
+                    animate-[fileUploadProgress_1.4s_ease-in-out_infinite]
+                    bg-blue-500
+                  "
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ============================================================ */}
+          {/* SUPPORTED TYPES                                               */}
+          {/* ============================================================ */}
+
+          <div
+            className="
+              mt-4
+              rounded-xl
+              border
+              border-gray-200/70
+              bg-gray-50/60
+              px-3
+              py-2.5
+              dark:border-gray-800
+              dark:bg-gray-800/30
+            "
+          >
+            <div
+              className="
+                flex
+                items-start
+                gap-2
+              "
+            >
+              <CheckCircle2
+                className="
+                  mt-0.5
+                  h-3.5
+                  w-3.5
+                  shrink-0
+                  text-emerald-500
+                "
+              />
+
+              <div className="min-w-0">
+                <p
+                  className="
+                    text-[10px]
+                    font-medium
+                    text-gray-700
+                    dark:text-gray-300
+                  "
+                >
+                  Supported files
+                </p>
+
+                <p
+                  className="
+                    mt-0.5
+                    text-[9px]
+                    leading-relaxed
+                    text-gray-400
+                    dark:text-gray-500
+                  "
+                >
+                  Text, Markdown, CSV, JSON, PDF, Word,
+                  Excel, images, audio, and video.
+                  Processing availability depends on the
+                  active model.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ================================================================ */}
+        {/* FOOTER                                                           */}
+        {/* ================================================================ */}
+
+        <footer
+          className="
+            flex
+            shrink-0
+            flex-col-reverse
+            gap-2
+            border-t
+            border-gray-200/80
+            bg-gray-50/70
+            p-3
+            dark:border-gray-800
+            dark:bg-gray-900
+            sm:flex-row
+            sm:items-center
+            sm:justify-end
+            sm:px-4
+            sm:py-3
+          "
+        >
           <button
+            type="button"
             onClick={onClose}
             disabled={uploading}
-            className="flex-1 px-3 py-1.5 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-500 rounded transition-colors disabled:opacity-50 text-xs"
+            className="
+              inline-flex
+              min-h-9
+              flex-1
+              items-center
+              justify-center
+              rounded-lg
+              border
+              border-gray-200
+              bg-white
+              px-3
+              py-2
+              text-xs
+              font-medium
+              text-gray-600
+              transition-all
+              duration-150
+              hover:bg-gray-50
+              hover:text-gray-900
+              active:scale-[0.99]
+              disabled:pointer-events-none
+              disabled:opacity-50
+              dark:border-gray-700
+              dark:bg-gray-800
+              dark:text-gray-300
+              dark:hover:bg-gray-750
+              dark:hover:text-white
+              sm:flex-none
+              sm:min-w-[100px]
+              focus:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-blue-500
+            "
           >
             Cancel
           </button>
+
           <button
+            type="button"
             onClick={handleUpload}
-            disabled={selectedFiles.length === 0 || uploading}
-            className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center justify-center gap-1 text-xs"
+            disabled={
+              selectedCount === 0 ||
+              uploading
+            }
+            className="
+              inline-flex
+              min-h-9
+              flex-1
+              items-center
+              justify-center
+              gap-1.5
+              rounded-lg
+              bg-blue-600
+              px-3
+              py-2
+              text-xs
+              font-medium
+              text-white
+              shadow-sm
+              shadow-blue-600/15
+              transition-all
+              duration-200
+              hover:-translate-y-px
+              hover:bg-blue-700
+              hover:shadow-md
+              active:translate-y-0
+              disabled:pointer-events-none
+              disabled:cursor-not-allowed
+              disabled:opacity-40
+              sm:flex-none
+              sm:min-w-[125px]
+              focus:outline-none
+              focus-visible:ring-2
+              focus-visible:ring-blue-500
+              focus-visible:ring-offset-2
+              dark:focus-visible:ring-offset-gray-900
+            "
           >
             {uploading ? (
               <>
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Processing...
               </>
             ) : (
               <>
-                <Upload className="w-3 h-3" />
-                Upload ({selectedFiles.length})
+                <Upload className="h-3.5 w-3.5" />
+                Upload
+                {selectedCount > 0 && (
+                  <span className="ml-0.5 rounded bg-white/15 px-1.5 py-0.5 text-[9px]">
+                    {selectedCount}
+                  </span>
+                )}
               </>
             )}
           </button>
-        </div>
+        </footer>
       </div>
+
+      {/* Self-contained progress animation */}
+      <style>
+        {`
+          @keyframes fileUploadProgress {
+            0% {
+              transform: translateX(-100%);
+            }
+
+            50% {
+              transform: translateX(150%);
+            }
+
+            100% {
+              transform: translateX(350%);
+            }
+          }
+        `}
+      </style>
     </div>
   );
 };

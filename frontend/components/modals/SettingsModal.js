@@ -1034,7 +1034,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           disabled={saving || deletingModelId !== null}
           className="
             px-4 py-2
-            bg-green-600 hover:bg-green-700
+            bg-emerald-600 hover:bg-emerald-500
             disabled:bg-gray-400
             text-white
             rounded-lg
@@ -1063,9 +1063,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const renderGeneralSettings = () => (
     <div className="space-y-6">
 
-      <div className="card p-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg font-semibold tracking-tight mb-4">
           Application Configuration
         </h3>
 
@@ -1076,7 +1076,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               API Key
             </label>
 
@@ -1140,7 +1140,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Server URL
             </label>
 
@@ -1174,7 +1174,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Model
             </label>
 
@@ -1203,7 +1203,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Theme
             </label>
 
@@ -1251,9 +1251,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
       {/* Active model */}
 
-      <div className="card p-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-        <h3 className="text-lg font-semibold mb-4">
+        <h3 className="text-lg font-semibold tracking-tight mb-4">
           Active Model
         </h3>
 
@@ -1318,9 +1318,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const renderPerformanceSettings = () => (
     <div className="space-y-6">
 
-      <div className="card p-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-        <h3 className="text-lg font-semibold mb-6">
+        <h3 className="text-lg font-semibold tracking-tight mb-6">
           Performance
         </h3>
 
@@ -1331,7 +1331,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               CPU Threads:{" "}
               {settings.performance.cpuThreads}
             </label>
@@ -1351,7 +1351,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   Number(event.target.value)
                 )
               }
-              className="w-full"
+              className="w-full accent-blue-600 cursor-pointer"
             />
 
           </div>
@@ -1361,7 +1361,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               GPU Layers:{" "}
               {settings.performance.gpuLayers}
             </label>
@@ -1402,7 +1402,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Context Size:{" "}
               {settings.performance.contextSize}
             </label>
@@ -1438,7 +1438,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Batch Size:{" "}
               {settings.performance.batchSize}
             </label>
@@ -1569,13 +1569,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
     return (
       <div className="space-y-6">
 
-        <div className="card p-6">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
           <div className="flex items-center justify-between mb-6">
 
             <div>
 
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-lg font-semibold tracking-tight">
                 Available Models
               </h3>
 
@@ -1636,13 +1636,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
                       ${
                         isActive
                           ? `
-                            border-blue-500
-                            bg-blue-50
-                            dark:bg-blue-900/20
+                            border-blue-500/70
+                            bg-blue-50/80
+                            shadow-md shadow-blue-500/10 dark:bg-blue-950/30
                           `
                           : `
-                            border-gray-200
-                            dark:border-gray-700
+                            border-slate-200 dark:border-slate-700/80
                             hover:border-gray-400
                             dark:hover:border-gray-500
                           `
@@ -1830,9 +1829,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
         {/* Active Model */}
 
-        <div className="card p-6">
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-          <h3 className="text-lg font-semibold mb-4">
+          <h3 className="text-lg font-semibold tracking-tight mb-4">
             Active Model
           </h3>
 
@@ -1844,8 +1843,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               border
               border-blue-200
               dark:border-blue-800
-              bg-blue-50
-              dark:bg-blue-900/20
+              bg-blue-50/80 dark:bg-blue-950/30
             ">
 
               <div className="font-medium">
@@ -1887,7 +1885,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             }
             className="
               px-4 py-2
-              bg-gray-600 hover:bg-gray-700
+              bg-slate-700 hover:bg-slate-600
               disabled:bg-gray-400
               text-white
               rounded-lg
@@ -1912,7 +1910,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             }
             className="
               px-4 py-2
-              bg-green-600 hover:bg-green-700
+              bg-emerald-600 hover:bg-emerald-500
               disabled:bg-gray-400
               text-white
               rounded-lg
@@ -1945,9 +1943,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const renderThemeSettings = () => (
     <div className="space-y-6">
 
-      <div className="card p-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-        <h3 className="text-lg font-semibold mb-6">
+        <h3 className="text-lg font-semibold tracking-tight mb-6">
           Appearance
         </h3>
 
@@ -2113,9 +2111,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const renderChatSettings = () => (
     <div className="space-y-6">
 
-      <div className="card p-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-        <h3 className="text-lg font-semibold mb-6">
+        <h3 className="text-lg font-semibold tracking-tight mb-6">
           Chat Generation
         </h3>
 
@@ -2126,7 +2124,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Max Tokens:{" "}
               {settings.chat.maxTokens}
             </label>
@@ -2162,7 +2160,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Temperature:{" "}
               {settings.chat.temperature}
             </label>
@@ -2182,7 +2180,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   Number(event.target.value)
                 )
               }
-              className="w-full"
+              className="w-full accent-blue-600 cursor-pointer"
             />
 
           </div>
@@ -2192,7 +2190,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Top P:{" "}
               {settings.chat.topP}
             </label>
@@ -2212,7 +2210,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   Number(event.target.value)
                 )
               }
-              className="w-full"
+              className="w-full accent-blue-600 cursor-pointer"
             />
 
           </div>
@@ -2222,7 +2220,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Top K:{" "}
               {settings.chat.topK}
             </label>
@@ -2258,7 +2256,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Context Window:{" "}
               {settings.chat.contextWindow}
             </label>
@@ -2300,7 +2298,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
             <label
               htmlFor="chat-memory-mode"
-              className="block text-sm font-medium mb-2"
+              className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2"
             >
               Conversation Memory
             </label>
@@ -2371,7 +2369,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               System Prompt
             </label>
 
@@ -2426,9 +2424,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const renderUISettings = () => (
     <div className="space-y-6">
 
-      <div className="card p-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-        <h3 className="text-lg font-semibold mb-6">
+        <h3 className="text-lg font-semibold tracking-tight mb-6">
           Interface
         </h3>
 
@@ -2439,7 +2437,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Font Size:{" "}
               {settings.ui.fontSize}px
             </label>
@@ -2459,7 +2457,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   Number(event.target.value)
                 )
               }
-              className="w-full"
+              className="w-full accent-blue-600 cursor-pointer"
             />
 
           </div>
@@ -2469,7 +2467,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           <div>
 
-            <label className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
               Sidebar Width:{" "}
               {settings.ui.sidebarWidth}px
             </label>
@@ -2489,7 +2487,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   Number(event.target.value)
                 )
               }
-              className="w-full"
+              className="w-full accent-blue-600 cursor-pointer"
             />
 
           </div>
@@ -2636,9 +2634,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
   const renderSecuritySettings = () => (
     <div className="space-y-6">
 
-      <div className="card p-6">
+      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
-        <h3 className="text-lg font-semibold mb-6">
+        <h3 className="text-lg font-semibold tracking-tight mb-6">
           Security
         </h3>
 
@@ -2795,14 +2793,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
       <div className="
         fixed
         inset-0
-        bg-black
-        bg-opacity-50
-        flex
-        items-center
-        justify-center
-        z-50
-        p-4
-        backdrop-blur-sm
+        bg-slate-950/70 flex items-center justify-center z-50 p-4 sm:p-6 backdrop-blur-md
       ">
 
         <div className="
@@ -2908,15 +2899,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
     ">
 
       <div className="
-        bg-white
-        dark:bg-gray-800
-        rounded-xl
-        w-full
-        max-w-6xl
-        max-h-[90vh]
-        overflow-hidden
-        flex
-        flex-col
+        bg-white/95 dark:bg-slate-950/95 rounded-3xl border border-white/20 dark:border-slate-700/70 w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl shadow-slate-950/20 dark:shadow-black/40 backdrop-blur-xl
       ">
 
 
@@ -2926,10 +2909,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
           flex
           items-center
           justify-between
-          p-6
-          border-b
-          border-gray-200
-          dark:border-gray-700
+          p-5 sm:p-6
+          border-b border-slate-200 dark:border-slate-800
         ">
 
           <div className="
@@ -3064,9 +3045,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
         <div className="
           flex
-          border-b
-          border-gray-200
-          dark:border-gray-700
+          border-b border-slate-200 dark:border-slate-800
           overflow-x-auto
         ">
 
