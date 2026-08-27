@@ -1,25 +1,41 @@
 {
   "apiKey": "0316",
   "serverUrl": "http://localhost:8080",
-  "model": "SmolLM2-135M-Instruct-Q2_K",
+  "model": "SmolLM2-135M-Instruct-Q4_K_M",
   "activeModel": {
-    "id": "SmolLM2-135M-Instruct-Q2_K",
-    "fileName": "SmolLM2-135M-Instruct-Q2_K.gguf",
+    "id": "SmolLM2-135M-Instruct-Q4_K_M",
+    "fileName": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
+    "path": "D:\\OffyAi\\models\\SmolLM2-135M-Instruct-Q4_K_M.gguf",
     "type": "local",
-    "name": "SmolLM2-135M-Instruct-Q2_K",
-    "path": "models/SmolLM2-135M-Instruct-Q2_K.gguf"
+    "name": "SmolLM2-135M-Instruct-Q4_K_M",
+    "size": "100.57 MB",
+    "sizeBytes": 105454144,
+    "format": "gguf",
+    "created": "2026-08-27T10:52:56.689Z",
+    "modified": "2026-08-19T08:34:07.000Z",
+    "isDirectory": false,
+    "uploadedAt": "2026-08-27T10:52:57.109Z"
   },
   "remoteModels": [],
   "availableModels": [
     {
       "id": "SmolLM2-135M-Instruct-Q2_K",
       "fileName": "SmolLM2-135M-Instruct-Q2_K.gguf",
-      "size": "0.13 GB",
+      "size": "84.12 MB",
       "uploadedAt": "2025-10-26T05:54:56.997Z",
+      "type": "local",
+      "sizeBytes": 88202080
+    },
+    {
+      "id": "SmolLM2-135M-Instruct-Q4_K_M",
+      "fileName": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
+      "size": "100.57 MB",
+      "sizeBytes": 105454144,
+      "uploadedAt": "2026-08-27T10:52:57.109Z",
       "type": "local"
     }
   ],
-  "theme": "dark",
+  "theme": "system",
   "performance": {
     "lowMemoryMode": false,
     "maxMemoryUsage": 2048,
@@ -83,11 +99,11 @@
     "tooltipDelay": 500
   },
   "security": {
-    "autoClearHistory": false,
+    "autoClearHistory": true,
     "autoClearInterval": 24,
     "secureMode": false,
     "encryptLocalData": true,
-    "clearOnExit": false,
+    "clearOnExit": true,
     "sessionTimeout": 60,
     "requireAuth": false,
     "twoFactorAuth": false,
@@ -131,5 +147,6 @@
     "debugMode": false,
     "performanceMode": false,
     "hardwareAcceleration": true
-  }
+  },
+  "modelType": "local"
 }

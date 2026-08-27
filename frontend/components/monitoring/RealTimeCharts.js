@@ -1,59 +1,77 @@
-import { PerformanceLineChart } from './LineChart';
-import { DonutChart } from './DonutChart';
-import { COLORS } from '../../utils/constants';
+import { PerformanceLineChart } from "./LineChart";
+import { DonutChart } from "./DonutChart";
 
-export const RealTimeCharts = ({ history, metrics }) => {
-  // Prepare data for charts
-  const tokenDistribution = [
-    { name: 'Prompt Tokens', value: metrics.contextLength || 0 },
-    { name: 'Completion Tokens', value: metrics.tokensGenerated || 0 },
-  ];
+export const RealTimeCharts = ({
+  history,
+  metrics,
+}) => {
+  const chartData =
+    Array.isArray(history)
+      ? history
+      : [];
 
   const systemUsage = [
-    { name: 'CPU', value: metrics.cpu || 0 },
-    { name: 'Memory', value: metrics.memory || 0 },
-    { name: 'GPU', value: metrics.gpu || 0 },
+    {
+      name: "CPU",
+      value:
+        typeof metrics?.cpu === "number"
+          ? metrics.cpu
+          : null,
+    },
+    {
+      name: "Memory",
+      value:
+        typeof metrics?.memory === "number"
+          ? metrics.memory
+          : null,
+    },
+    ...(metrics?.gpuAvailable &&
+    typeof metrics?.gpu === "number"
+      ? [
+          {
+            name: "GPU",
+            value: metrics.gpu,
+          },
+        ]
+      : []),
   ];
-
-  // Prepare chart data with proper timestamp field
-  const prepareChartData = (historyData) => {
-    if (!historyData || historyData.length === 0) {
-      return [];
-    }
-    
-    return historyData.map((item, index) => ({
-      ...item,
-      timestamp: item.timestamp || new Date(Date.now() - (historyData.length - index) * 2000).toISOString()
-    }));
-  };
-
-  const chartData = prepareChartData(history);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <PerformanceLineChart
         data={chartData}
-        dataKey="tokensPerSecond"
-        color={COLORS.primary}
-        title="Tokens per Second"
+        dataKeys={[
+          {
+            key: "cpu",
+            name: "CPU",
+            color: "#3b82f6",
+          },
+          {
+            key: "memory",
+            name: "Memory",
+            color: "#10b981",
+          },
+          ...(metrics?.gpuAvailable
+            ? [
+                {
+                  key: "gpu",
+                  name: "GPU",
+                  color: "#8b5cf6",
+                },
+              ]
+            : []),
+        ]}
+        title="System Usage Over Time"
+        unit="%"
       />
-      
-      <PerformanceLineChart
-        data={chartData}
-        dataKey="responseTimeMs"
-        color={COLORS.success}
-        title="Response Time (ms)"
-      />
-      
+
       <DonutChart
-        data={tokenDistribution.filter(item => item.value > 0)}
-        title="Token Distribution"
-      />
-      
-      <DonutChart
-        data={systemUsage.filter(item => item.value > 0)}
-        title="System Usage (%)"
+        data={systemUsage}
+        title="Current System Usage"
+        unit="%"
       />
     </div>
   );
 };
+
+export default RealTimeCharts;

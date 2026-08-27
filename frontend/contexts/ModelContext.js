@@ -415,13 +415,24 @@ export const ModelProvider = ({
           /*
            * Tell main.js about the active model.
            */
-          await modelsAPI.setActive(
+          const result =
+            await modelsAPI.setActive(
             modelId,
             model.type || "local",
             model.config ||
               model.modelConfig ||
               null
-          );
+            );
+
+          if (
+            result &&
+            result.success === false
+          ) {
+            throw new Error(
+              result.error ||
+                "Unable to activate the selected model."
+            );
+          }
 
           if (
             !mountedRef.current

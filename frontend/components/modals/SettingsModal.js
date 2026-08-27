@@ -16,9 +16,9 @@ import {
   Shield,
   Moon,
   Sun,
-  Server,
   FolderOpen,
-  RotateCcw
+  RotateCcw,
+  Trash2
 } from "lucide-react";
 
 import { useTheme } from "../../contexts/ThemeContext";
@@ -47,6 +47,7 @@ import { useModel } from "../../contexts/ModelContext";
 |
 |   window.electronAPI.restartLlamaServer()
 |   window.electronAPI.openModelsFolder()
+|   window.electronAPI.deleteModel(model)
 |
 |--------------------------------------------------------------------------
 */
@@ -66,6 +67,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  /*
+   * Tracks the model currently being deleted.
+   *
+   * null means no model deletion is in progress.
+   */
+  const [deletingModelId, setDeletingModelId] = useState(null);
 
   const [message, setMessage] = useState({
     type: "",
@@ -452,6 +460,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
       const verifiedSettings =
         await window.electronAPI.getSettings();
 
+      if (
+        !verifiedSettings ||
+        typeof verifiedSettings !== "object" ||
+        Array.isArray(verifiedSettings)
+      ) {
+        throw new Error(
+          "Saved settings could not be read back from settings.json."
+        );
+      }
+
       setSettings(verifiedSettings);
 
       if (verifiedSettings.theme) {
@@ -549,6 +567,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
       const verifiedSettings =
         await window.electronAPI.getSettings();
 
+      if (
+        !verifiedSettings ||
+        typeof verifiedSettings !== "object" ||
+        Array.isArray(verifiedSettings)
+      ) {
+        throw new Error(
+          "Settings could not be read after restart."
+        );
+      }
+
       setSettings(verifiedSettings);
 
       if (verifiedSettings.theme) {
@@ -601,39 +629,34 @@ const SettingsModal = ({ isOpen, onClose }) => {
         );
       }
 
-      const nextSettings = {
-        ...settings,
-
-        model: model.id,
-
-        activeModel: {
-          ...model
-        }
-      };
-
-      /*
-       * Write model selection to settings.json.
-       */
-      requireElectronAPI();
-
-      if (
-        typeof window.electronAPI.saveSettings !==
-        "function"
-      ) {
-        throw new Error(
-          "window.electronAPI.saveSettings() is not implemented."
-        );
-      }
-
-      await window.electronAPI.saveSettings(
-        nextSettings
-      );
+      await setActiveModel(model);
 
       /*
        * Read the actual file.
        */
+      requireElectronAPI();
+
+      if (
+        typeof window.electronAPI.getSettings !==
+        "function"
+      ) {
+        throw new Error(
+          "window.electronAPI.getSettings() is not implemented."
+        );
+      }
+
       const verifiedSettings =
         await window.electronAPI.getSettings();
+
+      if (
+        !verifiedSettings ||
+        typeof verifiedSettings !== "object" ||
+        Array.isArray(verifiedSettings)
+      ) {
+        throw new Error(
+          "Saved settings could not be read back from settings.json."
+        );
+      }
 
       setSettings(verifiedSettings);
 
@@ -688,6 +711,234 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
   /*
   |--------------------------------------------------------------------------
+  | DELETE MODEL
+  |--------------------------------------------------------------------------
+  |
+  | The renderer must NOT directly manipulate the model filesystem.
+  |
+  | Instead:
+  |
+  | React
+  |   ↓
+  | electronAPI.deleteModel(model)
+  |   ↓
+  | Electron main process
+  |   ↓
+  | Delete model file
+  |   ↓
+  | Update settings.json
+  |   ↓
+  | Return result
+  |   ↓
+  | getSettings()
+  |   ↓
+  | React
+  |
+  |--------------------------------------------------------------------------
+  */
+
+  const handleDeleteModel = async (model) => {
+    if (!model) {
+      return;
+    }
+
+    /*
+     * Never allow deletion while another operation is running.
+     */
+    if (saving || deletingModelId !== null) {
+      return;
+    }
+
+    /*
+     * Determine model ID safely.
+     */
+    const modelId = model.id;
+
+    if (!modelId) {
+      showMessage(
+        "error",
+        "Cannot delete a model without a model ID."
+      );
+
+      return;
+    }
+
+    /*
+     * Do not allow the active model to be deleted.
+     *
+     * The user should first select another model.
+     */
+    if (
+      settings?.activeModel?.id &&
+      settings.activeModel.id === modelId
+    ) {
+      showMessage(
+        "error",
+        "You cannot delete the active model. Select another model first."
+      );
+
+      return;
+    }
+
+    /*
+     * Display name for the confirmation dialog.
+     */
+    const modelName =
+      model.name ||
+      model.fileName ||
+      model.id;
+
+    /*
+     * Native confirmation is intentional here.
+     *
+     * Deleting a model is destructive.
+     */
+    const confirmed = window.confirm(
+      `Delete "${modelName}"?\n\n` +
+      `This will permanently delete the model file from the models folder ` +
+      `and remove it from settings.json.\n\n` +
+      `This action cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingModelId(modelId);
+
+      requireElectronAPI();
+
+      /*
+       * Verify the Electron API exists.
+       */
+      if (
+        typeof window.electronAPI.deleteModel !==
+        "function"
+      ) {
+        throw new Error(
+          "window.electronAPI.deleteModel() is not implemented."
+        );
+      }
+
+      /*
+       * Call Electron.
+       *
+       * Electron is responsible for:
+       *
+       *   1. validating the model
+       *   2. validating the filesystem path
+       *   3. deleting the actual model file
+       *   4. removing the model from settings.json
+       */
+      const result =
+        await window.electronAPI.deleteModel(
+          model
+        );
+
+      /*
+       * Support APIs that return:
+       *
+       *   { success: true }
+       *
+       * or
+       *
+       *   { success: false, error: "..." }
+       */
+      if (
+        result &&
+        typeof result === "object" &&
+        result.success === false
+      ) {
+        throw new Error(
+          result.error ||
+            "Failed to delete model."
+        );
+      }
+
+      /*
+       * Read the actual settings.json again.
+       *
+       * We do not manually remove the model from React state.
+       *
+       * settings.json remains the single source of truth.
+       */
+      if (
+        typeof window.electronAPI.getSettings !==
+        "function"
+      ) {
+        throw new Error(
+          "window.electronAPI.getSettings() is not implemented."
+        );
+      }
+
+      const verifiedSettings =
+        await window.electronAPI.getSettings();
+
+      if (
+        !verifiedSettings ||
+        typeof verifiedSettings !== "object" ||
+        Array.isArray(verifiedSettings)
+      ) {
+        throw new Error(
+          "Model was deleted, but settings.json could not be read back."
+        );
+      }
+
+      setSettings(verifiedSettings);
+
+      /*
+       * Synchronize theme if necessary.
+       */
+      if (verifiedSettings.theme) {
+        setTheme(verifiedSettings.theme);
+      }
+
+      /*
+       * If the backend returned an active model,
+       * synchronize ModelContext.
+       */
+      if (
+        typeof setActiveModel === "function" &&
+        verifiedSettings.activeModel
+      ) {
+        try {
+          await setActiveModel(
+            verifiedSettings.activeModel
+          );
+        } catch (contextError) {
+          console.warn(
+            "Model context update after deletion failed:",
+            contextError
+          );
+        }
+      }
+
+      showMessage(
+        "success",
+        `"${modelName}" was deleted successfully.`
+      );
+
+    } catch (error) {
+      console.error(
+        "Failed to delete model:",
+        error
+      );
+
+      showMessage(
+        "error",
+        error?.message ||
+          "Failed to delete model."
+      );
+
+    } finally {
+      setDeletingModelId(null);
+    }
+  };
+
+
+  /*
+  |--------------------------------------------------------------------------
   | Open models folder
   |--------------------------------------------------------------------------
   */
@@ -733,10 +984,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
     showRestart = false
   }) => (
     <div className="flex flex-wrap gap-3 pt-4">
+
       <button
         type="button"
         onClick={onClose}
-        disabled={saving}
+        disabled={saving || deletingModelId !== null}
         className="
           px-4 py-2
           text-gray-700 dark:text-gray-300
@@ -750,10 +1002,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
         Cancel
       </button>
 
+
       <button
         type="button"
         onClick={handleSave}
-        disabled={saving}
+        disabled={saving || deletingModelId !== null}
         className="
           px-4 py-2
           bg-blue-600 hover:bg-blue-700
@@ -773,11 +1026,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
         {saving ? "Saving..." : label}
       </button>
 
+
       {showRestart && (
         <button
           type="button"
           onClick={handleApplyAndRestart}
-          disabled={saving}
+          disabled={saving || deletingModelId !== null}
           className="
             px-4 py-2
             bg-green-600 hover:bg-green-700
@@ -795,6 +1049,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             : "Apply & Restart"}
         </button>
       )}
+
     </div>
   );
 
@@ -809,20 +1064,24 @@ const SettingsModal = ({ isOpen, onClose }) => {
     <div className="space-y-6">
 
       <div className="card p-6">
+
         <h3 className="text-lg font-semibold mb-4">
           Application Configuration
         </h3>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* API Key */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               API Key
             </label>
 
             <div className="relative">
+
               <input
                 type={
                   showApiKey
@@ -849,6 +1108,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 "
               />
 
+
               <button
                 type="button"
                 onClick={() =>
@@ -870,13 +1130,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   <Eye className="w-4 h-4" />
                 )}
               </button>
+
             </div>
+
           </div>
 
 
           {/* Server URL */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Server URL
             </label>
@@ -903,12 +1166,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 text-gray-900 dark:text-white
               "
             />
+
           </div>
 
 
           {/* Model ID */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Model
             </label>
@@ -930,12 +1195,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <p className="text-xs text-gray-500 mt-1">
               Select the active model from the Models tab.
             </p>
+
           </div>
 
 
           {/* Theme */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Theme
             </label>
@@ -947,7 +1214,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   event.target.value
                 )
               }
-              disabled={saving}
+              disabled={saving || deletingModelId !== null}
               className="
                 w-full
                 px-3 py-2
@@ -960,6 +1227,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 text-gray-900 dark:text-white
               "
             >
+
               <option value="light">
                 Light
               </option>
@@ -971,26 +1239,32 @@ const SettingsModal = ({ isOpen, onClose }) => {
               <option value="system">
                 System
               </option>
+
             </select>
+
           </div>
 
         </div>
+
       </div>
 
 
       {/* Active model */}
 
       <div className="card p-6">
+
         <h3 className="text-lg font-semibold mb-4">
           Active Model
         </h3>
 
         {settings.activeModel ? (
+
           <div className="
             rounded-lg
             border border-gray-200 dark:border-gray-700
             p-4
           ">
+
             <div className="font-medium">
               {settings.activeModel.name ||
                 settings.activeModel.id}
@@ -1015,16 +1289,22 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <div className="text-sm text-gray-500">
               Type: {settings.activeModel.type}
             </div>
+
           </div>
+
         ) : (
+
           <div className="text-gray-500">
             No active model configured.
           </div>
+
         )}
+
       </div>
 
 
       <SaveButtons />
+
     </div>
   );
 
@@ -1039,15 +1319,18 @@ const SettingsModal = ({ isOpen, onClose }) => {
     <div className="space-y-6">
 
       <div className="card p-6">
+
         <h3 className="text-lg font-semibold mb-6">
           Performance
         </h3>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* CPU Threads */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               CPU Threads:{" "}
               {settings.performance.cpuThreads}
@@ -1070,12 +1353,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
               className="w-full"
             />
+
           </div>
 
 
           {/* GPU Layers */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               GPU Layers:{" "}
               {settings.performance.gpuLayers}
@@ -1109,12 +1394,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <p className="text-xs text-gray-500 mt-1">
               0 means CPU-only inference.
             </p>
+
           </div>
 
 
           {/* Context Size */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Context Size:{" "}
               {settings.performance.contextSize}
@@ -1143,12 +1430,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 text-gray-900 dark:text-white
               "
             />
+
           </div>
 
 
           {/* Batch Size */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Batch Size:{" "}
               {settings.performance.batchSize}
@@ -1177,6 +1466,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 text-gray-900 dark:text-white
               "
             />
+
           </div>
 
         </div>
@@ -1187,6 +1477,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           {/* mmap */}
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -1210,12 +1501,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Memory Mapping (mmap)
             </span>
+
           </label>
 
 
           {/* mlock */}
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -1239,6 +1532,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Lock Model Memory (mlock)
             </span>
+
           </label>
 
         </div>
@@ -1276,8 +1570,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
       <div className="space-y-6">
 
         <div className="card p-6">
+
           <div className="flex items-center justify-between mb-6">
+
             <div>
+
               <h3 className="text-lg font-semibold">
                 Available Models
               </h3>
@@ -1285,7 +1582,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
               <p className="text-sm text-gray-500 mt-1">
                 Models currently listed in settings.json.
               </p>
+
             </div>
+
 
             <div className="
               text-sm
@@ -1298,10 +1597,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 ? ""
                 : "s"}
             </div>
+
           </div>
 
 
           {availableModels.length === 0 ? (
+
             <div className="
               text-center
               py-10
@@ -1309,25 +1610,25 @@ const SettingsModal = ({ isOpen, onClose }) => {
             ">
               No models are listed in settings.json.
             </div>
+
           ) : (
+
             <div className="space-y-3">
 
               {availableModels.map((model) => {
+
                 const isActive =
                   settings.activeModel?.id ===
                   model.id;
 
+                const isDeleting =
+                  deletingModelId === model.id;
+
                 return (
-                  <button
+                  <div
                     key={model.id}
-                    type="button"
-                    onClick={() =>
-                      handleSetActiveModel(model)
-                    }
-                    disabled={saving}
                     className={`
                       w-full
-                      text-left
                       p-4
                       border
                       rounded-lg
@@ -1346,17 +1647,43 @@ const SettingsModal = ({ isOpen, onClose }) => {
                             dark:hover:border-gray-500
                           `
                       }
-                      disabled:opacity-50
                     `}
                   >
-                    <div className="flex items-center justify-between">
 
-                      <div className="min-w-0">
+                    <div className="
+                      flex
+                      items-start
+                      justify-between
+                      gap-4
+                    ">
+
+                      {/* Model information */}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSetActiveModel(model)
+                        }
+                        disabled={
+                          saving ||
+                          deletingModelId !== null
+                        }
+                        className="
+                          flex-1
+                          min-w-0
+                          text-left
+                          disabled:opacity-50
+                          disabled:cursor-not-allowed
+                        "
+                      >
 
                         <div className="font-medium">
+
                           {model.name ||
                             model.id}
+
                         </div>
+
 
                         <div className="
                           text-sm
@@ -1364,9 +1691,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
                           mt-1
                           break-all
                         ">
+
                           {model.fileName ||
                             model.id}
+
                         </div>
+
 
                         <div className="
                           text-xs
@@ -1375,6 +1705,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                           flex flex-wrap
                           gap-3
                         ">
+
                           {model.type && (
                             <span>
                               Type: {model.type}
@@ -1393,38 +1724,120 @@ const SettingsModal = ({ isOpen, onClose }) => {
                               {model.uploadedAt}
                             </span>
                           )}
+
                         </div>
+
+                      </button>
+
+
+                      {/* Right-side actions */}
+
+                      <div className="
+                        flex
+                        items-center
+                        gap-2
+                        flex-shrink-0
+                      ">
+
+                        {isActive && (
+                          <CheckCircle
+                            className="
+                              w-5 h-5
+                              text-green-500
+                            "
+                            title="Active model"
+                          />
+                        )}
+
+
+                        {/* Delete */}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteModel(model)
+                          }
+                          disabled={
+                            saving ||
+                            deletingModelId !== null ||
+                            isActive
+                          }
+                          title={
+                            isActive
+                              ? "Select another model before deleting this model"
+                              : "Delete model"
+                          }
+                          className="
+                            inline-flex
+                            items-center
+                            justify-center
+                            gap-2
+                            px-3
+                            py-2
+                            rounded-lg
+                            border
+                            border-red-200
+                            dark:border-red-800
+                            bg-red-50
+                            dark:bg-red-900/20
+                            text-red-600
+                            dark:text-red-400
+                            hover:bg-red-100
+                            dark:hover:bg-red-900/40
+                            hover:border-red-300
+                            dark:hover:border-red-700
+                            disabled:opacity-40
+                            disabled:cursor-not-allowed
+                            transition-colors
+                          "
+                        >
+
+                          {isDeleting ? (
+                            <RefreshCw
+                              className="
+                                w-4 h-4
+                                animate-spin
+                              "
+                            />
+                          ) : (
+                            <Trash2
+                              className="w-4 h-4"
+                            />
+                          )}
+
+                          <span className="hidden sm:inline">
+                            {isDeleting
+                              ? "Deleting..."
+                              : "Delete"}
+                          </span>
+
+                        </button>
 
                       </div>
 
-
-                      {isActive && (
-                        <CheckCircle
-                          className="
-                            w-5 h-5
-                            text-green-500
-                            flex-shrink-0
-                            ml-4
-                          "
-                        />
-                      )}
-
                     </div>
-                  </button>
+
+                  </div>
                 );
               })}
 
             </div>
+
           )}
+
         </div>
 
 
+        {/* Active Model */}
+
         <div className="card p-6">
+
           <h3 className="text-lg font-semibold mb-4">
             Active Model
           </h3>
 
           {settings.activeModel ? (
+
             <div className="
               p-4
               rounded-lg
@@ -1434,6 +1847,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               bg-blue-50
               dark:bg-blue-900/20
             ">
+
               <div className="font-medium">
                 {settings.activeModel.name ||
                   settings.activeModel.id}
@@ -1446,21 +1860,31 @@ const SettingsModal = ({ isOpen, onClose }) => {
               <div className="text-xs text-gray-500 mt-1 break-all">
                 {settings.activeModel.path}
               </div>
+
             </div>
+
           ) : (
+
             <div className="text-gray-500">
               No active model.
             </div>
+
           )}
+
         </div>
 
+
+        {/* Model actions */}
 
         <div className="flex flex-wrap gap-3">
 
           <button
             type="button"
             onClick={handleOpenModelsFolder}
-            disabled={saving}
+            disabled={
+              saving ||
+              deletingModelId !== null
+            }
             className="
               px-4 py-2
               bg-gray-600 hover:bg-gray-700
@@ -1471,14 +1895,21 @@ const SettingsModal = ({ isOpen, onClose }) => {
               flex items-center gap-2
             "
           >
+
             <FolderOpen className="w-4 h-4" />
+
             Open Models Folder
+
           </button>
+
 
           <button
             type="button"
             onClick={handleApplyAndRestart}
-            disabled={saving}
+            disabled={
+              saving ||
+              deletingModelId !== null
+            }
             className="
               px-4 py-2
               bg-green-600 hover:bg-green-700
@@ -1489,8 +1920,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
               flex items-center gap-2
             "
           >
+
             <RotateCcw className="w-4 h-4" />
-            Apply & Restart
+
+            {saving
+              ? "Applying..."
+              : "Apply & Restart"}
+
           </button>
 
         </div>
@@ -1510,15 +1946,22 @@ const SettingsModal = ({ isOpen, onClose }) => {
     <div className="space-y-6">
 
       <div className="card p-6">
+
         <h3 className="text-lg font-semibold mb-6">
           Appearance
         </h3>
 
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          {/* Light */}
 
           <button
             type="button"
-            disabled={saving}
+            disabled={
+              saving ||
+              deletingModelId !== null
+            }
             onClick={() =>
               handleThemeChange("light")
             }
@@ -1542,6 +1985,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
             `}
           >
+
             <Sun className="
               w-8 h-8
               mx-auto
@@ -1552,12 +1996,18 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <div className="font-medium">
               Light
             </div>
+
           </button>
 
 
+          {/* Dark */}
+
           <button
             type="button"
-            disabled={saving}
+            disabled={
+              saving ||
+              deletingModelId !== null
+            }
             onClick={() =>
               handleThemeChange("dark")
             }
@@ -1581,6 +2031,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
             `}
           >
+
             <Moon className="
               w-8 h-8
               mx-auto
@@ -1591,12 +2042,18 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <div className="font-medium">
               Dark
             </div>
+
           </button>
 
 
+          {/* System */}
+
           <button
             type="button"
-            disabled={saving}
+            disabled={
+              saving ||
+              deletingModelId !== null
+            }
             onClick={() =>
               handleThemeChange("system")
             }
@@ -1620,6 +2077,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
             `}
           >
+
             <Monitor className="
               w-8 h-8
               mx-auto
@@ -1630,9 +2088,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <div className="font-medium">
               System
             </div>
+
           </button>
 
         </div>
+
       </div>
 
 
@@ -1654,15 +2114,18 @@ const SettingsModal = ({ isOpen, onClose }) => {
     <div className="space-y-6">
 
       <div className="card p-6">
+
         <h3 className="text-lg font-semibold mb-6">
           Chat Generation
         </h3>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* Max Tokens */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Max Tokens:{" "}
               {settings.chat.maxTokens}
@@ -1691,12 +2154,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 text-gray-900 dark:text-white
               "
             />
+
           </div>
 
 
           {/* Temperature */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Temperature:{" "}
               {settings.chat.temperature}
@@ -1719,12 +2184,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
               className="w-full"
             />
+
           </div>
 
 
           {/* Top P */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Top P:{" "}
               {settings.chat.topP}
@@ -1747,12 +2214,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
               className="w-full"
             />
+
           </div>
 
 
           {/* Top K */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Top K:{" "}
               {settings.chat.topK}
@@ -1781,12 +2250,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 text-gray-900 dark:text-white
               "
             />
+
           </div>
 
 
           {/* Context Window */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Context Window:{" "}
               {settings.chat.contextWindow}
@@ -1815,6 +2286,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 text-gray-900 dark:text-white
               "
             />
+
           </div>
 
         </div>
@@ -1825,6 +2297,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           {/* Stream */}
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -1848,12 +2321,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Stream Responses
             </span>
+
           </label>
 
 
           {/* System Prompt */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               System Prompt
             </label>
@@ -1883,6 +2358,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 resize-y
               "
             />
+
           </div>
 
         </div>
@@ -1909,15 +2385,18 @@ const SettingsModal = ({ isOpen, onClose }) => {
     <div className="space-y-6">
 
       <div className="card p-6">
+
         <h3 className="text-lg font-semibold mb-6">
           Interface
         </h3>
+
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
           {/* Font size */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Font Size:{" "}
               {settings.ui.fontSize}px
@@ -1940,12 +2419,14 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
               className="w-full"
             />
+
           </div>
 
 
           {/* Sidebar */}
 
           <div>
+
             <label className="block text-sm font-medium mb-2">
               Sidebar Width:{" "}
               {settings.ui.sidebarWidth}px
@@ -1968,6 +2449,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               }
               className="w-full"
             />
+
           </div>
 
         </div>
@@ -1976,6 +2458,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         <div className="mt-8 space-y-5">
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -1999,10 +2482,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Compact Mode
             </span>
+
           </label>
 
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -2026,10 +2511,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Show Timestamps
             </span>
+
           </label>
 
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -2053,10 +2540,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Smooth Scrolling
             </span>
+
           </label>
 
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -2080,9 +2569,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Hover Effects
             </span>
+
           </label>
 
         </div>
+
       </div>
 
 
@@ -2104,13 +2595,16 @@ const SettingsModal = ({ isOpen, onClose }) => {
     <div className="space-y-6">
 
       <div className="card p-6">
+
         <h3 className="text-lg font-semibold mb-6">
           Security
         </h3>
 
+
         <div className="space-y-6">
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -2134,10 +2628,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Encrypt Local Data
             </span>
+
           </label>
 
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -2161,10 +2657,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Auto-clear Chat History
             </span>
+
           </label>
 
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -2188,10 +2686,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Clear Data on Exit
             </span>
+
           </label>
 
 
           <label className="flex items-center">
+
             <input
               type="checkbox"
               checked={
@@ -2215,9 +2715,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <span className="ml-2 text-sm">
               Block Tracking
             </span>
+
           </label>
 
         </div>
+
       </div>
 
 
@@ -2260,6 +2762,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         p-4
         backdrop-blur-sm
       ">
+
         <div className="
           bg-white
           dark:bg-gray-800
@@ -2271,6 +2774,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
           items-center
           gap-3
         ">
+
           <RefreshCw
             className="
               w-6 h-6
@@ -2285,7 +2789,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
           ">
             Loading settings.json...
           </span>
+
         </div>
+
       </div>
     );
   }
@@ -2371,6 +2877,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         flex-col
       ">
 
+
         {/* Header */}
 
         <div className="
@@ -2395,6 +2902,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               dark:bg-blue-900/30
               rounded-lg
             ">
+
               <SettingsIcon
                 className="
                   w-6 h-6
@@ -2402,9 +2910,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   dark:text-blue-400
                 "
               />
+
             </div>
 
+
             <div>
+
               <h2 className="
                 text-xl
                 font-semibold
@@ -2421,6 +2932,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
               ">
                 Loaded directly from settings.json
               </p>
+
             </div>
 
           </div>
@@ -2429,7 +2941,10 @@ const SettingsModal = ({ isOpen, onClose }) => {
           <button
             type="button"
             onClick={onClose}
-            disabled={saving}
+            disabled={
+              saving ||
+              deletingModelId !== null
+            }
             className="
               p-2
               hover:bg-gray-100
@@ -2439,11 +2954,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
               disabled:opacity-50
             "
           >
+
             <X className="
               w-5 h-5
               text-gray-500
               dark:text-gray-400
             " />
+
           </button>
 
         </div>
@@ -2512,6 +3029,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         ">
 
           {tabs.map((tab) => {
+
             const Icon = tab.icon;
 
             return (
@@ -2521,7 +3039,10 @@ const SettingsModal = ({ isOpen, onClose }) => {
                 onClick={() =>
                   setActiveTab(tab.id)
                 }
-                disabled={saving}
+                disabled={
+                  saving ||
+                  deletingModelId !== null
+                }
                 className={`
                   flex
                   items-center
@@ -2550,8 +3071,11 @@ const SettingsModal = ({ isOpen, onClose }) => {
                   }
                 `}
               >
+
                 <Icon className="w-4 h-4" />
+
                 {tab.label}
+
               </button>
             );
           })}
@@ -2591,6 +3115,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
         </div>
 
       </div>
+
     </div>
   );
 };

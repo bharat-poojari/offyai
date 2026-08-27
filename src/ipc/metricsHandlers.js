@@ -1,3 +1,5 @@
+"use strict";
+
 const { ipcMain } = require("electron");
 const axios = require("axios");
 const si = require("systeminformation");
@@ -7,289 +9,533 @@ const path = require("path");
 const LLAMA_SERVER_URL = "http://localhost:8080";
 const SETTINGS_FILE = path.join(__dirname, "../../settings.json");
 
+/* ============================================================================
+ * SETTINGS / MODEL
+ * ========================================================================== */
+
 function getActiveModelFromSettings() {
   try {
-    if (fs.existsSync(SETTINGS_FILE)) {
-      const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf8"));
-      if (settings.activeModel) {
-        return {
-          model: settings.activeModel.id || settings.activeModel.name,
-          modelName: settings.activeModel.name || settings.activeModel.id
-        };
-      } else if (settings.model) {
-        return {
-          model: settings.model,
-          modelName: settings.model
-        };
-      }
+    if (!fs.existsSync(SETTINGS_FILE)) {
+      return null;
+    }
+
+    const settings = JSON.parse(
+      fs.readFileSync(SETTINGS_FILE, "utf8")
+    );
+
+    if (
+      settings &&
+      settings.activeModel &&
+      typeof settings.activeModel === "object"
+    ) {
+      const model = settings.activeModel;
+
+      return {
+        model:
+          model.id ||
+          model.name ||
+          model.fileName ||
+          null,
+
+        modelName:
+          model.name ||
+          model.id ||
+          model.fileName ||
+          null,
+      };
+    }
+
+    if (
+      settings &&
+      typeof settings.model === "string" &&
+      settings.model.trim()
+    ) {
+      return {
+        model: settings.model,
+        modelName: settings.model,
+      };
     }
   } catch (error) {
-    console.error("Error reading settings for active model:", error);
+    console.error(
+      "[Metrics] Failed to read active model from settings:",
+      error
+    );
   }
+
   return null;
 }
 
-async function fetchModelInfo() {
-  try {
-    // Try llama.cpp /api/tags endpoint
-    const response = await axios.get(`${LLAMA_SERVER_URL}/api/tags`, {
-      timeout: 1500
-    });
-    if (response?.data?.models && response.data.models.length > 0) {
-      const model = response.data.models[0];
-      return {
-        model: model.name || null,
-        modelName: model.name ? model.name.split(/[\\/]/).pop().replace(".bin", "").replace(".gguf", "") : null
-      };
-    }
-  } catch (e) {
-    console.log("Llama /api/tags endpoint failed, trying alternatives...");
+function normalizeModelName(value) {
+  if (
+    typeof value !== "string" ||
+    !value.trim()
+  ) {
+    return null;
   }
 
-  // Try OpenAI-compatible /v1/models endpoint
-  try {
-    const response = await axios.get(`${LLAMA_SERVER_URL}/v1/models`, {
-      timeout: 1500
-    });
-    if (response?.data?.data && response.data.data.length > 0) {
-      const model = response.data.data[0];
-      const modelId = model.id || model.name || null;
-      return {
-        model: modelId,
-        modelName: modelId ? modelId.split(/[\\/]/).pop().replace(".bin", "").replace(".gguf", "") : null
-      };
-    }
-  } catch (e) {
-    console.log("OpenAI /v1/models endpoint failed...");
-  }
-
-  // Try simple /model endpoint
-  try {
-    const response = await axios.get(`${LLAMA_SERVER_URL}/model`, {
-      timeout: 1500
-    });
-    if (response?.data?.model) {
-      const model = response.data.model;
-      return {
-        model: model,
-        modelName: model ? model.split(/[\\/]/).pop().replace(".bin", "").replace(".gguf", "") : null
-      };
-    }
-  } catch (e) {
-    console.log("Simple /model endpoint failed");
-  }
-
-  // Fallback to settings
-  const settingsModel = getActiveModelFromSettings();
-  if (settingsModel) {
-    console.log("Using model from settings:", settingsModel);
-    return settingsModel;
-  }
-
-  return { model: null, modelName: null };
+  return value
+    .split(/[\\/]/)
+    .pop()
+    .replace(/\.(gguf|bin|ggml)$/i, "")
+    .trim();
 }
 
-async function sampleCpuPercent(samples = 120) {
+async function fetchServerModel() {
   try {
-    const loads = [];
-    for (let i = 0; i < Math.min(samples, 10); i++) {
-      const load = await si.currentLoad();
-      loads.push(load.currentLoad);
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    return loads.reduce((a, b) => a + b, 0) / loads.length;
-  } catch (error) {
-    console.error("Error sampling CPU:", error);
-    return 0;
-  }
-}
-
-async function getGpuUtilization() {
-  try {
-    const graphics = await si.graphics();
-    if (graphics.controllers && graphics.controllers.length > 0) {
-      const gpu = graphics.controllers[0];
-      return {
-        gpu: gpu.utilizationGpu || 0,
-        available: true,
-        model: gpu.model
-      };
-    }
-    return { gpu: 0, available: false };
-  } catch (error) {
-    return { gpu: 0, available: false };
-  }
-}
-
-function setupMetricsHandlers() {
-  // Get real-time metrics
-  ipcMain.handle("metrics:realtime", async (event, sessionId) => {
-    try {
-      const cpuLoad = await sampleCpuPercent(120);
-      const memory = await si.mem();
-      const graphics = await si.graphics().catch(() => ({ controllers: [] }));
-      const temperature = await si.cpuTemperature().catch(() => ({ main: 0 }));
-      const modelInfo = await fetchModelInfo();
-
-      const memoryUsage = memory.total > 0 ? ((memory.total - memory.available) / memory.total * 100) : 0;
-
-      let gpuUsage = 0;
-      let gpuAvailable = false;
-      let gpuTemperature = 0;
-
-      if (graphics.controllers && graphics.controllers.length > 0) {
-        gpuAvailable = true;
-        const gpu = graphics.controllers[0];
-        gpuUsage = gpu.utilizationGpu || 0;
-        gpuTemperature = gpu.temperatureGpu || 0;
+    const response = await axios.get(
+      `${LLAMA_SERVER_URL}/v1/models`,
+      {
+        timeout: 1500,
       }
+    );
 
-      // Get model info with fallbacks
-      let modelName = "Unknown Model";
-      let modelId = "unknown";
+    const models = response?.data?.data;
 
-      if (modelInfo.modelName && modelInfo.modelName !== "unknown") {
-        modelName = modelInfo.modelName;
-        modelId = modelInfo.model || "unknown";
-      } else if (modelInfo.model && modelInfo.model !== "unknown") {
-        modelName = modelInfo.model.split(/[\\/]/).pop().replace(".bin", "").replace(".gguf", "").replace(/-/g, " ");
-        modelId = modelInfo.model;
-      } else {
-        const settingsModel = getActiveModelFromSettings();
-        if (settingsModel) {
-          modelName = settingsModel.modelName;
-          modelId = settingsModel.model;
-        }
-      }
+    if (
+      Array.isArray(models) &&
+      models.length > 0
+    ) {
+      const model = models[0];
 
-      // Format model name for display
-      modelName = modelName
-        .replace(/-/g, " ")
-        .replace(/\b\w/g, (l) => l.toUpperCase())
-        .replace(/\.(gguf|bin|ggml)$/i, "");
+      const modelId =
+        model?.id ||
+        model?.name ||
+        null;
 
-      const metrics = {
-        cpu: Math.round(10 * cpuLoad) / 10,
-        memory: Math.round(10 * memoryUsage) / 10,
-        gpu: Math.round(10 * gpuUsage) / 10,
-        gpuAvailable: gpuAvailable,
-        temperature: parseFloat(temperature.main?.toFixed(1) || "0"),
-        gpuTemperature: parseFloat(gpuTemperature.toFixed(1)),
-        tokensPerSecond: 0,
-        responseTimeMs: 0,
-        tokensGenerated: 0,
-        contextLength: 0,
-        model: modelId,
-        modelName: modelName,
-        sessionId: sessionId || null,
-        timestamp: new Date().toISOString(),
-        system: {
-          platform: process.platform,
-          arch: process.arch,
-          nodeVersion: process.version,
-          uptime: process.uptime()
-        }
-      };
-
-      return metrics;
-    } catch (error) {
-      console.error("❌ Metrics endpoint error:", error?.message || error);
-
-      const settingsModel = getActiveModelFromSettings();
-      const fallbackModel = settingsModel ? {
-        model: settingsModel.model,
-        modelName: settingsModel.modelName.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())
-      } : { model: "unknown", modelName: "Unknown Model" };
-
-      return {
-        cpu: 0,
-        memory: 0,
-        gpu: 0,
-        gpuAvailable: false,
-        temperature: 0,
-        gpuTemperature: 0,
-        tokensPerSecond: 0,
-        responseTimeMs: 0,
-        tokensGenerated: 0,
-        contextLength: 0,
-        ...fallbackModel,
-        sessionId: null,
-        timestamp: new Date().toISOString(),
-        system: {
-          platform: process.platform,
-          arch: process.arch,
-          nodeVersion: process.version,
-          uptime: process.uptime()
-        }
-      };
-    }
-  });
-
-  // Get AI status
-  ipcMain.handle("ai:status", async () => {
-    try {
-      const response = await axios.get(`${LLAMA_SERVER_URL}/health`, {
-        timeout: 10000
-      });
-
-      return {
-        connected: response.status === 200,
-        url: LLAMA_SERVER_URL,
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      return {
-        connected: false,
-        url: LLAMA_SERVER_URL,
-        error: error.message,
-        timestamp: new Date().toISOString()
-      };
-    }
-  });
-
-  // Get system info
-  ipcMain.handle("system:info", async () => {
-    try {
-      const [cpu, memory, currentLoad, graphics] = await Promise.all([
-        si.cpu(),
-        si.mem(),
-        si.currentLoad(),
-        si.graphics().catch(() => ({ controllers: [] }))
-      ]);
-
-      let gpuInfo = { utilization: 0, available: false };
-
-      if (graphics.controllers && graphics.controllers.length > 0) {
-        gpuInfo = {
-          utilization: graphics.controllers[0].utilizationGpu || 0,
-          available: true,
-          model: graphics.controllers[0].model
+      if (modelId) {
+        return {
+          model: modelId,
+          modelName: normalizeModelName(modelId),
         };
       }
-
-      return {
-        cpu: {
-          manufacturer: cpu.manufacturer,
-          brand: cpu.brand,
-          cores: cpu.cores,
-          speed: cpu.speed,
-          usage: currentLoad.currentLoad
-        },
-        memory: {
-          total: memory.total,
-          available: memory.available,
-          used: memory.used,
-          usage: (memory.used / memory.total * 100)
-        },
-        gpu: gpuInfo,
-        platform: process.platform,
-        arch: process.arch
-      };
-    } catch (error) {
-      console.error("Error getting system info:", error);
-      return { error: "Failed to get system information" };
     }
-  });
+  } catch (error) {
+    // Server model information is optional.
+    // Settings remain the authoritative fallback.
+  }
+
+  return null;
 }
 
-module.exports = { setupMetricsHandlers };
+async function getModelInfo() {
+  /*
+   * The active model in application settings is authoritative because
+   * it represents the model selected by the application.
+   */
+  const settingsModel =
+    getActiveModelFromSettings();
+
+  if (settingsModel) {
+    return {
+      model:
+        settingsModel.model,
+      modelName:
+        normalizeModelName(
+          settingsModel.modelName ||
+          settingsModel.model
+        ),
+    };
+  }
+
+  /*
+   * If settings are unavailable, use the actual model exposed
+   * by the running OpenAI-compatible server.
+   */
+  const serverModel =
+    await fetchServerModel();
+
+  if (serverModel) {
+    return serverModel;
+  }
+
+  return {
+    model: null,
+    modelName: null,
+  };
+}
+
+/* ============================================================================
+ * NUMBER HELPERS
+ * ========================================================================== */
+
+function finiteNumber(value) {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : null;
+}
+
+function rounded(value, decimals = 1) {
+  const number = finiteNumber(value);
+
+  if (number === null) {
+    return null;
+  }
+
+  return Number(
+    number.toFixed(decimals)
+  );
+}
+
+/* ============================================================================
+ * CPU
+ * ========================================================================== */
+
+async function getCpuUsage() {
+  try {
+    const load =
+      await si.currentLoad();
+
+    return rounded(
+      load?.currentLoad
+    );
+  } catch (error) {
+    console.error(
+      "[Metrics] CPU usage error:",
+      error?.message || error
+    );
+
+    return null;
+  }
+}
+
+/* ============================================================================
+ * MEMORY
+ * ========================================================================== */
+
+async function getMemoryUsage() {
+  try {
+    const memory =
+      await si.mem();
+
+    if (
+      !memory ||
+      !Number.isFinite(memory.total) ||
+      memory.total <= 0 ||
+      !Number.isFinite(memory.available)
+    ) {
+      return null;
+    }
+
+    const used =
+      memory.total -
+      memory.available;
+
+    const usage =
+      (used / memory.total) * 100;
+
+    return rounded(usage);
+  } catch (error) {
+    console.error(
+      "[Metrics] Memory usage error:",
+      error?.message || error
+    );
+
+    return null;
+  }
+}
+
+/* ============================================================================
+ * GPU
+ * ========================================================================== */
+
+async function getGpuMetrics() {
+  try {
+    const graphics =
+      await si.graphics();
+
+    const controllers =
+      Array.isArray(graphics?.controllers)
+        ? graphics.controllers
+        : [];
+
+    if (controllers.length === 0) {
+      return {
+        available: false,
+        usage: null,
+        temperature: null,
+        model: null,
+      };
+    }
+
+    /*
+     * Use the first controller exposed by systeminformation.
+     * This matches the application's existing GPU implementation.
+     */
+    const gpu =
+      controllers[0];
+
+    const usage =
+      finiteNumber(
+        gpu?.utilizationGpu
+      );
+
+    const temperature =
+      finiteNumber(
+        gpu?.temperatureGpu
+      );
+
+    return {
+      available: true,
+      usage:
+        usage === null
+          ? null
+          : rounded(usage),
+
+      temperature:
+        temperature === null
+          ? null
+          : rounded(temperature),
+
+      model:
+        typeof gpu?.model === "string" &&
+        gpu.model.trim()
+          ? gpu.model.trim()
+          : null,
+    };
+  } catch (error) {
+    console.error(
+      "[Metrics] GPU metrics error:",
+      error?.message || error
+    );
+
+    return {
+      available: false,
+      usage: null,
+      temperature: null,
+      model: null,
+    };
+  }
+}
+
+/* ============================================================================
+ * CPU TEMPERATURE
+ * ========================================================================== */
+
+async function getCpuTemperature() {
+  try {
+    const temperature =
+      await si.cpuTemperature();
+
+    const main =
+      finiteNumber(
+        temperature?.main
+      );
+
+    return main === null
+      ? null
+      : rounded(main);
+  } catch (error) {
+    /*
+     * CPU temperature is not available on every platform.
+     * Returning null is intentional and means "not provided".
+     */
+    return null;
+  }
+}
+
+/* ============================================================================
+ * REAL-TIME METRICS
+ * ========================================================================== */
+
+async function collectRealtimeMetrics() {
+  const [
+    cpu,
+    memory,
+    gpu,
+    temperature,
+    modelInfo,
+  ] = await Promise.all([
+    getCpuUsage(),
+    getMemoryUsage(),
+    getGpuMetrics(),
+    getCpuTemperature(),
+    getModelInfo(),
+  ]);
+
+  return {
+    cpu,
+    memory,
+
+    gpu:
+      gpu.available
+        ? gpu.usage
+        : null,
+
+    gpuAvailable:
+      gpu.available,
+
+    temperature,
+
+    gpuTemperature:
+      gpu.available
+        ? gpu.temperature
+        : null,
+
+    gpuModel:
+      gpu.available
+        ? gpu.model
+        : null,
+
+    model:
+      modelInfo.model,
+
+    modelName:
+      modelInfo.modelName,
+
+    timestamp:
+      new Date().toISOString(),
+
+    system: {
+      platform:
+        process.platform,
+
+      arch:
+        process.arch,
+
+      nodeVersion:
+        process.version,
+
+      uptime:
+        process.uptime(),
+    },
+  };
+}
+
+/* ============================================================================
+ * IPC HANDLERS
+ * ========================================================================== */
+
+function setupMetricsHandlers() {
+  /*
+   * Prevent duplicate handler registration when Electron reloads or
+   * reinitializes the IPC layer.
+   */
+  try {
+    ipcMain.removeHandler(
+      "metrics:realtime"
+    );
+  } catch (error) {
+    // No previous handler.
+  }
+
+  try {
+    ipcMain.removeHandler(
+      "ai:status"
+    );
+  } catch (error) {
+    // No previous handler.
+  }
+
+  /* ------------------------------------------------------------------------
+   * REAL-TIME SYSTEM METRICS
+   * ---------------------------------------------------------------------- */
+
+  ipcMain.handle(
+    "metrics:realtime",
+    async (_event, _sessionId) => {
+      try {
+        return await collectRealtimeMetrics();
+      } catch (error) {
+        console.error(
+          "[Metrics] Realtime metrics error:",
+          error?.message || error
+        );
+
+        /*
+         * Do not manufacture zeros for failed measurements.
+         * Null explicitly means the application could not obtain
+         * that metric.
+         */
+        const modelInfo =
+          getActiveModelFromSettings();
+
+        return {
+          cpu: null,
+          memory: null,
+          gpu: null,
+          gpuAvailable: false,
+          temperature: null,
+          gpuTemperature: null,
+          gpuModel: null,
+
+          model:
+            modelInfo?.model ||
+            null,
+
+          modelName:
+            normalizeModelName(
+              modelInfo?.modelName ||
+              modelInfo?.model
+            ),
+
+          timestamp:
+            new Date().toISOString(),
+
+          system: {
+            platform:
+              process.platform,
+
+            arch:
+              process.arch,
+
+            nodeVersion:
+              process.version,
+
+            uptime:
+              process.uptime(),
+          },
+        };
+      }
+    }
+  );
+
+  /* ------------------------------------------------------------------------
+   * AI SERVER STATUS
+   * ---------------------------------------------------------------------- */
+
+  ipcMain.handle(
+    "ai:status",
+    async () => {
+      try {
+        const response =
+          await axios.get(
+            `${LLAMA_SERVER_URL}/health`,
+            {
+              timeout: 5000,
+            }
+          );
+
+        return {
+          connected:
+            response.status === 200,
+
+          url:
+            LLAMA_SERVER_URL,
+
+          timestamp:
+            new Date().toISOString(),
+        };
+      } catch (error) {
+        return {
+          connected: false,
+
+          url:
+            LLAMA_SERVER_URL,
+
+          error:
+            error?.message ||
+            "Unable to connect to AI server.",
+
+          timestamp:
+            new Date().toISOString(),
+        };
+      }
+    }
+  );
+}
+
+module.exports = {
+  setupMetricsHandlers,
+};

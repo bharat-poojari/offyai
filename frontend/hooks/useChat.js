@@ -33,6 +33,31 @@ const normalizeAttachments = (attachments) => {
   return attachments.filter(Boolean);
 };
 
+const fileToBase64 = async (file) => {
+  if (!file || typeof file.arrayBuffer !== "function") {
+    throw new Error("Unable to read the selected attachment.");
+  }
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, offset + chunkSize)
+    );
+  }
+
+  return btoa(binary);
+};
+
+const serializeAttachment = async (file) => ({
+  name: file?.name || "attachment",
+  type: file?.type || "application/octet-stream",
+  size: Number(file?.size) || 0,
+  data: await fileToBase64(file),
+});
+
 export const useChat = () => {
   const [chatSessions, setChatSessions] = useLocalStorage(
     CHAT_HISTORY_KEY,
@@ -361,18 +386,16 @@ export const useChat = () => {
       const normalizedAttachments =
         normalizeAttachments(attachments);
 
-      /*
-       * IMPORTANT:
-       *
-       * An attachment-only message is currently not supported by the
-       * llama.cpp chat handler because it requires a textual `message`.
-       *
-       * Therefore require actual text here.
-       */
-      if (!normalizedText) {
+      if (!normalizedText && normalizedAttachments.length === 0) {
         setError("Message cannot be empty");
         return false;
       }
+
+      const effectiveText =
+        normalizedText ||
+        (normalizedAttachments.length > 0
+          ? "Please analyze the attached file(s)."
+          : "");
 
       const sessionId = currentSessionIdRef.current;
 
@@ -411,7 +434,7 @@ export const useChat = () => {
       const userMessage = {
         id: userMessageId,
         role: "user",
-        content: normalizedText,
+        content: effectiveText,
         timestamp: new Date().toISOString(),
         model,
 
@@ -733,321 +756,150 @@ export const useChat = () => {
          */
 
         if (isElectronEnvironment()) {
-  const electronAPI = window.electronAPI;
-
-  if (
-    !electronAPI ||
-    typeof electronAPI.sendChatMessageStreaming !== "function"
-  ) {
-    throw new Error(
-      "Electron streaming API is unavailable."
-    );
-  }
-
-  /*
-   * ------------------------------------------------------------
-   * BUILD SERIALIZABLE HISTORY
-   * ------------------------------------------------------------
-   */
-
-  const currentSession =
-    Array.isArray(chatSessions)
-      ? chatSessions.find(
-          (session) =>
-            session.id === sessionId
-        )
-      : null;
-
-  const history = Array.isArray(
-    currentSession?.messages
-  )
-    ? currentSession.messages
-        .filter(
-          (message) =>
-            message &&
-            (
-              message.role === "user" ||
-              message.role === "assistant" ||
-              message.role === "system"
-            )
-        )
-        .map((message) => ({
-          role: message.role,
-          content:
-            typeof message.content === "string"
-              ? message.content
-              : String(
-                  message.content ?? ""
-                ),
-        }))
-        .filter(
-          (message) =>
-            message.content.trim().length > 0
-        )
-    : [];
-
-  /*
-   * The user message was just inserted into React state.
-   * React state updates are asynchronous, so explicitly make
-   * sure the current message exists in the request history.
-   */
-  const lastHistoryMessage =
-    history[history.length - 1];
-
-  if (
-    !lastHistoryMessage ||
-    lastHistoryMessage.role !== "user" ||
-    lastHistoryMessage.content !==
-      normalizedText
-  ) {
-    history.push({
-      role: "user",
-      content: normalizedText,
-    });
-  }
-
-  /*
-   * ONLY send serializable attachment metadata through IPC.
-   */
-  const ipcAttachments =
-    normalizedAttachments.map((file) => ({
-      name:
-        file?.name ||
-        "attachment",
-      type:
-        file?.type ||
-        "application/octet-stream",
-      size:
-        Number(file?.size) || 0,
-    }));
-
-  /*
-   * ------------------------------------------------------------
-   * ELECTRON STREAM
-   * ------------------------------------------------------------
-   *
-   * NEVER pass the Electron result to processAIStream().
-   *
-   * preload.js receives:
-   *
-   *   chat:stream-update -> start
-   *   chat:stream-update -> content
-   *   chat:stream-update -> content
-   *   chat:stream-update -> ...
-   *   chat:stream-update -> done
-   *
-   * and invokes the callbacks below.
-   */
-
-  const result =
-    await electronAPI.sendChatMessageStreaming(
-      normalizedText,
-      {
-        model:
-          typeof model === "string" &&
-          model.trim()
-            ? model.trim()
-            : "default",
-
-        sessionId,
-
-        messages: history,
-
-        attachments: ipcAttachments,
-
-        temperature: 0.7,
-
-        max_tokens: 4000,
-
-        /*
-         * --------------------------------------------------------
-         * START
-         * --------------------------------------------------------
-         */
-        onStart: (streamInfo) => {
-          console.log(
-            "[Renderer] Stream started:",
-            streamInfo
-          );
+          const electronAPI = window.electronAPI;
 
           if (
-            streamInfo?.requestId
+            !electronAPI ||
+            typeof electronAPI.sendChatMessageStreaming !== "function"
           ) {
-            activeRequestRef.current.requestId =
-              streamInfo.requestId;
+            throw new Error(
+              "Electron streaming API is unavailable."
+            );
           }
+
+          const currentSession =
+            Array.isArray(chatSessions)
+              ? chatSessions.find(
+                  (session) => session.id === sessionId
+                )
+              : null;
+
+          const history = Array.isArray(currentSession?.messages)
+            ? currentSession.messages
+                .filter(
+                  (message) =>
+                    message &&
+                    (message.role === "user" ||
+                      message.role === "assistant" ||
+                      message.role === "system")
+                )
+                .map((message) => ({
+                  role: message.role,
+                  content:
+                    typeof message.content === "string"
+                      ? message.content
+                      : String(message.content ?? ""),
+                }))
+                .filter((message) => message.content.trim().length > 0)
+            : [];
+
+          const lastHistoryMessage = history[history.length - 1];
 
           if (
-            streamInfo?.messageId
+            !lastHistoryMessage ||
+            lastHistoryMessage.role !== "user" ||
+            lastHistoryMessage.content !== effectiveText
           ) {
-            activeRequestRef.current.messageId =
-              streamInfo.messageId;
-          }
-        },
-
-        /*
-         * --------------------------------------------------------
-         * CONTENT
-         * --------------------------------------------------------
-         *
-         * THIS updates the assistant message immediately.
-         */
-        onChunk: (
-          chunk,
-          streamInfo
-        ) => {
-          if (
-            streamInfo?.requestId
-          ) {
-            activeRequestRef.current.requestId =
-              streamInfo.requestId;
+            history.push({
+              role: "user",
+              content: effectiveText,
+            });
           }
 
-          if (
-            streamInfo?.messageId
-          ) {
-            activeRequestRef.current.messageId =
-              streamInfo.messageId;
-          }
-
-          console.log(
-            "[Renderer] Stream chunk:",
-            JSON.stringify(chunk)
+          const ipcAttachments = await Promise.all(
+            normalizedAttachments.map(serializeAttachment)
           );
 
-          handleContent(chunk);
-        },
-
-        /*
-         * --------------------------------------------------------
-         * DONE
-         * --------------------------------------------------------
-         */
-        onDone: (
-          content,
-          messageId,
-          metrics
-        ) => {
-          console.log(
-            "[Renderer] Stream completed."
-          );
-
-          handleDone(
-            content,
-            messageId,
-            metrics,
-            false
-          );
-        },
-
-        /*
-         * --------------------------------------------------------
-         * STOPPED
-         * --------------------------------------------------------
-         */
-        onStopped: (
-          content,
-          messageId,
-          metrics
-        ) => {
-          console.log(
-            "[Renderer] Stream stopped."
-          );
-
-          stopped = true;
-
-          handleDone(
-            content,
-            messageId,
-            metrics,
-            true
-          );
-        },
-
-        /*
-         * --------------------------------------------------------
-         * ERROR
-         * --------------------------------------------------------
-         */
-        onError: (
-          streamError
-        ) => {
-          console.error(
-            "[Renderer] Stream error:",
-            streamError
-          );
-
-          handleError(
-            streamError
-          );
-        },
-      }
-    );
-
-  /*
-   * The callbacks above normally finalize everything.
-   *
-   * This is only a defensive fallback.
-   */
-  if (
-    result &&
-    !completed
-  ) {
-    if (
-      result.type === "done"
-    ) {
-      handleDone(
-        result.content ||
-          fullContent,
-        result.messageId ||
-          activeRequestRef.current
-            .messageId,
-        result.metrics ||
-          null,
-        false
-      );
-    } else if (
-      result.type === "stopped"
-    ) {
-      stopped = true;
-
-      handleDone(
-        result.content ||
-          fullContent,
-        result.messageId ||
-          activeRequestRef.current
-            .messageId,
-        result.metrics ||
-          null,
-        true
-      );
-    }
-  }
-
-  return true;
-}
-        /*
-         * ====================================================================
-         * WEB
-         * ====================================================================
-         *
-         * Only browser mode uses processAIStream().
-         */
-
-        const streamBody =
-          await chatAPI.sendMessage(
-            normalizedText,
-            model,
-            normalizedAttachments,
-            sessionId,
+          const result = await electronAPI.sendChatMessageStreaming(
+            effectiveText,
             {
+              model:
+                typeof model === "string" && model.trim()
+                  ? model.trim()
+                  : "default",
+
+              sessionId,
+              messages: history,
+              attachments: ipcAttachments,
               temperature: 0.7,
               max_tokens: 4000,
-              signal:
-                abortControllerRef.current
-                  ?.signal,
+
+              onStart: (streamInfo) => {
+                console.log("[Renderer] Stream started:", streamInfo);
+
+                if (streamInfo?.requestId) {
+                  activeRequestRef.current.requestId = streamInfo.requestId;
+                }
+
+                if (streamInfo?.messageId) {
+                  activeRequestRef.current.messageId = streamInfo.messageId;
+                }
+              },
+
+              onChunk: (chunk, streamInfo) => {
+                if (streamInfo?.requestId) {
+                  activeRequestRef.current.requestId = streamInfo.requestId;
+                }
+
+                if (streamInfo?.messageId) {
+                  activeRequestRef.current.messageId = streamInfo.messageId;
+                }
+
+                console.log("[Renderer] Stream chunk:", JSON.stringify(chunk));
+                handleContent(chunk);
+              },
+
+              onDone: (content, messageId, metrics) => {
+                console.log("[Renderer] Stream completed.");
+                handleDone(content, messageId, metrics, false);
+              },
+
+              onStopped: (content, messageId, metrics) => {
+                console.log("[Renderer] Stream stopped.");
+                stopped = true;
+                handleDone(content, messageId, metrics, true);
+              },
+
+              onError: (streamError) => {
+                console.error("[Renderer] Stream error:", streamError);
+                handleError(streamError);
+              },
             }
           );
+
+          if (result && !completed) {
+            if (result.type === "done") {
+              handleDone(
+                result.content || fullContent,
+                result.messageId || activeRequestRef.current.messageId,
+                result.metrics || null,
+                false
+              );
+            } else if (result.type === "stopped") {
+              stopped = true;
+              handleDone(
+                result.content || fullContent,
+                result.messageId || activeRequestRef.current.messageId,
+                result.metrics || null,
+                true
+              );
+            }
+          }
+
+          return true;
+        }
+
+        const streamBody = await chatAPI.sendMessage(
+          effectiveText,
+          model,
+          normalizedAttachments,
+          sessionId,
+          {
+            temperature: 0.7,
+            max_tokens: 4000,
+            signal: abortControllerRef.current?.signal,
+          }
+        );
 
         await processAIStream(
           streamBody,

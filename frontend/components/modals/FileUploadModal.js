@@ -177,7 +177,8 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
             />
             
             <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
-              <div>Supported: Images, PDFs, Documents, Text, Audio, Video</div>
+              <div>Text, PDF, and DOCX files are processed locally</div>
+              <div>Images, audio, and video require a compatible model</div>
               <div>Maximum file size: 100MB per file</div>
             </div>
           </div>

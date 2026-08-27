@@ -123,6 +123,109 @@ function normalizeMessages(messages) {
     .filter((message) => message.content.length > 0);
 }
 
+const TEXT_ATTACHMENT_EXTENSIONS = new Set([
+  ".txt",
+  ".md",
+  ".markdown",
+  ".csv",
+  ".json",
+  ".xml",
+  ".html",
+  ".htm",
+]);
+
+const MAX_EXTRACTED_ATTACHMENT_CHARS = 100000;
+
+const getAttachmentExtension = (name = "") => {
+  const extension = path.extname(String(name)).toLowerCase();
+  return extension;
+};
+
+async function extractAttachmentText(attachment) {
+  if (!attachment || typeof attachment.data !== "string") {
+    throw new Error(
+      `Attachment "${attachment?.name || "unknown"}" could not be read.`
+    );
+  }
+
+  const name = String(attachment.name || "attachment");
+  const type = String(attachment.type || "").toLowerCase();
+  const extension = getAttachmentExtension(name);
+  const buffer = Buffer.from(attachment.data, "base64");
+
+  if (type.startsWith("text/") || TEXT_ATTACHMENT_EXTENSIONS.has(extension)) {
+    return buffer.toString("utf8");
+  }
+
+  if (type === "application/pdf" || extension === ".pdf") {
+    const { PDFParse } = require("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+
+    try {
+      const result = await parser.getText();
+      return result.text || "";
+    } finally {
+      if (typeof parser.destroy === "function") {
+        await parser.destroy();
+      }
+    }
+  }
+
+  if (
+    type ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    extension === ".docx"
+  ) {
+    const mammoth = require("mammoth");
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value || "";
+  }
+
+  if (
+    type ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    extension === ".xlsx"
+  ) {
+    const XLSX = require("xlsx");
+    const workbook = XLSX.read(buffer, { type: "buffer" });
+
+    return workbook.SheetNames.map((sheetName) => {
+      const sheet = workbook.Sheets[sheetName];
+      return `[Sheet: ${sheetName}]\n${XLSX.utils.sheet_to_csv(sheet)}`;
+    }).join("\n\n");
+  }
+
+  throw new Error(
+    `The bundled text model cannot process ${name}. ` +
+      "Use a text/PDF/DOCX file, or configure a vision, audio, or video model."
+  );
+}
+
+async function buildMessageWithAttachments(message, attachments) {
+  if (!Array.isArray(attachments) || attachments.length === 0) {
+    return message;
+  }
+
+  const sections = [];
+
+  for (const attachment of attachments) {
+    const text = (await extractAttachmentText(attachment)).trim();
+
+    if (!text) {
+      throw new Error(`No readable text was found in ${attachment.name}.`);
+    }
+
+    sections.push(
+      `[Attached file: ${attachment.name}]\n${text.slice(
+        0,
+        MAX_EXTRACTED_ATTACHMENT_CHARS
+      )}`
+    );
+  }
+
+  return `${message}\n\n${sections.join("\n\n")}`;
+}
+
 /*
  * ============================================================================
  * SESSION MANAGER
@@ -323,6 +426,7 @@ function registerChatHandlers({
       max_tokens = 4096,
       repeat_penalty,
       systemPrompt,
+      attachments = [],
     } = payload || {};
 
     /*
@@ -333,10 +437,15 @@ function registerChatHandlers({
         ? message.trim()
         : "";
 
+    const fallbackInstruction =
+      Array.isArray(attachments) && attachments.length > 0
+        ? "Please analyze the attached file(s)."
+        : "";
+
     /*
      * Never send an empty request to llama.cpp.
      */
-    if (!userMessage) {
+    if (!userMessage && !fallbackInstruction) {
       console.error(
         "Rejected empty chat request.",
         {
@@ -351,6 +460,21 @@ function registerChatHandlers({
         success: false,
         error:
           "Message cannot be empty.",
+      };
+    }
+
+    let messageWithAttachments;
+
+    try {
+      messageWithAttachments = await buildMessageWithAttachments(
+        userMessage || fallbackInstruction,
+        attachments
+      );
+    } catch (error) {
+      console.error("Failed to process chat attachments:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to process attachments.",
       };
     }
 
@@ -489,12 +613,12 @@ function registerChatHandlers({
         lastMessage.role !==
           "user" ||
         lastMessage.content !==
-          userMessage
+          messageWithAttachments
       ) {
         chatMessages.push({
           role: "user",
           content:
-            userMessage,
+            messageWithAttachments,
         });
       }
 
@@ -530,7 +654,7 @@ function registerChatHandlers({
         {
           role: "user",
           content:
-            userMessage,
+            messageWithAttachments,
         }
       );
 

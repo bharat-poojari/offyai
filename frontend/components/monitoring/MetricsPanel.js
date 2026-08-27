@@ -1,380 +1,720 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Cpu, MemoryStick, Gauge, CpuIcon, Database, Clock, Box, Activity, Thermometer, Zap, HardDrive } from 'lucide-react';
-import LoadingSpinner from '../ui/LoadingSpinner';
+import {
+  useState,
+  useEffect,
+} from "react";
 
-const MetricCard = ({ icon: Icon, label, value, unit, color, loading = false, subtext }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="bg-gray-800 rounded-xl border border-gray-700 p-4"
-  >
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className={`p-2 rounded-lg ${
-          color === 'blue' ? 'bg-blue-500/10' : 
-          color === 'green' ? 'bg-green-500/10' : 
-          color === 'purple' ? 'bg-purple-500/10' : 
-          color === 'orange' ? 'bg-orange-500/10' : 
-          color === 'red' ? 'bg-red-500/10' : 
-          'bg-gray-500/10'
-        }`}>
-          <Icon className={`w-5 h-5 ${
-            color === 'blue' ? 'text-blue-500' : 
-            color === 'green' ? 'text-green-500' : 
-            color === 'purple' ? 'text-purple-500' : 
-            color === 'orange' ? 'text-orange-500' : 
-            color === 'red' ? 'text-red-500' : 
-            'text-gray-500'
-          }`} />
-        </div>
-        <div>
-          <div className="text-sm text-gray-400">{label}</div>
-          <div className="text-2xl font-bold text-white">
-            {loading ? (
-              <div className="w-8 h-6 bg-gray-700 rounded animate-pulse"></div>
-            ) : (
-              <>
-                {value !== undefined && value !== null ? value.toFixed(1) : '--'}
-                {unit && <span className="text-sm ml-1 text-gray-400">{unit}</span>}
-              </>
+import { motion } from "framer-motion";
+
+import {
+  Cpu,
+  MemoryStick,
+  CpuIcon,
+  Box,
+  Activity,
+  Thermometer,
+  Server,
+  Monitor,
+} from "lucide-react";
+
+import LoadingSpinner from "../ui/LoadingSpinner";
+
+/* ============================================================================
+ * METRIC CARD
+ * ========================================================================== */
+
+const MetricCard = ({
+  icon: Icon,
+  label,
+  value,
+  unit = "",
+  color = "gray",
+  loading = false,
+  subtext,
+}) => {
+  const colorClasses = {
+    blue: {
+      background:
+        "bg-blue-500/10",
+      text:
+        "text-blue-500",
+    },
+
+    green: {
+      background:
+        "bg-green-500/10",
+      text:
+        "text-green-500",
+    },
+
+    purple: {
+      background:
+        "bg-purple-500/10",
+      text:
+        "text-purple-500",
+    },
+
+    orange: {
+      background:
+        "bg-orange-500/10",
+      text:
+        "text-orange-500",
+    },
+
+    red: {
+      background:
+        "bg-red-500/10",
+      text:
+        "text-red-500",
+    },
+
+    gray: {
+      background:
+        "bg-gray-500/10",
+      text:
+        "text-gray-500",
+    },
+  };
+
+  const selected =
+    colorClasses[color] ||
+    colorClasses.gray;
+
+  const displayValue =
+    typeof value === "number" &&
+    Number.isFinite(value)
+      ? value.toFixed(1)
+      : "--";
+
+  return (
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 20,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      className="bg-gray-800 rounded-xl border border-gray-700 p-4"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div
+            className={`p-2 rounded-lg ${selected.background}`}
+          >
+            <Icon
+              className={`w-5 h-5 ${selected.text}`}
+            />
+          </div>
+
+          <div>
+            <div className="text-sm text-gray-400">
+              {label}
+            </div>
+
+            <div className="text-2xl font-bold text-white">
+              {loading ? (
+                <div className="w-8 h-6 bg-gray-700 rounded animate-pulse" />
+              ) : (
+                <>
+                  {displayValue}
+
+                  {unit && (
+                    <span className="text-sm ml-1 text-gray-400">
+                      {unit}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+
+            {subtext && (
+              <div className="text-xs text-gray-500 mt-1">
+                {subtext}
+              </div>
             )}
           </div>
-          {subtext && (
-            <div className="text-xs text-gray-500 mt-1">{subtext}</div>
-          )}
         </div>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
-const MetricsPanel = ({ metrics, isConnected, loading = false }) => {
-  const [modelName, setModelName] = useState("Loading model...");
-  const [systemInfo, setSystemInfo] = useState(null);
+/* ============================================================================
+ * MODEL NAME
+ * ========================================================================== */
+
+const formatModelName = (
+  value
+) => {
+  if (
+    typeof value !== "string" ||
+    !value.trim()
+  ) {
+    return "No model selected";
+  }
+
+  return value
+    .split(/[\\/]/)
+    .pop()
+    .replace(
+      /\.(gguf|bin|ggml)$/i,
+      ""
+    )
+    .replace(/-/g, " ")
+    .replace(
+      /\b\w/g,
+      (letter) =>
+        letter.toUpperCase()
+    );
+};
+
+/* ============================================================================
+ * TEMPERATURE STATUS
+ * ========================================================================== */
+
+const getTemperatureStatus = (
+  temperature
+) => {
+  if (
+    typeof temperature !==
+      "number" ||
+    !Number.isFinite(
+      temperature
+    )
+  ) {
+    return null;
+  }
+
+  if (temperature >= 80) {
+    return "High";
+  }
+
+  if (temperature >= 60) {
+    return "Warm";
+  }
+
+  return "Normal";
+};
+
+/* ============================================================================
+ * METRICS PANEL
+ * ========================================================================== */
+
+const MetricsPanel = ({
+  metrics,
+  isConnected,
+  loading = false,
+}) => {
+  const [
+    modelName,
+    setModelName,
+  ] = useState(
+    "Loading model..."
+  );
+
+  const [
+    systemInfo,
+    setSystemInfo,
+  ] = useState(null);
+
+  /* --------------------------------------------------------------------------
+   * LOAD SYSTEM INFORMATION
+   * ------------------------------------------------------------------------ */
 
   useEffect(() => {
-    const loadModelName = async () => {
-      try {
-        // First try to get from metrics
-        if (metrics.modelName && metrics.modelName !== "unknown" && metrics.modelName !== "Unknown Model") {
-          const name = metrics.modelName
-            .replace(/\.(gguf|bin|ggml)$/i, '')
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase());
-          setModelName(name);
-          return;
-        }
+    let cancelled = false;
 
-        if (metrics.model && metrics.model !== "unknown") {
-          const name = metrics.model.split(/[\\/]/).pop()
-            .replace(/\.(gguf|bin|ggml)$/i, '')
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase());
-          setModelName(name);
-          return;
-        }
-
-        // Fallback to getting from electron API settings
-        if (window.electronAPI?.getSettings) {
-          const settings = await window.electronAPI.getSettings();
-          let name = "No model selected";
-          
-          if (settings.activeModel) {
-            name = settings.activeModel.name || settings.activeModel.id;
-          } else if (settings.model) {
-            name = settings.model;
+    const loadSystemInfo =
+      async () => {
+        try {
+          if (
+            typeof window ===
+              "undefined" ||
+            !window.electronAPI?.getSystemInfo
+          ) {
+            return;
           }
-          
-          // Format the name
-          name = name
-            .replace(/\.(gguf|bin|ggml)$/i, '')
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase());
-          
-          setModelName(name);
-        } else {
-          setModelName("No model selected");
+
+          const info =
+            await window.electronAPI.getSystemInfo();
+
+          if (
+            !cancelled
+          ) {
+            setSystemInfo(
+              info
+            );
+          }
+        } catch (error) {
+          console.error(
+            "[MetricsPanel] Failed to load system info:",
+            error
+          );
         }
-      } catch (error) {
-        console.error("Failed to load model name:", error);
-        setModelName("Error loading model");
-      }
-    };
+      };
 
-    const loadSystemInfo = async () => {
-      try {
-        if (window.electronAPI?.getSystemInfo) {
-          const info = await window.electronAPI.getSystemInfo();
-          setSystemInfo(info);
+    void loadSystemInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /* --------------------------------------------------------------------------
+   * MODEL NAME
+   * ------------------------------------------------------------------------ */
+
+  useEffect(() => {
+    const directModel =
+      metrics?.modelName ||
+      metrics?.model;
+
+    if (directModel) {
+      setModelName(
+        formatModelName(
+          directModel
+        )
+      );
+
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadModelFromSettings =
+      async () => {
+        try {
+          if (
+            typeof window ===
+              "undefined" ||
+            !window.electronAPI?.getSettings
+          ) {
+            if (
+              !cancelled
+            ) {
+              setModelName(
+                "No model selected"
+              );
+            }
+
+            return;
+          }
+
+          const settings =
+            await window.electronAPI.getSettings();
+
+          if (
+            cancelled
+          ) {
+            return;
+          }
+
+          const configuredModel =
+            settings?.activeModel
+              ?.name ||
+            settings?.activeModel
+              ?.id ||
+            settings?.model ||
+            null;
+
+          setModelName(
+            formatModelName(
+              configuredModel
+            )
+          );
+        } catch (error) {
+          if (
+            !cancelled
+          ) {
+            console.error(
+              "[MetricsPanel] Failed to load model:",
+              error
+            );
+
+            setModelName(
+              "Unable to determine model"
+            );
+          }
         }
-      } catch (error) {
-        console.error("Failed to load system info:", error);
-      }
+      };
+
+    void loadModelFromSettings();
+
+    return () => {
+      cancelled = true;
     };
+  }, [
+    metrics?.model,
+    metrics?.modelName,
+  ]);
 
-    loadModelName();
-    loadSystemInfo();
-  }, [metrics.model, metrics.modelName]);
+  /* --------------------------------------------------------------------------
+   * CONNECTION / LOADING
+   * ------------------------------------------------------------------------ */
 
-  if (!isConnected || loading) {
+  if (
+    !isConnected &&
+    loading
+  ) {
     return (
       <div className="bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
-        <LoadingSpinner size="lg" className="mx-auto mb-4" />
+        <LoadingSpinner
+          size="lg"
+          className="mx-auto mb-4"
+        />
+
         <div className="text-gray-400">
-          {loading ? "Loading metrics..." : "Connecting to metrics server..."}
+          Loading real-time system metrics...
         </div>
       </div>
     );
   }
 
-  // Calculate performance status
-  const getPerformanceStatus = () => {
-    if (metrics.tokensPerSecond > 20) return { status: 'Fast', color: 'text-green-500', bg: 'bg-green-500' };
-    if (metrics.tokensPerSecond > 10) return { status: 'Moderate', color: 'text-yellow-500', bg: 'bg-yellow-500' };
-    return { status: 'Slow', color: 'text-red-500', bg: 'bg-red-500' };
-  };
+  /* --------------------------------------------------------------------------
+   * VALUES
+   * ------------------------------------------------------------------------ */
 
-  const performanceStatus = getPerformanceStatus();
+  const cpuCores =
+    systemInfo?.cpu?.cores;
+
+  const totalMemory =
+    systemInfo?.memory?.total;
+
+  const totalMemoryGB =
+    typeof totalMemory ===
+      "number" &&
+    Number.isFinite(
+      totalMemory
+    )
+      ? (
+          totalMemory /
+          1024 /
+          1024 /
+          1024
+        ).toFixed(1)
+      : null;
+
+  const cpuTemperatureStatus =
+    getTemperatureStatus(
+      metrics?.temperature
+    );
+
+  const gpuTemperatureStatus =
+    getTemperatureStatus(
+      metrics?.gpuTemperature
+    );
 
   return (
     <div className="space-y-6">
-      {/* Model Info */}
+      {/* ====================================================================
+          MODEL
+          ================================================================== */}
+
       <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-purple-500/10">
             <Box className="w-6 h-6 text-purple-500" />
           </div>
+
           <div>
-            <div className="text-sm text-gray-400">Current Model</div>
-            <div className="text-xl font-bold text-white">{modelName}</div>
             <div className="text-sm text-gray-400">
-              Context: {metrics.contextLength > 0 ? metrics.contextLength.toLocaleString() : 'Unknown'} tokens
+              Current Model
+            </div>
+
+            <div className="text-xl font-bold text-white">
+              {modelName}
+            </div>
+
+            <div className="text-sm text-gray-400 mt-1">
+              Model information comes from the active application configuration.
             </div>
           </div>
         </div>
       </div>
 
-      {/* Real-time Performance Metrics */}
+      {/* ====================================================================
+          REAL-TIME SYSTEM METRICS
+          ================================================================== */}
+
       <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-5 h-5 text-green-500" />
-          <h3 className="text-lg font-semibold text-white">Real-time Performance</h3>
+
+          <h3 className="text-lg font-semibold text-white">
+            Real-time System Usage
+          </h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <MetricCard 
-            icon={Cpu} 
-            label="CPU Usage" 
-            value={metrics.cpu} 
-            unit="%" 
-            color="blue" 
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <MetricCard
+            icon={Cpu}
+            label="CPU Usage"
+            value={metrics?.cpu}
+            unit="%"
+            color="blue"
             loading={loading}
-            subtext={`${systemInfo?.cpu?.cores || '?'} cores`}
+            subtext={
+              cpuCores
+                ? `${cpuCores} cores`
+                : undefined
+            }
           />
-          <MetricCard 
-            icon={MemoryStick} 
-            label="Memory" 
-            value={metrics.memory} 
-            unit="%" 
-            color="green" 
+
+          <MetricCard
+            icon={MemoryStick}
+            label="Memory Usage"
+            value={metrics?.memory}
+            unit="%"
+            color="green"
             loading={loading}
-            subtext={`${systemInfo?.memory ? (systemInfo.memory.total / 1024 / 1024 / 1024).toFixed(1) + ' GB' : '?'} total`}
+            subtext={
+              totalMemoryGB
+                ? `${totalMemoryGB} GB total`
+                : undefined
+            }
           />
-          <MetricCard 
-            icon={CpuIcon} 
-            label="GPU Usage" 
-            value={metrics.gpu} 
-            unit="%" 
-            color="purple" 
+
+          {metrics?.gpuAvailable && (
+            <MetricCard
+              icon={CpuIcon}
+              label="GPU Usage"
+              value={metrics?.gpu}
+              unit="%"
+              color="purple"
+              loading={loading}
+              subtext={
+                metrics?.gpuModel ||
+                "GPU detected"
+              }
+            />
+          )}
+
+          <MetricCard
+            icon={Monitor}
+            label="GPU Status"
+            value={
+              metrics?.gpuAvailable
+                ? 100
+                : 0
+            }
+            unit="%"
+            color={
+              metrics?.gpuAvailable
+                ? "green"
+                : "gray"
+            }
             loading={loading}
-            subtext={metrics.gpuAvailable ? 'Available' : 'Not available'}
-          />
-          <MetricCard 
-            icon={Gauge} 
-            label="Tokens/sec" 
-            value={metrics.tokensPerSecond} 
-            color="orange" 
-            loading={loading}
-            subtext={performanceStatus.status}
-          />
-          <MetricCard 
-            icon={Clock} 
-            label="Response Time" 
-            value={metrics.responseTimeMs} 
-            unit="ms" 
-            color="red" 
-            loading={loading}
-          />
-          <MetricCard 
-            icon={Database} 
-            label="Total Tokens" 
-            value={metrics.tokensGenerated} 
-            color="blue" 
-            loading={loading}
+            subtext={
+              metrics?.gpuAvailable
+                ? "Available"
+                : "Not available"
+            }
           />
         </div>
       </div>
 
-      {/* Temperature Monitoring */}
-      {(metrics.temperature > 0 || metrics.gpuTemperature > 0) && (
+      {/* ====================================================================
+          TEMPERATURES
+          ================================================================== */}
+
+      {(typeof metrics?.temperature ===
+        "number" ||
+        typeof metrics?.gpuTemperature ===
+          "number") && (
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Thermometer className="w-5 h-5 text-orange-500" />
-            <h3 className="text-lg font-semibold text-white">Temperature Monitoring</h3>
+
+            <h3 className="text-lg font-semibold text-white">
+              Temperature Monitoring
+            </h3>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {metrics.temperature > 0 && (
-              <MetricCard 
-                icon={Thermometer} 
-                label="CPU Temperature" 
-                value={metrics.temperature} 
-                unit="°C" 
-                color="orange" 
+            {typeof metrics?.temperature ===
+              "number" && (
+              <MetricCard
+                icon={Thermometer}
+                label="CPU Temperature"
+                value={
+                  metrics.temperature
+                }
+                unit="°C"
+                color="orange"
                 loading={loading}
-                subtext={metrics.temperature > 80 ? 'High' : metrics.temperature > 60 ? 'Warm' : 'Normal'}
+                subtext={
+                  cpuTemperatureStatus ||
+                  undefined
+                }
               />
             )}
-            {metrics.gpuTemperature > 0 && (
-              <MetricCard 
-                icon={Thermometer} 
-                label="GPU Temperature" 
-                value={metrics.gpuTemperature} 
-                unit="°C" 
-                color="red" 
-                loading={loading}
-                subtext={metrics.gpuTemperature > 80 ? 'High' : metrics.gpuTemperature > 60 ? 'Warm' : 'Normal'}
-              />
-            )}
+
+            {metrics?.gpuAvailable &&
+              typeof metrics?.gpuTemperature ===
+                "number" && (
+                <MetricCard
+                  icon={Thermometer}
+                  label="GPU Temperature"
+                  value={
+                    metrics.gpuTemperature
+                  }
+                  unit="°C"
+                  color="red"
+                  loading={loading}
+                  subtext={
+                    gpuTemperatureStatus ||
+                    undefined
+                  }
+                />
+              )}
           </div>
         </div>
       )}
 
-      {/* Additional Metrics */}
+      {/* ====================================================================
+          CONNECTION / SYSTEM STATUS
+          ================================================================== */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Generation Stats</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <Server className="w-5 h-5 text-blue-500" />
+
+            <h3 className="text-lg font-semibold text-white">
+              Metrics Status
+            </h3>
+          </div>
+
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-gray-400">Tokens Generated</span>
-              <span className="text-white font-medium">
-                {metrics.tokensGenerated > 0 ? metrics.tokensGenerated.toLocaleString() : '0'}
+              <span className="text-gray-400">
+                Metrics IPC
+              </span>
+
+              <span
+                className={`font-medium ${
+                  isConnected
+                    ? "text-green-500"
+                    : "text-red-500"
+                }`}
+              >
+                {isConnected
+                  ? "Connected"
+                  : "Disconnected"}
               </span>
             </div>
+
             <div className="flex justify-between items-center">
-              <span className="text-gray-400">Avg Response Time</span>
-              <span className="text-white font-medium">
-                {metrics.responseTimeMs > 0 ? `${metrics.responseTimeMs.toFixed(0)} ms` : '--'}
+              <span className="text-gray-400">
+                GPU
+              </span>
+
+              <span
+                className={`font-medium ${
+                  metrics?.gpuAvailable
+                    ? "text-green-500"
+                    : "text-gray-500"
+                }`}
+              >
+                {metrics?.gpuAvailable
+                  ? "Available"
+                  : "Unavailable"}
               </span>
             </div>
+
             <div className="flex justify-between items-center">
-              <span className="text-gray-400">Tokens per Second</span>
-              <span className="text-white font-medium">
-                {metrics.tokensPerSecond > 0 ? metrics.tokensPerSecond.toFixed(1) : '0'}
+              <span className="text-gray-400">
+                Last Update
               </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Context Length</span>
-              <span className="text-white font-medium">
-                {metrics.contextLength > 0 ? metrics.contextLength.toLocaleString() : '--'}
+
+              <span className="text-white font-medium text-sm">
+                {metrics?.timestamp
+                  ? new Date(
+                      metrics.timestamp
+                    ).toLocaleTimeString()
+                  : "--"}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">System Status</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">GPU Available</span>
-              <span className={`font-medium ${metrics.gpuAvailable ? 'text-green-500' : 'text-red-500'}`}>
-                {metrics.gpuAvailable ? 'Yes' : 'No'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Connection</span>
-              <span className={`font-medium ${isConnected ? 'text-green-500' : 'text-red-500'}`}>
-                {isConnected ? 'Connected' : 'Disconnected'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Platform</span>
-              <span className="text-white font-medium text-sm">
-                {metrics.system?.platform || 'Unknown'}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-400">Last Update</span>
-              <span className="text-white font-medium text-sm">
-                {metrics.timestamp ? new Date(metrics.timestamp).toLocaleTimeString() : '--'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* ==================================================================
+            SYSTEM INFORMATION
+            ============================================================== */}
 
-      {/* Performance Status */}
-      {metrics.tokensPerSecond > 0 && (
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Performance Status</h3>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400">Speed</span>
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 rounded-full ${performanceStatus.bg}`}></div>
-                <span className={`font-medium ${performanceStatus.color}`}>
-                  {performanceStatus.status}
+        {systemInfo && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Monitor className="w-5 h-5 text-purple-500" />
+
+              <h3 className="text-lg font-semibold text-white">
+                System Information
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-start gap-4">
+                <span className="text-gray-400">
+                  CPU
+                </span>
+
+                <span className="text-white font-medium text-sm text-right">
+                  {systemInfo.cpu?.brand ||
+                    "Unknown"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">
+                  Cores
+                </span>
+
+                <span className="text-white font-medium">
+                  {systemInfo.cpu?.cores ||
+                    "--"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">
+                  Memory
+                </span>
+
+                <span className="text-white font-medium">
+                  {totalMemoryGB
+                    ? `${totalMemoryGB} GB`
+                    : "--"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">
+                  Platform
+                </span>
+
+                <span className="text-white font-medium">
+                  {systemInfo.platform ||
+                    metrics?.system?.platform ||
+                    "--"}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400">
+                  Architecture
+                </span>
+
+                <span className="text-white font-medium">
+                  {systemInfo.arch ||
+                    metrics?.system?.arch ||
+                    "--"}
                 </span>
               </div>
             </div>
-            <div className="w-full bg-gray-700 rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full ${performanceStatus.bg}`}
-                style={{ 
-                  width: `${Math.min(metrics.tokensPerSecond * 5, 100)}%` 
-                }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>Slow</span>
-              <span>Moderate</span>
-              <span>Fast</span>
-            </div>
           </div>
-        </div>
-      )}
-
-      {/* System Information */}
-      {systemInfo && (
-        <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">System Information</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="text-gray-400">CPU</div>
-              <div className="text-white font-medium">
-                {systemInfo.cpu?.brand || 'Unknown'}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400">Cores</div>
-              <div className="text-white font-medium">
-                {systemInfo.cpu?.cores || '?'}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400">Memory</div>
-              <div className="text-white font-medium">
-                {systemInfo.memory ? `${(systemInfo.memory.total / 1024 / 1024 / 1024).toFixed(1)} GB` : 'Unknown'}
-              </div>
-            </div>
-            <div>
-              <div className="text-gray-400">Platform</div>
-              <div className="text-white font-medium">
-                {systemInfo.platform} {systemInfo.arch}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

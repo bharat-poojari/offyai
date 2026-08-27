@@ -131,19 +131,14 @@ const ChatInterface = ({
           : [];
 
       /*
-       * Do not allow a blank request.
+       * Allow attachment-only submissions when a valid file is included.
+       * For supported document/text files, the backend will extract the
+       * content and inject it into the final prompt.
        */
       if (
         !currentInput &&
         currentAttachments.length === 0
       ) {
-        return;
-      }
-
-      /*
-       * The current backend requires a textual message.
-       */
-      if (!currentInput) {
         return;
       }
 
@@ -847,8 +842,8 @@ const ChatInterface = ({
             disabled={
               !isLoading &&
               (
-                !input.trim() ||
-                !currentChat
+                !currentChat ||
+                (!input.trim() && attachments.length === 0)
               )
             }
             className={`flex-shrink-0 h-9 px-4 ${
