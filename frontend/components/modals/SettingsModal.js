@@ -12,8 +12,6 @@ import {
   Zap,
   Palette,
   MessageSquare,
-  Monitor,
-  Shield,
   Moon,
   Sun,
   FolderOpen,
@@ -2865,16 +2863,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
       label: "Chat",
       icon: MessageSquare
     },
-    {
-      id: "ui",
-      label: "Interface",
-      icon: Monitor
-    },
-    {
-      id: "security",
-      label: "Security",
-      icon: Shield
-    }
   ];
 
 
@@ -3126,12 +3114,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           {activeTab === "chat" &&
             renderChatSettings()}
-
-          {activeTab === "ui" &&
-            renderUISettings()}
-
-          {activeTab === "security" &&
-            renderSecuritySettings()}
 
         </div>
 

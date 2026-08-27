@@ -35,7 +35,7 @@ const SUPPORTED_EXTENSIONS = Object.freeze([
 const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024;
 const MAX_FILE_SIZE_LABEL = "10 GB";
 
-const DEFAULT_LOGO_SRC = "/offyai-logo.png";
+const DEFAULT_LOGO_SRC = "/offyai.png";
 
 /* ==========================================================================
    Helpers

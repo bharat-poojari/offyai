@@ -66,32 +66,52 @@ const normalizeMemoryMode = (value) =>
     ? value
     : "chat";
 
-const getSavedMemoryMode = async () => {
+const getSavedChatSettings = async () => {
+  let settings = null;
+
   if (
     typeof window !== "undefined" &&
     typeof window.electronAPI?.getSettings === "function"
   ) {
     try {
-      const settings = await window.electronAPI.getSettings();
-
-      return normalizeMemoryMode(settings?.chat?.memoryMode);
+      settings = await window.electronAPI.getSettings();
     } catch (error) {
-      console.warn("Unable to read chat memory setting:", error);
+      console.warn("Unable to read chat settings:", error);
     }
   }
 
-  try {
-    const rawSettings =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(SETTINGS_KEY)
-        : null;
-    const settings = rawSettings ? JSON.parse(rawSettings) : null;
+  if (!settings) {
+    try {
+      const rawSettings =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem(SETTINGS_KEY)
+          : null;
 
-    return normalizeMemoryMode(settings?.chat?.memoryMode);
-  } catch (error) {
-    console.warn("Unable to read local chat memory setting:", error);
-    return "chat";
+      settings = rawSettings ? JSON.parse(rawSettings) : null;
+    } catch (error) {
+      console.warn("Unable to read local chat settings:", error);
+    }
   }
+
+  const chat = settings?.chat || {};
+
+  return {
+    maxTokens: Math.max(1, Number(chat.maxTokens) || 4000),
+    temperature: Number.isFinite(Number(chat.temperature))
+      ? Number(chat.temperature)
+      : 0.7,
+    topP: Number.isFinite(Number(chat.topP))
+      ? Number(chat.topP)
+      : 0.9,
+    topK: Number.isFinite(Number(chat.topK))
+      ? Number(chat.topK)
+      : 40,
+    memoryMode: normalizeMemoryMode(chat.memoryMode),
+    systemPrompt:
+      typeof chat.systemPrompt === "string"
+        ? chat.systemPrompt.trim()
+        : "",
+  };
 };
 
 const toRequestMessage = (message) => ({
@@ -102,9 +122,20 @@ const toRequestMessage = (message) => ({
       : String(message.content ?? ""),
 });
 
-const buildRequestHistory = (sessions, sessionId, memoryMode, currentText) => {
+const buildRequestHistory = (
+  sessions,
+  sessionId,
+  memoryMode,
+  currentText,
+  systemPrompt = ""
+) => {
   if (memoryMode === "off") {
-    return [{ role: "user", content: currentText }];
+    return [
+      ...(systemPrompt
+        ? [{ role: "system", content: systemPrompt }]
+        : []),
+      { role: "user", content: currentText },
+    ];
   }
 
   const selectedSessions =
@@ -126,6 +157,13 @@ const buildRequestHistory = (sessions, sessionId, memoryMode, currentText) => {
   );
 
   const boundedHistory = history.slice(-40);
+
+  if (systemPrompt) {
+    boundedHistory.unshift({
+      role: "system",
+      content: systemPrompt,
+    });
+  }
   const lastMessage = boundedHistory[boundedHistory.length - 1];
 
   if (
@@ -906,12 +944,13 @@ export const useChat = () => {
        */
 
       try {
-        const memoryMode = await getSavedMemoryMode();
+        const chatSettings = await getSavedChatSettings();
         const requestHistory = buildRequestHistory(
           Array.isArray(chatSessions) ? chatSessions : [],
           sessionId,
-          memoryMode,
-          effectiveText
+          chatSettings.memoryMode,
+          effectiveText,
+          chatSettings.systemPrompt
         );
 
         /*
@@ -956,8 +995,11 @@ export const useChat = () => {
               sessionId,
               messages: requestHistory,
               attachments: ipcAttachments,
-              temperature: 0.7,
-              max_tokens: 4000,
+              temperature: chatSettings.temperature,
+              top_p: chatSettings.topP,
+              top_k: chatSettings.topK,
+              max_tokens: chatSettings.maxTokens,
+              systemPrompt: chatSettings.systemPrompt,
 
               onStart: (streamInfo) => {
                 console.log("[Renderer] Stream started:", streamInfo);
@@ -1030,8 +1072,11 @@ export const useChat = () => {
           normalizedAttachments,
           sessionId,
           {
-            temperature: 0.7,
-            max_tokens: 4000,
+            temperature: chatSettings.temperature,
+            top_p: chatSettings.topP,
+            top_k: chatSettings.topK,
+            max_tokens: chatSettings.maxTokens,
+            systemPrompt: chatSettings.systemPrompt,
             messages: requestHistory,
             signal: abortControllerRef.current?.signal,
           }

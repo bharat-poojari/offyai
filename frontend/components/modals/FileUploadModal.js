@@ -9,6 +9,7 @@ import React, {
 import {
   X,
   Upload,
+  UploadCloud,
   FileText,
   Image,
   Video,
@@ -19,7 +20,6 @@ import {
   FileJson,
   FileSpreadsheet,
   FileType2,
-  CloudUpload,
   Plus,
   Trash2,
   Loader2,
@@ -642,7 +642,7 @@ const FileUploadModal = ({
                 dark:text-blue-400
               "
             >
-              <CloudUpload className="h-4.5 w-4.5" />
+              <UploadCloud className="h-5 w-5" />
             </div>
 
             <div className="min-w-0">
@@ -830,9 +830,9 @@ const FileUploadModal = ({
                 `}
               >
                 {dragActive ? (
-                  <Upload className="h-5 w-5" />
+                  <UploadCloud className="h-5 w-5" />
                 ) : (
-                  <CloudUpload className="h-5 w-5" />
+                  <UploadCloud className="h-5 w-5" />
                 )}
               </div>
 

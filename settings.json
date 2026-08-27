@@ -35,7 +35,7 @@
       "type": "local"
     }
   ],
-  "theme": "system",
+  "theme": "dark",
   "performance": {
     "lowMemoryMode": false,
     "maxMemoryUsage": 2048,

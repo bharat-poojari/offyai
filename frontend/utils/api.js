@@ -278,6 +278,24 @@ export const chatAPI = {
       );
 
       formData.append(
+        "top_p",
+        String(
+          options.top_p !== undefined
+            ? options.top_p
+            : 0.9
+        )
+      );
+
+      formData.append(
+        "top_k",
+        String(
+          options.top_k !== undefined
+            ? options.top_k
+            : 40
+        )
+      );
+
+      formData.append(
         "max_tokens",
         String(
           options.max_tokens !== undefined
@@ -290,6 +308,13 @@ export const chatAPI = {
         formData.append(
           "messages",
           JSON.stringify(options.messages)
+        );
+      }
+
+      if (options.systemPrompt) {
+        formData.append(
+          "systemPrompt",
+          String(options.systemPrompt)
         );
       }
 
