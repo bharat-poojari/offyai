@@ -1,38 +1,319 @@
-import React from "react";
+import React, { forwardRef, memo } from "react";
 
-const Button = ({
-  children,
-  onClick,
-  disabled = false,
-  type = "button",
-  className = "",
-  variant = "primary",
-  ...props
-}) => {
-  const baseClasses =
-    "px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2";
+const Button = forwardRef(
+  (
+    {
+      children,
+      onClick,
+      disabled = false,
+      type = "button",
+      className = "",
+      variant = "primary",
+      size = "md",
+      loading = false,
+      fullWidth = false,
+      leftIcon = null,
+      rightIcon = null,
+      ariaLabel,
+      ...props
+    },
+    ref
+  ) => {
+    const variants = {
+      primary: `
+        bg-blue-600
+        text-white
+        shadow-sm shadow-blue-600/20
+        hover:bg-blue-700
+        hover:shadow-md hover:shadow-blue-600/20
+        active:bg-blue-800
+        focus-visible:ring-blue-500
+        dark:bg-blue-600
+        dark:hover:bg-blue-500
+        dark:active:bg-blue-700
+      `,
 
-  const variants = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
-    secondary: "bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500",
-    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
-    ghost:
-      "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300",
-  };
+      secondary: `
+        bg-gray-600
+        text-white
+        shadow-sm shadow-gray-600/20
+        hover:bg-gray-700
+        hover:shadow-md hover:shadow-gray-600/20
+        active:bg-gray-800
+        focus-visible:ring-gray-500
+        dark:bg-gray-700
+        dark:hover:bg-gray-600
+        dark:active:bg-gray-800
+      `,
 
-  const combinedClasses = `${baseClasses} ${variants[variant]} ${className}`;
+      danger: `
+        bg-red-600
+        text-white
+        shadow-sm shadow-red-600/20
+        hover:bg-red-700
+        hover:shadow-md hover:shadow-red-600/20
+        active:bg-red-800
+        focus-visible:ring-red-500
+        dark:bg-red-600
+        dark:hover:bg-red-500
+        dark:active:bg-red-700
+      `,
 
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      className={combinedClasses}
-      {...props}
-    >
-      {children}
-    </button>
-  );
-};
+      ghost: `
+        bg-transparent
+        text-gray-700
+        hover:bg-gray-100
+        hover:text-gray-900
+        active:bg-gray-200
+        focus-visible:ring-gray-400
+        dark:text-gray-300
+        dark:hover:bg-gray-800
+        dark:hover:text-white
+        dark:active:bg-gray-700
+      `,
 
-export default Button;
+      outline: `
+        border
+        border-gray-200
+        bg-white
+        text-gray-700
+        shadow-sm
+        hover:border-gray-300
+        hover:bg-gray-50
+        hover:text-gray-900
+        active:bg-gray-100
+        focus-visible:ring-blue-500
+        dark:border-gray-700
+        dark:bg-gray-900
+        dark:text-gray-300
+        dark:hover:border-gray-600
+        dark:hover:bg-gray-800
+        dark:hover:text-white
+        dark:active:bg-gray-700
+      `,
+
+      subtle: `
+        bg-gray-100
+        text-gray-700
+        hover:bg-gray-200
+        hover:text-gray-900
+        active:bg-gray-300
+        focus-visible:ring-gray-400
+        dark:bg-gray-800
+        dark:text-gray-300
+        dark:hover:bg-gray-700
+        dark:hover:text-white
+        dark:active:bg-gray-600
+      `,
+    };
+
+    const sizes = {
+      xs: `
+        min-h-7
+        px-2
+        py-1
+        gap-1.5
+        rounded-md
+        text-xs
+      `,
+
+      sm: `
+        min-h-8
+        px-2.5
+        py-1.5
+        gap-1.5
+        rounded-md
+        text-sm
+      `,
+
+      md: `
+        min-h-10
+        px-4
+        py-2
+        gap-2
+        rounded-lg
+        text-sm
+      `,
+
+      lg: `
+        min-h-11
+        px-5
+        py-2.5
+        gap-2
+        rounded-lg
+        text-base
+      `,
+
+      xl: `
+        min-h-12
+        px-6
+        py-3
+        gap-2.5
+        rounded-xl
+        text-base
+      `,
+    };
+
+    const isDisabled = disabled || loading;
+
+    const classes = [
+      // Base
+      "group",
+      "relative",
+      "inline-flex",
+      "min-w-0",
+      "items-center",
+      "justify-center",
+      "overflow-hidden",
+      "font-medium",
+      "whitespace-nowrap",
+
+      // Interaction
+      "select-none",
+      "transition-all",
+      "duration-200",
+      "ease-out",
+      "active:scale-[0.98]",
+
+      // Focus
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-offset-2",
+      "focus-visible:ring-offset-white",
+      "dark:focus-visible:ring-offset-gray-900",
+
+      // Disabled
+      "disabled:pointer-events-none",
+      "disabled:cursor-not-allowed",
+      "disabled:opacity-50",
+      "disabled:shadow-none",
+
+      // Loading
+      loading ? "cursor-wait" : "",
+
+      // Width
+      fullWidth ? "w-full" : "w-auto",
+
+      // Variant
+      variants[variant] || variants.primary,
+
+      // Size
+      sizes[size] || sizes.md,
+
+      // User classes
+      className,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return (
+      <button
+        ref={ref}
+        type={type}
+        onClick={onClick}
+        disabled={isDisabled}
+        aria-label={ariaLabel}
+        aria-busy={loading || undefined}
+        className={classes}
+        {...props}
+      >
+        {/* Subtle hover highlight */}
+        <span
+          aria-hidden="true"
+          className="
+            pointer-events-none
+            absolute
+            inset-0
+            opacity-0
+            transition-opacity
+            duration-200
+            group-hover:opacity-100
+            bg-gradient-to-r
+            from-white/[0.08]
+            via-white/[0.04]
+            to-transparent
+          "
+        />
+
+        {/* Content */}
+        <span
+          className="
+            relative
+            z-10
+            inline-flex
+            min-w-0
+            items-center
+            justify-center
+            gap-[inherit]
+          "
+        >
+          {/* Left icon */}
+          {!loading && leftIcon && (
+            <span
+              aria-hidden="true"
+              className="
+                inline-flex
+                shrink-0
+                items-center
+                justify-center
+                [&>svg]:h-4
+                [&>svg]:w-4
+                [&>svg]:shrink-0
+              "
+            >
+              {leftIcon}
+            </span>
+          )}
+
+          {/* Loading indicator */}
+          {loading && (
+            <span
+              aria-hidden="true"
+              className="
+                inline-block
+                shrink-0
+                animate-spin
+                rounded-full
+                border-2
+                border-current
+                border-t-transparent
+                h-4
+                w-4
+              "
+            />
+          )}
+
+          {/* Button content */}
+          <span className="min-w-0 truncate">
+            {children}
+          </span>
+
+          {/* Right icon */}
+          {!loading && rightIcon && (
+            <span
+              aria-hidden="true"
+              className="
+                inline-flex
+                shrink-0
+                items-center
+                justify-center
+                transition-transform
+                duration-200
+                group-hover:translate-x-0.5
+                [&>svg]:h-4
+                [&>svg]:w-4
+                [&>svg]:shrink-0
+              "
+            >
+              {rightIcon}
+            </span>
+          )}
+        </span>
+      </button>
+    );
+  }
+);
+
+Button.displayName = "Button";
+
+export default memo(Button);

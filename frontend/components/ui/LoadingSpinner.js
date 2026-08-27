@@ -1,13 +1,52 @@
-const LoadingSpinner = ({ size = 'md' }) => {
+import React from "react";
+
+const LoadingSpinner = ({
+  size = "md",
+  label = "Loading",
+  className = "",
+}) => {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8',
-    xl: 'w-12 h-12'
+    xs: "h-3 w-3 border-[1.5px]",
+    sm: "h-4 w-4 border-2",
+    md: "h-6 w-6 border-2",
+    lg: "h-8 w-8 border-[2.5px]",
+    xl: "h-12 w-12 border-[3px]",
   };
 
+  const resolvedSize = sizeClasses[size] || sizeClasses.md;
+
   return (
-    <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-blue-500 ${sizeClasses[size]}`} />
+    <span
+      role="status"
+      aria-label={label}
+      className={`
+        inline-flex
+        shrink-0
+        items-center
+        justify-center
+        ${className}
+      `}
+    >
+      <span
+        aria-hidden="true"
+        className={`
+          relative
+          block
+          rounded-full
+          ${resolvedSize}
+          border-gray-200
+          border-t-blue-600
+          border-r-blue-400/60
+          animate-spin
+          dark:border-gray-700
+          dark:border-t-blue-400
+          dark:border-r-blue-500/60
+        `}
+        style={{
+          animationDuration: "700ms",
+        }}
+      />
+    </span>
   );
 };
 
