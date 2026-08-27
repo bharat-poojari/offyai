@@ -5,7 +5,7 @@
   "activeModel": {
     "id": "SmolLM2-135M-Instruct-Q4_K_M",
     "fileName": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
-    "path": "D:\\OffyAi\\models\\SmolLM2-135M-Instruct-Q4_K_M.gguf",
+    "path": "models/SmolLM2-135M-Instruct-Q4_K_M.gguf",
     "type": "local",
     "name": "SmolLM2-135M-Instruct-Q4_K_M",
     "size": "100.57 MB",

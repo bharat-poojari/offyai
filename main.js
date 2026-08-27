@@ -37,6 +37,7 @@ let startupTimeout = null;
 
 const serverProcesses = new Set();
 const isDev = !app.isPackaged;
+let shutdownPromise = null;
 
 function resolveAppPath(...parts) {
   const appPath = isDev ? __dirname : app.getAppPath();
@@ -59,6 +60,85 @@ function resolveAppPath(...parts) {
   }
 
   return applicationPath;
+}
+
+function getAppRootPath() {
+  return path.resolve(
+    isDev ? __dirname : app.getAppPath()
+  );
+}
+
+function toAppRelativePath(filePath) {
+  if (
+    typeof filePath !== "string" ||
+    !filePath.trim()
+  ) {
+    return filePath;
+  }
+
+  const absolutePath = path.resolve(filePath);
+  const appRoot = getAppRootPath();
+  const relativePath = path.relative(appRoot, absolutePath);
+
+  if (
+    relativePath === "" ||
+    (
+      !relativePath.startsWith("..") &&
+      !path.isAbsolute(relativePath)
+    )
+  ) {
+    return relativePath || ".";
+  }
+
+  return filePath;
+}
+
+function resolveStoredAppPath(filePath) {
+  if (
+    typeof filePath !== "string" ||
+    !filePath.trim()
+  ) {
+    return filePath;
+  }
+
+  const trimmed = filePath.trim();
+
+  if (path.isAbsolute(trimmed)) {
+    return trimmed;
+  }
+
+  return path.resolve(
+    getAppRootPath(),
+    trimmed
+  );
+}
+
+function normalizeStoredSettings(settings) {
+  if (
+    !settings ||
+    typeof settings !== "object" ||
+    Array.isArray(settings)
+  ) {
+    return settings;
+  }
+
+  const normalized = { ...settings };
+
+  if (
+    normalized.activeModel &&
+    typeof normalized.activeModel === "object" &&
+    normalized.activeModel.type === "local" &&
+    typeof normalized.activeModel.path === "string"
+  ) {
+    normalized.activeModel = {
+      ...normalized.activeModel,
+      path: toAppRelativePath(
+        normalized.activeModel.path
+      ),
+    };
+  }
+
+  return normalized;
 }
 
 const settingsFile = isDev
@@ -227,11 +307,15 @@ function loadSettings() {
     fs.readFileSync(settingsFile, "utf8")
   );
 
-  return validateSettings(parsed);
+  return validateSettings(
+    normalizeStoredSettings(parsed)
+  );
 }
 
 function saveSettings(settings) {
-  validateSettings(settings);
+  const normalizedSettings = normalizeStoredSettings(settings);
+
+  validateSettings(normalizedSettings);
 
   const directory = path.dirname(settingsFile);
 
@@ -241,11 +325,11 @@ function saveSettings(settings) {
 
   fs.writeFileSync(
     settingsFile,
-    JSON.stringify(settings, null, 2),
+    JSON.stringify(normalizedSettings, null, 2),
     "utf8"
   );
 
-  return settings;
+  return normalizedSettings;
 }
 
 let appSettings = loadSettings();
@@ -606,19 +690,18 @@ function getActiveModelPath() {
     const configured =
       appSettings.activeModel;
 
+    const fallbackModelId =
+      typeof appSettings.model === "string"
+        ? appSettings.model.trim()
+        : "";
+
     if (
       configured?.type === "local" &&
       configured?.path
     ) {
-      const configuredPath =
-        path.isAbsolute(
-          configured.path
-        )
-          ? configured.path
-          : path.resolve(
-              __dirname,
-              configured.path
-            );
+      const configuredPath = resolveStoredAppPath(
+        configured.path
+      );
 
       if (
         fs.existsSync(
@@ -646,7 +729,45 @@ function getActiveModelPath() {
         configuredPath
       );
 
+      if (fallbackModelId) {
+        const fallbackMatch =
+          getAllLocalModels().find(
+            (item) =>
+              item.id === fallbackModelId ||
+              item.fileName === fallbackModelId
+          );
+
+        if (fallbackMatch) {
+          const fallbackPath = resolveStoredAppPath(
+            fallbackMatch.path
+          );
+
+          if (fs.existsSync(fallbackPath)) {
+            return fallbackPath;
+          }
+        }
+      }
+
       return null;
+    }
+
+    if (fallbackModelId) {
+      const fallbackMatch =
+        getAllLocalModels().find(
+          (item) =>
+            item.id === fallbackModelId ||
+            item.fileName === fallbackModelId
+        );
+
+      if (fallbackMatch) {
+        const fallbackPath = resolveStoredAppPath(
+          fallbackMatch.path
+        );
+
+        if (fs.existsSync(fallbackPath)) {
+          return fallbackPath;
+        }
+      }
     }
 
     return null;
@@ -699,7 +820,7 @@ async function resolveActiveModel(activeModel) {
   return {
     ...found,
     ...activeModel,
-    path: found.path
+    path: toAppRelativePath(found.path)
   };
 }
 
@@ -2482,6 +2603,40 @@ async function updateSettingsAndRestart(
   }
 }
 
+function shutdownApplication() {
+  if (shutdownPromise) {
+    return shutdownPromise;
+  }
+
+  isQuitting = true;
+
+  shutdownPromise = (async () => {
+    try {
+      await llamaServer.stop();
+    } catch (error) {
+      console.warn(
+        "Llama shutdown warning:",
+        error
+      );
+    }
+
+    resourceManager.stopMonitoring();
+
+    if (startupTimeout) {
+      clearTimeout(
+        startupTimeout
+      );
+
+      startupTimeout = null;
+    }
+
+    closeSplashWindow();
+    app.quit();
+  })();
+
+  return shutdownPromise;
+}
+
 function setupApplicationIPC() {
   ipcMain.handle(
     "minimize-window",
@@ -2521,14 +2676,8 @@ function setupApplicationIPC() {
 
   ipcMain.handle(
     "close-window",
-    () => {
-      if (
-        mainWindow &&
-        !mainWindow.isDestroyed()
-      ) {
-        mainWindow.hide();
-      }
-
+    async () => {
+      await shutdownApplication();
       return true;
     }
   );
@@ -3382,6 +3531,10 @@ app.whenReady()
 app.on(
   "window-all-closed",
   (event) => {
+    if (isQuitting) {
+      return;
+    }
+
     if (
       process.platform !==
       "darwin"

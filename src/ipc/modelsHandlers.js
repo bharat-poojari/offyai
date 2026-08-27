@@ -30,6 +30,52 @@ const MODELS_DIR = path.resolve(
   "../../models"
 );
 
+const APP_ROOT = path.resolve(
+  __dirname,
+  "../.."
+);
+
+function toProjectRelativePath(filePath) {
+  if (
+    typeof filePath !== "string" ||
+    !filePath.trim()
+  ) {
+    return filePath;
+  }
+
+  const absolutePath = path.resolve(filePath);
+  const relativePath = path.relative(APP_ROOT, absolutePath);
+
+  if (
+    relativePath === "" ||
+    (
+      !relativePath.startsWith("..") &&
+      !path.isAbsolute(relativePath)
+    )
+  ) {
+    return relativePath || ".";
+  }
+
+  return filePath;
+}
+
+function resolveProjectRelativePath(filePath) {
+  if (
+    typeof filePath !== "string" ||
+    !filePath.trim()
+  ) {
+    return filePath;
+  }
+
+  const trimmed = filePath.trim();
+
+  if (path.isAbsolute(trimmed)) {
+    return trimmed;
+  }
+
+  return path.resolve(APP_ROOT, trimmed);
+}
+
 const SETTINGS_FILE = path.resolve(
   __dirname,
   "../../settings.json"
@@ -803,7 +849,7 @@ function buildLocalActiveModel(
     fileName: safeName,
     type: "local",
     name: modelId,
-    path: modelPath,
+    path: toProjectRelativePath(modelPath),
   };
 }
 
