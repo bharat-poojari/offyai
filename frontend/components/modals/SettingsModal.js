@@ -2294,6 +2294,48 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
         <div className="mt-8 space-y-5">
 
+          {/* Memory */}
+
+          <div>
+
+            <label
+              htmlFor="chat-memory-mode"
+              className="block text-sm font-medium mb-2"
+            >
+              Conversation Memory
+            </label>
+
+            <select
+              id="chat-memory-mode"
+              value={settings.chat.memoryMode || "chat"}
+              onChange={(event) =>
+                updateNestedSetting(
+                  "chat",
+                  "memoryMode",
+                  event.target.value
+                )
+              }
+              className="
+                w-full
+                px-3 py-2
+                border border-gray-300 dark:border-gray-600
+                rounded-lg
+                bg-white dark:bg-gray-700
+                text-gray-900 dark:text-white
+              "
+            >
+              <option value="off">Off</option>
+              <option value="chat">This chat only (recommended)</option>
+              <option value="application">All chats in this application</option>
+            </select>
+
+            <p className="text-xs text-gray-500 mt-2">
+              Uses only conversations stored locally in this application.
+              Deleting a chat also removes it from application memory.
+            </p>
+
+          </div>
+
           {/* Stream */}
 
           <label className="flex items-center">

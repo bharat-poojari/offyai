@@ -1,7 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import { chatAPI, processAIStream } from "../utils/api";
-import { CHAT_HISTORY_KEY } from "../utils/constants";
+import {
+  CHAT_HISTORY_KEY,
+  SETTINGS_KEY,
+} from "../utils/constants";
 
 const generateId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -57,6 +60,84 @@ const serializeAttachment = async (file) => ({
   size: Number(file?.size) || 0,
   data: await fileToBase64(file),
 });
+
+const normalizeMemoryMode = (value) =>
+  value === "off" || value === "application"
+    ? value
+    : "chat";
+
+const getSavedMemoryMode = async () => {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.electronAPI?.getSettings === "function"
+  ) {
+    try {
+      const settings = await window.electronAPI.getSettings();
+
+      return normalizeMemoryMode(settings?.chat?.memoryMode);
+    } catch (error) {
+      console.warn("Unable to read chat memory setting:", error);
+    }
+  }
+
+  try {
+    const rawSettings =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(SETTINGS_KEY)
+        : null;
+    const settings = rawSettings ? JSON.parse(rawSettings) : null;
+
+    return normalizeMemoryMode(settings?.chat?.memoryMode);
+  } catch (error) {
+    console.warn("Unable to read local chat memory setting:", error);
+    return "chat";
+  }
+};
+
+const toRequestMessage = (message) => ({
+  role: message.role,
+  content:
+    typeof message.content === "string"
+      ? message.content
+      : String(message.content ?? ""),
+});
+
+const buildRequestHistory = (sessions, sessionId, memoryMode, currentText) => {
+  if (memoryMode === "off") {
+    return [{ role: "user", content: currentText }];
+  }
+
+  const selectedSessions =
+    memoryMode === "application"
+      ? sessions
+      : sessions.filter((session) => session.id === sessionId);
+
+  const history = selectedSessions.flatMap((session) =>
+    (Array.isArray(session.messages) ? session.messages : [])
+      .filter(
+        (message) =>
+          message &&
+          (message.role === "user" ||
+            message.role === "assistant" ||
+            message.role === "system")
+      )
+      .map(toRequestMessage)
+      .filter((message) => message.content.trim().length > 0)
+  );
+
+  const boundedHistory = history.slice(-40);
+  const lastMessage = boundedHistory[boundedHistory.length - 1];
+
+  if (
+    !lastMessage ||
+    lastMessage.role !== "user" ||
+    lastMessage.content !== currentText
+  ) {
+    boundedHistory.push({ role: "user", content: currentText });
+  }
+
+  return boundedHistory;
+};
 
 export const useChat = () => {
   const [chatSessions, setChatSessions] = useLocalStorage(
@@ -740,6 +821,14 @@ export const useChat = () => {
        */
 
       try {
+        const memoryMode = await getSavedMemoryMode();
+        const requestHistory = buildRequestHistory(
+          Array.isArray(chatSessions) ? chatSessions : [],
+          sessionId,
+          memoryMode,
+          effectiveText
+        );
+
         /*
          * ====================================================================
          * ELECTRON
@@ -767,45 +856,6 @@ export const useChat = () => {
             );
           }
 
-          const currentSession =
-            Array.isArray(chatSessions)
-              ? chatSessions.find(
-                  (session) => session.id === sessionId
-                )
-              : null;
-
-          const history = Array.isArray(currentSession?.messages)
-            ? currentSession.messages
-                .filter(
-                  (message) =>
-                    message &&
-                    (message.role === "user" ||
-                      message.role === "assistant" ||
-                      message.role === "system")
-                )
-                .map((message) => ({
-                  role: message.role,
-                  content:
-                    typeof message.content === "string"
-                      ? message.content
-                      : String(message.content ?? ""),
-                }))
-                .filter((message) => message.content.trim().length > 0)
-            : [];
-
-          const lastHistoryMessage = history[history.length - 1];
-
-          if (
-            !lastHistoryMessage ||
-            lastHistoryMessage.role !== "user" ||
-            lastHistoryMessage.content !== effectiveText
-          ) {
-            history.push({
-              role: "user",
-              content: effectiveText,
-            });
-          }
-
           const ipcAttachments = await Promise.all(
             normalizedAttachments.map(serializeAttachment)
           );
@@ -819,7 +869,7 @@ export const useChat = () => {
                   : "default",
 
               sessionId,
-              messages: history,
+              messages: requestHistory,
               attachments: ipcAttachments,
               temperature: 0.7,
               max_tokens: 4000,
@@ -897,6 +947,7 @@ export const useChat = () => {
           {
             temperature: 0.7,
             max_tokens: 4000,
+            messages: requestHistory,
             signal: abortControllerRef.current?.signal,
           }
         );

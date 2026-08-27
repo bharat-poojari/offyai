@@ -536,7 +536,7 @@ class ModelManager {
     ];
   }
 
-  async scanForModels(modelsPath) {
+  scanForModels(modelsPath) {
     try {
       fs.mkdirSync(modelsPath, {
         recursive: true
@@ -781,7 +781,7 @@ function getActiveModelPath() {
   }
 }
 
-async function getAllLocalModels() {
+function getAllLocalModels() {
   return modelManager.scanForModels(
     getModelsPath()
   );

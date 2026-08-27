@@ -286,6 +286,13 @@ export const chatAPI = {
         )
       );
 
+      if (Array.isArray(options.messages)) {
+        formData.append(
+          "messages",
+          JSON.stringify(options.messages)
+        );
+      }
+
       if (Array.isArray(attachments)) {
         attachments.forEach((file) => {
           if (file) {

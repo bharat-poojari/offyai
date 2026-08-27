@@ -1,20 +1,20 @@
 {
   "apiKey": "0316",
   "serverUrl": "http://localhost:8080",
-  "model": "SmolLM2-135M-Instruct-Q4_K_M",
+  "model": "SmolLM2-135M-Instruct-Q2_K",
   "activeModel": {
-    "id": "SmolLM2-135M-Instruct-Q4_K_M",
-    "fileName": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
-    "path": "models/SmolLM2-135M-Instruct-Q4_K_M.gguf",
+    "id": "SmolLM2-135M-Instruct-Q2_K",
+    "fileName": "SmolLM2-135M-Instruct-Q2_K.gguf",
+    "path": "models\\SmolLM2-135M-Instruct-Q2_K.gguf",
     "type": "local",
-    "name": "SmolLM2-135M-Instruct-Q4_K_M",
-    "size": "100.57 MB",
-    "sizeBytes": 105454144,
+    "name": "SmolLM2-135M-Instruct-Q2_K",
+    "size": "84.12 MB",
+    "sizeBytes": 88202080,
     "format": "gguf",
-    "created": "2026-08-27T10:52:56.689Z",
-    "modified": "2026-08-19T08:34:07.000Z",
+    "created": "2026-08-27T12:21:36.191Z",
+    "modified": "2026-08-27T11:49:56.121Z",
     "isDirectory": false,
-    "uploadedAt": "2026-08-27T10:52:57.109Z"
+    "uploadedAt": "2025-10-26T05:54:56.997Z"
   },
   "remoteModels": [],
   "availableModels": [
@@ -25,14 +25,6 @@
       "uploadedAt": "2025-10-26T05:54:56.997Z",
       "type": "local",
       "sizeBytes": 88202080
-    },
-    {
-      "id": "SmolLM2-135M-Instruct-Q4_K_M",
-      "fileName": "SmolLM2-135M-Instruct-Q4_K_M.gguf",
-      "size": "100.57 MB",
-      "sizeBytes": 105454144,
-      "uploadedAt": "2026-08-27T10:52:57.109Z",
-      "type": "local"
     }
   ],
   "theme": "system",
@@ -62,6 +54,7 @@
     "streamResponses": true,
     "showTypingIndicator": true,
     "autoContinue": false,
+    "memoryMode": "chat",
     "retryAttempts": 3,
     "timeout": 30000,
     "systemPrompt": "You are a helpful AI assistant.",
