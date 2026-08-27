@@ -185,6 +185,7 @@ export const useChat = () => {
     const newChat = {
       id: generateId(),
       title: "New Chat",
+      pinned: false,
       messages: [],
       createdAt: now,
       updatedAt: now,
@@ -263,6 +264,7 @@ export const useChat = () => {
     const newChat = {
       id: generateId(),
       title: "New Chat",
+      pinned: false,
       messages: [],
       createdAt: now,
       updatedAt: now,
@@ -321,6 +323,7 @@ export const useChat = () => {
           const newChat = {
             id: generateId(),
             title: "New Chat",
+            pinned: false,
             messages: [],
             createdAt: now,
             updatedAt: now,
@@ -347,6 +350,78 @@ export const useChat = () => {
     [setChatSessions]
   );
 
+  const renameChat = useCallback(
+    (sessionId, nextTitle) => {
+      if (!sessionId) {
+        return false;
+      }
+
+      const normalizedTitle = String(
+        nextTitle ?? ""
+      )
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (!normalizedTitle) {
+        return false;
+      }
+
+      setChatSessions((previous) => {
+        const sessions = Array.isArray(previous) ? previous : [];
+
+        return sessions.map((session) => {
+          if (session.id !== sessionId) {
+            return session;
+          }
+
+          return {
+            ...session,
+            title: normalizedTitle,
+            updatedAt: new Date().toISOString(),
+          };
+        });
+      });
+
+      setError(null);
+      return true;
+    },
+    [setChatSessions]
+  );
+
+  const togglePinChat = useCallback(
+    (sessionId) => {
+      if (!sessionId) {
+        return false;
+      }
+
+      let didUpdate = false;
+
+      setChatSessions((previous) => {
+        const sessions = Array.isArray(previous) ? previous : [];
+
+        const nextSessions = sessions.map((session) => {
+          if (session.id !== sessionId) {
+            return session;
+          }
+
+          didUpdate = true;
+
+          return {
+            ...session,
+            pinned: !Boolean(session.pinned),
+            updatedAt: new Date().toISOString(),
+          };
+        });
+
+        return nextSessions;
+      });
+
+      setError(null);
+      return didUpdate;
+    },
+    [setChatSessions]
+  );
+
   /*
    * --------------------------------------------------------------------------
    * DELETE ALL
@@ -359,6 +434,7 @@ export const useChat = () => {
     const newChat = {
       id: generateId(),
       title: "New Chat",
+      pinned: false,
       messages: [],
       createdAt: now,
       updatedAt: now,
@@ -709,7 +785,16 @@ export const useChat = () => {
                 ? session.messages
                 : [];
 
-            if (messages.length <= 2) {
+            const userTitle =
+              typeof session.title === "string"
+                ? session.title.trim()
+                : "";
+
+            const shouldKeepCustomTitle =
+              userTitle &&
+              userTitle !== "New Chat";
+
+            if (!shouldKeepCustomTitle && messages.length <= 2) {
               const firstUser =
                 messages.find(
                   (message) =>
@@ -1053,7 +1138,8 @@ export const useChat = () => {
     switchToChat,
 
     deleteChat,
-
+    renameChat,
+    togglePinChat,
     deleteAllChats,
   };
 };

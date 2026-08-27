@@ -1,20 +1,20 @@
 {
   "apiKey": "0316",
   "serverUrl": "http://localhost:8080",
-  "model": "SmolLM2-135M-Instruct-Q2_K",
+  "model": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
   "activeModel": {
-    "id": "SmolLM2-135M-Instruct-Q2_K",
-    "fileName": "SmolLM2-135M-Instruct-Q2_K.gguf",
-    "path": "models\\SmolLM2-135M-Instruct-Q2_K.gguf",
+    "id": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
+    "fileName": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL.gguf",
+    "path": "models\\Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL.gguf",
     "type": "local",
-    "name": "SmolLM2-135M-Instruct-Q2_K",
-    "size": "84.12 MB",
-    "sizeBytes": 88202080,
+    "name": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
+    "size": "19.14 MB",
+    "sizeBytes": 20069536,
     "format": "gguf",
-    "created": "2026-08-27T12:21:36.191Z",
-    "modified": "2026-08-27T11:49:56.121Z",
+    "created": "2026-08-27T13:05:35.878Z",
+    "modified": "2026-08-27T12:57:01.221Z",
     "isDirectory": false,
-    "uploadedAt": "2025-10-26T05:54:56.997Z"
+    "uploadedAt": "2026-08-27T13:05:35.932Z"
   },
   "remoteModels": [],
   "availableModels": [
@@ -25,6 +25,14 @@
       "uploadedAt": "2025-10-26T05:54:56.997Z",
       "type": "local",
       "sizeBytes": 88202080
+    },
+    {
+      "id": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
+      "fileName": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL.gguf",
+      "size": "19.14 MB",
+      "sizeBytes": 20069536,
+      "uploadedAt": "2026-08-27T13:05:35.932Z",
+      "type": "local"
     }
   ],
   "theme": "system",

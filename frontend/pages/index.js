@@ -191,6 +191,8 @@ const Home = () => {
     createNewChat,
     switchToChat,
     deleteChat,
+    renameChat,
+    togglePinChat,
     deleteAllChats,
     stopGeneration,
     setCurrentSessionId,
@@ -362,6 +364,20 @@ const Home = () => {
     [deleteChat]
   );
 
+  const onRenameChat = useCallback(
+    (id, title) => {
+      return renameChat(id, title);
+    },
+    [renameChat]
+  );
+
+  const onTogglePinChat = useCallback(
+    (id) => {
+      return togglePinChat(id);
+    },
+    [togglePinChat]
+  );
+
   const onClearAllChats = useCallback(() => {
     deleteAllChats();
   }, [deleteAllChats]);
@@ -456,6 +472,12 @@ const Home = () => {
           }
           onDeleteChat={
             onDeleteChat
+          }
+          onRenameChat={
+            onRenameChat
+          }
+          onTogglePinChat={
+            onTogglePinChat
           }
           onClearAllChats={
             onClearAllChats

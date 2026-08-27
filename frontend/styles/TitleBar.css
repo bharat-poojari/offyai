@@ -1,201 +1,313 @@
-/* Modern Title Bar with Theme Support */
+/* ==========================================================================
+   OFFYAI TITLE BAR
+   ========================================================================== */
+
 .title-bar {
-  height: 32px;
-  display: flex;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 10000;
-  background-color: hsl(var(--background));
-  border-bottom: 1px solid hsl(var(--border));
+
+  width: 100%;
+  height: 28px;
+
+  z-index: 9999;
+
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #e5e7eb;
+
+  color: #111827;
+
   -webkit-app-region: drag;
   user-select: none;
+
+  box-sizing: border-box;
+
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
 }
 
-/* Dark theme specific */
 .dark .title-bar {
-  background-color: hsl(222.2 84% 6%);
+  background: rgba(17, 24, 39, 0.96);
+  border-bottom-color: #374151;
+  color: #f9fafb;
 }
 
-/* Light theme specific */
-.light .title-bar {
-  background-color: hsl(0 0% 100%);
-}
+
+/* ==========================================================================
+   DRAG REGION
+   ========================================================================== */
 
 .title-bar-drag-region {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  -webkit-app-region: drag;
   width: 100%;
-  height: 100%;
-  padding: 0 12px;
+  height: 27px;
+
+  display: block;
+
+  -webkit-app-region: drag;
 }
+
+
+/* ==========================================================================
+   MAIN CONTENT
+   ========================================================================== */
 
 .title-bar-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   width: 100%;
-  -webkit-app-region: no-drag;
-}
+  height: 27px;
 
-.title-bar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+
+  box-sizing: border-box;
 }
 
-.title-bar-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
-.title-bar-icon svg {
-  width: 12px;
-  height: 12px;
-  color: white;
-}
+/* ==========================================================================
+   LEFT SIDE
+   ========================================================================== */
 
 .title-bar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: hsl(var(--foreground));
-  letter-spacing: -0.3px;
-}
+  height: 27px;
 
-.title-bar-status {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-left: 12px;
-  margin-left: 12px;
-  border-left: 1px solid hsl(var(--border));
-}
 
-.title-bar-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
+  padding-left: 10px;
 
-.title-bar-status-dot.connected {
-  background-color: hsl(var(--success));
-  animation: pulse 2s infinite;
-}
+  min-width: 0;
 
-.title-bar-status-dot.disconnected {
-  background-color: hsl(var(--destructive));
-}
-
-.title-bar-status-text {
-  font-size: 11px;
-  font-weight: 500;
-  color: hsl(var(--foreground) / 0.7);
-}
-
-.title-bar-model {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background-color: hsl(var(--primary) / 0.1);
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  color: hsl(var(--primary));
-  max-width: 200px;
-}
-
-.title-bar-model-name {
   overflow: hidden;
-  text-overflow: ellipsis;
+
+  -webkit-app-region: drag;
+}
+
+
+/* ==========================================================================
+   APPLICATION BRAND
+   ========================================================================== */
+
+.title-bar-app {
+  height: 27px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  min-width: 0;
+
   white-space: nowrap;
 }
 
+
+/* ==========================================================================
+   REAL LOGO
+   ========================================================================== */
+
+.title-bar-app-icon {
+  width: 16px;
+  height: 16px;
+
+  flex: 0 0 16px;
+
+  display: block;
+
+  object-fit: contain;
+
+  border-radius: 3px;
+
+  pointer-events: none;
+  user-select: none;
+
+  -webkit-user-drag: none;
+}
+
+
+/* ==========================================================================
+   APP NAME
+   ========================================================================== */
+
+.title-bar-app-name {
+  display: block;
+
+  line-height: 27px;
+
+  font-size: 12px;
+  font-weight: 500;
+
+  letter-spacing: -0.01em;
+
+  color: #374151;
+
+  white-space: nowrap;
+}
+
+.dark .title-bar-app-name {
+  color: #e5e7eb;
+}
+
+
+/* ==========================================================================
+   WINDOW CONTROLS
+   ========================================================================== */
+
 .title-bar-controls {
+  height: 27px;
+
   display: flex;
-  align-items: center;
-  gap: 4px;
+  align-items: stretch;
+
+  flex-shrink: 0;
+
   -webkit-app-region: no-drag;
 }
 
+
+/* ==========================================================================
+   WINDOW BUTTON
+   ========================================================================== */
+
 .title-bar-button {
-  width: 32px;
-  height: 28px;
-  border: none;
-  background: transparent;
+  position: relative;
+
+  width: 46px;
+  height: 27px;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  border-radius: 0;
+
+  outline: none;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
+  background: transparent;
+
+  color: #4b5563;
+
   cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.15s ease;
+
+  box-sizing: border-box;
+
   -webkit-app-region: no-drag;
+
+  transition:
+    background-color 100ms ease,
+    color 100ms ease;
 }
 
-.title-bar-button svg {
-  width: 14px;
-  height: 14px;
-  color: hsl(var(--foreground) / 0.6);
-  transition: all 0.15s ease;
+.dark .title-bar-button {
+  color: #d1d5db;
 }
+
+
+/* ==========================================================================
+   NORMAL HOVER
+   ========================================================================== */
 
 .title-bar-button:hover {
-  background-color: hsl(var(--accent));
+  background: rgba(0, 0, 0, 0.055);
 }
 
-.title-bar-button:hover svg {
-  color: hsl(var(--foreground));
+.dark .title-bar-button:hover {
+  background: rgba(255, 255, 255, 0.075);
 }
 
-/* Minimize button */
-.minimize-button:hover svg {
-  color: hsl(var(--success));
+
+/* ==========================================================================
+   ACTIVE
+   ========================================================================== */
+
+.title-bar-button:active {
+  background: rgba(0, 0, 0, 0.10);
 }
 
-/* Maximize button */
-.maximize-button:hover svg {
-  color: hsl(var(--primary));
+.dark .title-bar-button:active {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-/* Close button */
-.close-button:hover {
-  background-color: hsl(var(--destructive));
+
+/* ==========================================================================
+   MINIMIZE ICON
+   ========================================================================== */
+
+.title-bar-icon-minimize {
+  width: 12px;
+  height: 12px;
+
+  display: block;
+
+  pointer-events: none;
 }
 
-.close-button:hover svg {
-  color: white;
+
+/* ==========================================================================
+   MAXIMIZE / RESTORE ICON
+   ========================================================================== */
+
+.title-bar-icon-maximize {
+  width: 11px;
+  height: 11px;
+
+  display: block;
+
+  pointer-events: none;
 }
 
-/* Animations */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+
+/* ==========================================================================
+   CLOSE ICON
+   ========================================================================== */
+
+.title-bar-icon-close {
+  width: 15px;
+  height: 15px;
+
+  display: block;
+
+  pointer-events: none;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .title-bar-status,
-  .title-bar-model {
-    display: none;
-  }
-  
-  .title-bar-title {
-    font-size: 12px;
-  }
-  
+
+/* ==========================================================================
+   CLOSE BUTTON
+   ========================================================================== */
+
+.title-bar-button.close-button:hover {
+  background: #e81123;
+  color: #ffffff;
+}
+
+.title-bar-button.close-button:active {
+  background: #c50f1f;
+  color: #ffffff;
+}
+
+
+/* ==========================================================================
+   FOCUS
+   ========================================================================== */
+
+.title-bar-button:focus-visible {
+  outline: 1px solid #3b82f6;
+  outline-offset: -2px;
+}
+
+
+/* ==========================================================================
+   REDUCED MOTION
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .title-bar,
   .title-bar-button {
-    width: 28px;
+    transition: none;
   }
 }

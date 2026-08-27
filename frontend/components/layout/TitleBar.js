@@ -1,112 +1,217 @@
-import { useState, useEffect } from "react";
-import { Minus, Square, X, Maximize2, Monitor } from "lucide-react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+
+import {
+  Minus,
+  Square,
+  X,
+  Maximize2,
+} from "lucide-react";
 
 const TitleBar = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [platform, setPlatform] = useState("");
   const [appIcon, setAppIcon] = useState(null);
 
+  /* ---------------------------------------------------------------------- */
+  /* Platform + App Icon                                                    */
+  /* ---------------------------------------------------------------------- */
+
   useEffect(() => {
     const userAgent = navigator.userAgent.toLowerCase();
-    if (userAgent.includes("win")) setPlatform("windows");
-    else if (userAgent.includes("mac")) setPlatform("mac");
-    else setPlatform("linux");
 
-    // Load app icon
+    if (userAgent.includes("win")) {
+      setPlatform("windows");
+    } else if (userAgent.includes("mac")) {
+      setPlatform("mac");
+    } else {
+      setPlatform("linux");
+    }
+
+    let mounted = true;
+
     const loadAppIcon = async () => {
-      if (window.electronAPI?.getAppIcon) {
-        try {
-          const iconData = await window.electronAPI.getAppIcon();
-          if (iconData) {
-            setAppIcon(iconData);
-          }
-        } catch (error) {
-          console.error("Failed to load app icon:", error);
+      if (!window.electronAPI?.getAppIcon) {
+        return;
+      }
+
+      try {
+        const iconData =
+          await window.electronAPI.getAppIcon();
+
+        if (mounted && iconData) {
+          setAppIcon(iconData);
         }
+      } catch (error) {
+        console.error(
+          "Failed to load app icon:",
+          error
+        );
       }
     };
 
     loadAppIcon();
 
-    // Listen for window state changes
-    if (window.electronAPI?.onWindowStateChange) {
-      const unsubscribe = window.electronAPI.onWindowStateChange((state) => {
-        setIsMaximized(state === "maximized");
-      });
-      return unsubscribe;
+    /* ------------------------------------------------------------------ */
+    /* Window State                                                        */
+    /* ------------------------------------------------------------------ */
+
+    if (
+      window.electronAPI?.onWindowStateChange
+    ) {
+      const unsubscribe =
+        window.electronAPI.onWindowStateChange(
+          (state) => {
+            if (mounted) {
+              setIsMaximized(
+                state === "maximized"
+              );
+            }
+          }
+        );
+
+      return () => {
+        mounted = false;
+
+        if (typeof unsubscribe === "function") {
+          unsubscribe();
+        }
+      };
     }
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const handleMinimize = () => {
+  /* ---------------------------------------------------------------------- */
+  /* Window Actions                                                         */
+  /* ---------------------------------------------------------------------- */
+
+  const handleMinimize = useCallback(() => {
     if (window.electronAPI?.minimizeWindow) {
       window.electronAPI.minimizeWindow();
     }
-  };
+  }, []);
 
-  const handleMaximize = () => {
+  const handleMaximize = useCallback(() => {
     if (window.electronAPI?.maximizeWindow) {
       window.electronAPI.maximizeWindow();
     }
-  };
+  }, []);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     if (window.electronAPI?.closeWindow) {
       window.electronAPI.closeWindow();
     }
-  };
+  }, []);
 
-  const handleDoubleClick = () => {
+  const handleDoubleClick = useCallback(() => {
     if (platform === "windows") {
       handleMaximize();
     }
-  };
+  }, [platform, handleMaximize]);
 
-  // Hide title bar on macOS (uses system title bar)
-  if (platform === "mac") return null;
+  /* ---------------------------------------------------------------------- */
+  /* macOS uses native title bar                                            */
+  /* ---------------------------------------------------------------------- */
+
+  if (platform === "mac") {
+    return null;
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* Render                                                                 */
+  /* ---------------------------------------------------------------------- */
 
   return (
     <div className="title-bar">
-      <div className="title-bar-drag-region" onDoubleClick={handleDoubleClick}>
+      <div
+        className="title-bar-drag-region"
+        onDoubleClick={handleDoubleClick}
+      >
+        {/* ================================================================ */}
+        {/* Left: Application Identity                                        */}
+        {/* ================================================================ */}
+
         <div className="title-bar-content">
           <div className="title-bar-title">
-            <div className="flex items-center gap-2">
-              {appIcon ? (
-                <img 
-                src="/images/offyai.png" 
-                alt="OffyAI" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.parentNode.innerHTML = '<span class="text-white font-bold text-sm">O</span>';
-                }}
-              />
-              ) : (
-                <Monitor className="w-4 h-4 mr-1" />
+            <div className="title-bar-app">
+              {appIcon && (
+                <img
+                  src={appIcon}
+                  alt="OffyAI"
+                  className="title-bar-app-icon"
+                  draggable="false"
+                />
               )}
-              <span className="text-sm font-medium">OffyAI</span>
+
+              <span className="title-bar-app-name">
+                OffyAI
+              </span>
             </div>
           </div>
+
+          {/* ============================================================ */}
+          {/* Right: Window Controls                                         */}
+          {/* ============================================================ */}
+
           <div className="title-bar-controls">
-            <button 
-              onClick={handleMinimize} 
-              className="title-bar-button minimize-button" 
+            <button
+              type="button"
+              onClick={handleMinimize}
+              className="title-bar-button minimize-button"
               title="Minimize"
+              aria-label="Minimize window"
             >
-              <Minus className="w-3 h-3" />
+              <Minus
+                className="title-bar-icon-minimize"
+                strokeWidth={1.7}
+              />
             </button>
-            <button 
-              onClick={handleMaximize} 
-              className="title-bar-button maximize-button" 
-              title={isMaximized ? "Restore" : "Maximize"}
+
+            <button
+              type="button"
+              onClick={handleMaximize}
+              className="title-bar-button maximize-button"
+              title={
+                isMaximized
+                  ? "Restore"
+                  : "Maximize"
+              }
+              aria-label={
+                isMaximized
+                  ? "Restore window"
+                  : "Maximize window"
+              }
             >
-              {isMaximized ? <Maximize2 className="w-3 h-3" /> : <Square className="w-3 h-3" />}
+              {isMaximized ? (
+                <Maximize2
+                  className="title-bar-icon-maximize"
+                  strokeWidth={1.7}
+                />
+              ) : (
+                <Square
+                  className="title-bar-icon-maximize"
+                  strokeWidth={1.7}
+                />
+              )}
             </button>
-            <button 
-              onClick={handleClose} 
-              className="title-bar-button close-button" 
+
+            <button
+              type="button"
+              onClick={handleClose}
+              className="title-bar-button close-button"
               title="Close"
+              aria-label="Close window"
             >
-              <X className="w-4 h-4" />
+              <X
+                className="title-bar-icon-close"
+                strokeWidth={1.8}
+              />
             </button>
           </div>
         </div>
