@@ -2,3 +2,4 @@ node_modules
 frontend/out
 frontend/.next
 models/SmolLM2-135M-Instruct-Q2_K.gguf
+models/*
