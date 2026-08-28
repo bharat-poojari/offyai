@@ -95,7 +95,7 @@ const Header = ({
               "
             >
               <img
-                src={appIcon || "/images/offyai.png"}
+                src={appIcon || "images/offyai.png"}
                 alt="OffyAI"
                 className="h-full w-full object-cover"
               />

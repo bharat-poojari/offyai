@@ -2686,15 +2686,30 @@ function setupApplicationIPC() {
     "get-app-icon",
     () => {
       try {
-        const iconPath =
+        const iconPaths = [
           resolveAppPath(
+            "frontend",
+            "public",
+            "images",
             "offyai.png"
+          ),
+          resolveAppPath(
+            "frontend",
+            "out",
+            "images",
+            "offyai.png"
+          )
+        ];
+
+        const iconPath =
+          iconPaths.find((candidate) =>
+            fs.existsSync(candidate)
           );
 
-        return fs.existsSync(
-          iconPath
-        )
-          ? iconPath
+        return iconPath
+          ? nativeImage
+              .createFromPath(iconPath)
+              .toDataURL()
           : null;
       } catch {
         return null;

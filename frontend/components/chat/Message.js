@@ -135,7 +135,7 @@ const Message = ({ message }) => {
             {file.type === 'image' ? (
               <div className="flex-shrink-0 w-8 h-8 rounded overflow-hidden border border-gray-300 dark:border-gray-600">
                 <img 
-                  src={file.previewUrl || '/images/offyai.png'} 
+                  src={file.previewUrl || 'images/offyai.png'}
                   alt={file.originalName || file.name} 
                   className="w-full h-full object-cover"
                   onError={(e) => {

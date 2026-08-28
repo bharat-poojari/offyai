@@ -46,7 +46,6 @@
     "files": [
       "main.js",
       "splash.html",
-      "offyai.png",
       "favicon.ico",
       "README.md",
       "LICENSE.txt",
@@ -102,7 +101,7 @@
           ]
         }
       ],
-      "icon": "offyai.png"
+      "icon": "frontend/public/images/offyai.png"
     },
     "nsis": {
       "oneClick": false,
@@ -115,11 +114,11 @@
     },
     "mac": {
       "target": "dmg",
-      "icon": "offyai.png"
+      "icon": "frontend/public/images/offyai.png"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "offyai.png",
+      "icon": "frontend/public/images/offyai.png",
       "category": "Utility"
     }
   }

@@ -1,26 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 export const useLocalStorage = (key, initialValue) => {
-  const [storedValue, setStoredValue] = useState(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const item = window.localStorage.getItem(key);
-
-        if (item !== null) {
-          return JSON.parse(item);
-        }
-      }
-    } catch (error) {
-      console.error(
-        `Error reading localStorage key "${key}" during initialization:`,
-        error
-      );
-    }
-
-    return initialValue instanceof Function
+  // Keep the initial render identical between the static export and browser.
+  const [storedValue, setStoredValue] = useState(() =>
+    initialValue instanceof Function
       ? initialValue()
-      : initialValue;
-  });
+      : initialValue
+  );
 
   /*
    * Keep a ref containing the latest value.
