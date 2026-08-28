@@ -13,11 +13,14 @@ import {
   Download,
 } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useProfile } from "../../contexts/ProfileContext";
+import { resolveImagePath, getDefaultAvatar } from "../../utils/imageResolver";
 
 const Message = ({ message }) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const { resolvedTheme } = useTheme();
+  const { profile } = useProfile();
 
   const getBackgroundColor = () => {
     if (isUser) {
@@ -483,19 +486,33 @@ const Message = ({ message }) => {
       {!isUser && (
         <div className="flex-shrink-0 pt-5">
           <div
-            className="
-              flex h-8 w-8
-              items-center justify-center
-              rounded-xl
-              border border-blue-400/10
-              bg-gradient-to-br
-              from-blue-500
-              to-violet-600
-              shadow-sm
-              shadow-blue-950/20
-            "
-          >
-            <Bot className="h-4 w-4 text-white" />
+                      className="
+                        h-8 w-8
+                        flex-shrink-0
+                        overflow-hidden
+                        rounded-xl
+                        border border-blue-400/10
+                        bg-gradient-to-br
+                        from-blue-500
+                        to-violet-600
+                        shadow-sm
+                        shadow-blue-950/20
+                      "
+                    >
+                      {profile?.aiPhoto ? (
+                        <img
+                          src={profile.aiPhoto}
+                          alt={profile?.aiName || "AI"}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Bot className="h-4 w-4 text-white" />
+                        </div>
+                      )}
           </div>
         </div>
       )}
@@ -530,8 +547,8 @@ const Message = ({ message }) => {
             `}
           >
             {isUser
-              ? "You"
-              : "OffyAI"}
+              ? profile?.userName || "You"
+              : profile?.aiName || "OffyAI"}
           </span>
 
           <span
@@ -653,17 +670,31 @@ const Message = ({ message }) => {
       {isUser && (
         <div className="flex-shrink-0 pt-5">
           <div
-            className="
-              flex h-8 w-8
-              items-center justify-center
-              rounded-xl
-              border border-blue-400/10
-              bg-blue-600
-              shadow-sm
-              shadow-blue-950/20
-            "
-          >
-            <User className="h-4 w-4 text-white" />
+                      className="
+                        h-8 w-8
+                        flex-shrink-0
+                        overflow-hidden
+                        rounded-xl
+                        border border-blue-400/10
+                        bg-blue-600
+                        shadow-sm
+                        shadow-blue-950/20
+                      "
+                    >
+                      {profile?.userPhoto ? (
+                        <img
+                          src={profile.userPhoto}
+                          alt={profile?.userName || "User"}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <User className="h-4 w-4 text-white" />
+                        </div>
+                      )}
           </div>
         </div>
       )}

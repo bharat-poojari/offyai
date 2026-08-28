@@ -17,11 +17,15 @@ import {
   FolderOpen,
   RotateCcw,
   Trash2,
-  Monitor
+  Monitor,
+  User,
+  Layout
 } from "lucide-react";
 
 import { useTheme } from "../../contexts/ThemeContext";
 import { useModel } from "../../contexts/ModelContext";
+import { useProfile } from "../../contexts/ProfileContext";
+import { resolveImagePath, fileToDataURL } from "../../utils/imageResolver";
 
 
 /*
@@ -80,6 +84,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
   });
 
   const [showApiKey, setShowApiKey] = useState(false);
+  const [userPhotoPreview, setUserPhotoPreview] = useState("");
+  const [aiPhotoPreview, setAiPhotoPreview] = useState("");
 
   const { setTheme } = useTheme();
 
@@ -217,8 +223,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
       return;
     }
 
-    setActiveTab("general");
-    loadSettings();
+    const loadTimer = window.setTimeout(() => {
+      loadSettings();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(loadTimer);
+    };
   }, [isOpen]);
 
 
@@ -2420,7 +2431,208 @@ const SettingsModal = ({ isOpen, onClose }) => {
   |--------------------------------------------------------------------------
   */
 
-  const renderUISettings = () => (
+  const renderUISettings = () => {
+      /*
+      |--------------------------------------------------------------------------
+      | Profile
+      |--------------------------------------------------------------------------
+      */
+
+      const renderProfileSettings = () => {
+        const handleUserPhotoChange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            try {
+              const dataUrl = await fileToDataURL(file);
+              setUserPhotoPreview(dataUrl);
+              updateNestedSetting("profile", "userPhoto", dataUrl);
+            } catch (error) {
+              console.error("Failed to load user photo:", error);
+            }
+          }
+        };
+
+        const handleAiPhotoChange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            try {
+              const dataUrl = await fileToDataURL(file);
+              setAiPhotoPreview(dataUrl);
+              updateNestedSetting("profile", "aiPhoto", dataUrl);
+            } catch (error) {
+              console.error("Failed to load AI photo:", error);
+            }
+          }
+        };
+
+        return (
+          <div className="space-y-6">
+            {/* User Profile */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
+              <h3 className="text-lg font-semibold tracking-tight mb-6">
+                Your Profile
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* User Avatar */}
+                <div className="flex flex-col items-center">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
+                    Profile Photo
+                  </label>
+                  <div className="relative h-24 w-24 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 overflow-hidden">
+                    {userPhotoPreview ? (
+                      <img
+                        src={userPhotoPreview}
+                        alt="User profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-slate-400">No photo</span>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUserPhotoChange}
+                    className="mt-3 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  {/* User Name */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                      Your Name
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.profile?.userName || ""}
+                      onChange={(e) =>
+                        updateNestedSetting("profile", "userName", e.target.value)
+                      }
+                      placeholder="Enter your name"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* User About */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                      About You
+                    </label>
+                    <textarea
+                      value={settings.profile?.userAbout || ""}
+                      onChange={(e) =>
+                        updateNestedSetting("profile", "userAbout", e.target.value)
+                      }
+                      placeholder="Brief description about yourself"
+                      rows="3"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Identity */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
+              <h3 className="text-lg font-semibold tracking-tight mb-6">
+                AI Identity
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* AI Avatar */}
+                <div className="flex flex-col items-center">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
+                    AI Photo
+                  </label>
+                  <div className="relative h-24 w-24 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 overflow-hidden">
+                    {aiPhotoPreview ? (
+                      <img
+                        src={aiPhotoPreview}
+                        alt="AI profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-slate-400">No photo</span>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAiPhotoChange}
+                    className="mt-3 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  {/* AI Name */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                      AI Name
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.profile?.aiName || ""}
+                      onChange={(e) =>
+                        updateNestedSetting("profile", "aiName", e.target.value)
+                      }
+                      placeholder="AI name (e.g., OffyAI)"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* AI About */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                      About AI
+                    </label>
+                    <textarea
+                      value={settings.profile?.aiAbout || ""}
+                      onChange={(e) =>
+                        updateNestedSetting("profile", "aiAbout", e.target.value)
+                      }
+                      placeholder="Brief description of the AI"
+                      rows="3"
+                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* User Context Injection */}
+            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
+              <h3 className="text-lg font-semibold tracking-tight mb-4">
+                Chat Context
+              </h3>
+
+              <label className="flex items-start cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.profile?.includeUserContext || false}
+                  onChange={(e) =>
+                    updateNestedSetting("profile", "includeUserContext", e.target.checked)
+                  }
+                  className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div className="ml-3">
+                  <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Include my profile in system prompt
+                  </span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Your name and about text will be prepended to the AI&apos;s system prompt, providing context about you.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <SaveButtons label="Save Profile Settings" />
+          </div>
+        );
+      };
+
+    return (
     <div className="space-y-6">
 
       <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
@@ -2622,6 +2834,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
     </div>
   );
+  };
 
 
   /*
@@ -2855,9 +3068,19 @@ const SettingsModal = ({ isOpen, onClose }) => {
       icon: Cpu
     },
     {
+      id: "profile",
+      label: "Profile",
+      icon: User
+    },
+    {
       id: "theme",
       label: "Appearance",
       icon: Palette
+    },
+    {
+      id: "ui",
+      label: "Interface",
+      icon: Layout
     },
     {
       id: "chat",
@@ -3109,9 +3332,15 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
           {activeTab === "models" &&
             renderModelSettings()}
+          {activeTab === "profile" &&
+            renderProfileSettings()}
+
 
           {activeTab === "theme" &&
             renderThemeSettings()}
+
+          {activeTab === "ui" &&
+            renderUISettings()}
 
           {activeTab === "chat" &&
             renderChatSettings()}

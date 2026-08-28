@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
+import { useProfile } from "../contexts/ProfileContext";
 import { chatAPI, processAIStream } from "../utils/api";
 import {
   CHAT_HISTORY_KEY,
@@ -182,6 +183,7 @@ export const useChat = () => {
     CHAT_HISTORY_KEY,
     []
   );
+  const { profile } = useProfile();
 
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -945,12 +947,22 @@ export const useChat = () => {
 
       try {
         const chatSettings = await getSavedChatSettings();
+                let systemPrompt = chatSettings.systemPrompt;
+
+                // Inject user context if enabled
+                if (profile?.includeUserContext && profile?.userName) {
+                  const userContext = `User: ${profile.userName}${
+                    profile.userAbout ? ` - ${profile.userAbout}` : ""
+                  }`;
+                  systemPrompt = `${userContext}\n\n${systemPrompt}`.trim();
+                }
+
         const requestHistory = buildRequestHistory(
           Array.isArray(chatSessions) ? chatSessions : [],
           sessionId,
           chatSettings.memoryMode,
           effectiveText,
-          chatSettings.systemPrompt
+          systemPrompt
         );
 
         /*

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useTheme } from "../../contexts/ThemeContext";
+import { resolveImagePath } from "../../utils/imageResolver";
 
 const WelcomeScreen = ({ onContinue, onOpenManual }) => {
   const { resolvedTheme } = useTheme();
@@ -78,7 +79,7 @@ const WelcomeScreen = ({ onContinue, onOpenManual }) => {
             {/* Real OffyAI Logo */}
             <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur-sm">
               <img
-                src="/images/offyai.png"
+                src={resolveImagePath("images/offyai.png")}
                 alt="OffyAI"
                 className="h-8 w-8 object-contain"
               />

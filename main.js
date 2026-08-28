@@ -300,7 +300,19 @@ function validateSettings(settings) {
 
 function loadSettings() {
   if (!fs.existsSync(settingsFile)) {
-    throw new Error(`settings.json not found: ${settingsFile}`);
+    const templatePath = resolveAppPath("settings.json");
+
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(
+        `settings.json template not found: ${templatePath}`
+      );
+    }
+
+    const template = JSON.parse(
+      fs.readFileSync(templatePath, "utf8")
+    );
+
+    return saveSettings(template);
   }
 
   const parsed = JSON.parse(
