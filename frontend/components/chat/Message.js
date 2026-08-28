@@ -1,6 +1,17 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bot, Copy, Check, Code, FileText, Image, Video, Mic, Download } from "lucide-react";
+import {
+  User,
+  Bot,
+  Copy,
+  Check,
+  Code,
+  FileText,
+  Image,
+  Video,
+  Mic,
+  Download,
+} from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 
 const Message = ({ message }) => {
@@ -10,21 +21,32 @@ const Message = ({ message }) => {
 
   const getBackgroundColor = () => {
     if (isUser) {
-      return resolvedTheme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-50';
+      return resolvedTheme === "dark"
+        ? "bg-blue-900/20"
+        : "bg-blue-50/70";
     }
-    return resolvedTheme === 'dark' ? 'bg-gray-800/50' : 'bg-white';
+
+    return resolvedTheme === "dark"
+      ? "bg-gray-800/30"
+      : "bg-white/80";
   };
 
   const getTextColor = () => {
-    return resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900';
+    return resolvedTheme === "dark"
+      ? "text-gray-100"
+      : "text-gray-900";
   };
 
   const getMutedTextColor = () => {
-    return resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-500';
+    return resolvedTheme === "dark"
+      ? "text-gray-500"
+      : "text-gray-500";
   };
 
   const getBorderColor = () => {
-    return resolvedTheme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+    return resolvedTheme === "dark"
+      ? "border-white/[0.06]"
+      : "border-gray-200";
   };
 
   const handleCopy = async () => {
@@ -39,9 +61,14 @@ const Message = ({ message }) => {
 
   const formatTime = (timestamp) => {
     if (!timestamp) return "";
+
     try {
       const date = new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     } catch {
       return "";
     }
@@ -49,51 +76,178 @@ const Message = ({ message }) => {
 
   const formatCodeBlocks = (content) => {
     if (!content) return null;
-    
-    const parts = content.split(/(```[\s\S]*?```|`[^`]*`)/g);
-    
+
+    const parts = content.split(
+      /(```[\s\S]*?```|`[^`]*`)/g
+    );
+
     return parts.map((part, index) => {
-      if (part.startsWith('```') && part.endsWith('```')) {
-        const languageMatch = part.match(/^```(\w+)?/);
-        const language = languageMatch ? languageMatch[1] : '';
-        const code = part.slice(language ? language.length + 3 : 3, -3).trim();
-        
+      if (
+        part.startsWith("```") &&
+        part.endsWith("```")
+      ) {
+        const languageMatch =
+          part.match(/^```(\w+)?/);
+
+        const language =
+          languageMatch
+            ? languageMatch[1]
+            : "";
+
+        const code = part
+          .slice(
+            language
+              ? language.length + 3
+              : 3,
+            -3
+          )
+          .trim();
+
         return (
-          <div key={index} className={`my-2 rounded-lg overflow-hidden border ${getBorderColor()} ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+          <div
+            key={index}
+            className={`
+              my-3
+              overflow-hidden
+              rounded-xl
+              border
+              ${getBorderColor()}
+              ${
+                resolvedTheme === "dark"
+                  ? "bg-[#0b0e14]"
+                  : "bg-gray-50"
+              }
+              shadow-sm
+            `}
+          >
             {language && (
-              <div className={`flex items-center justify-between px-2 py-1 ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-gray-200'} border-b ${getBorderColor()}`}>
-                <div className="flex items-center gap-1">
-                  <Code className="w-3 h-3 text-gray-600 dark:text-gray-400" />
-                  <span className={`font-medium text-xs ${getTextColor()} uppercase`}>{language}</span>
+              <div
+                className={`
+                  flex items-center justify-between
+                  border-b
+                  px-3 py-2
+                  ${getBorderColor()}
+                  ${
+                    resolvedTheme === "dark"
+                      ? "bg-white/[0.025]"
+                      : "bg-gray-100"
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className="
+                      flex h-6 w-6
+                      items-center justify-center
+                      rounded-md
+                      bg-blue-500/10
+                    "
+                  >
+                    <Code className="h-3.5 w-3.5 text-blue-400" />
+                  </div>
+
+                  <span
+                    className={`
+                      text-[10px]
+                      font-semibold
+                      uppercase
+                      tracking-wider
+                      ${getTextColor()}
+                    `}
+                  >
+                    {language}
+                  </span>
                 </div>
+
                 <button
-                  onClick={() => navigator.clipboard.writeText(code)}
-                  className={`flex items-center gap-1 px-1.5 py-0.5 text-xs ${getMutedTextColor()} ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-300'} rounded transition-colors`}
+                  onClick={() =>
+                    navigator.clipboard.writeText(code)
+                  }
+                  className={`
+                    flex items-center gap-1.5
+                    rounded-lg
+                    border
+                    px-2 py-1
+                    text-[10px]
+                    font-medium
+                    transition-colors
+                    ${getBorderColor()}
+                    ${getMutedTextColor()}
+                    ${
+                      resolvedTheme === "dark"
+                        ? "hover:bg-white/[0.06] hover:text-gray-200"
+                        : "hover:bg-gray-200 hover:text-gray-800"
+                    }
+                  `}
+                  aria-label="Copy code"
                 >
-                  <Copy className="w-3 h-3" />
+                  <Copy className="h-3 w-3" />
                   Copy
                 </button>
               </div>
             )}
-            <pre className="p-2 overflow-x-auto text-xs custom-scrollbar">
-              <code className={`${resolvedTheme === 'dark' ? 'text-gray-100' : 'text-gray-800'} font-mono`}>{code}</code>
+
+            <pre className="custom-scrollbar overflow-x-auto p-3 text-xs leading-5">
+              <code
+                className={`
+                  font-mono
+                  ${
+                    resolvedTheme === "dark"
+                      ? "text-gray-200"
+                      : "text-gray-800"
+                  }
+                `}
+              >
+                {code}
+              </code>
             </pre>
           </div>
         );
-      } else if (part.startsWith('`') && part.endsWith('`')) {
+      } else if (
+        part.startsWith("`") &&
+        part.endsWith("`")
+      ) {
         const code = part.slice(1, -1);
+
         return (
-          <code key={index} className={`${resolvedTheme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-200 text-gray-800'} px-1 py-0.5 rounded text-xs font-mono border ${getBorderColor()}`}>
+          <code
+            key={index}
+            className={`
+              rounded-md
+              border
+              px-1.5 py-0.5
+              font-mono
+              text-xs
+              ${
+                resolvedTheme === "dark"
+                  ? "border-white/[0.06] bg-white/[0.06] text-gray-200"
+                  : "border-gray-200 bg-gray-100 text-gray-800"
+              }
+            `}
+          >
             {code}
           </code>
         );
       } else {
-        return part.split('\n').map((line, lineIndex) => (
-          <div key={`${index}-${lineIndex}`} className={`${getTextColor()} text-sm leading-relaxed`}>
-            {line}
-            {lineIndex < part.split('\n').length - 1 && <br />}
-          </div>
-        ));
+        return part
+          .split("\n")
+          .map((line, lineIndex) => (
+            <div
+              key={`${index}-${lineIndex}`}
+              className={`
+                text-sm
+                leading-6
+                ${getTextColor()}
+              `}
+            >
+              {line}
+
+              {lineIndex <
+                part.split("\n").length - 1 && (
+                <br />
+              )}
+            </div>
+          ));
       }
     });
   };
@@ -102,145 +256,414 @@ const Message = ({ message }) => {
     if (!message.content) return null;
 
     return (
-      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-p:leading-snug">
+      <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-p:leading-relaxed">
         {formatCodeBlocks(message.content)}
       </div>
     );
   };
 
   const getFileIcon = (fileType) => {
-    if (fileType?.startsWith('image/')) return <Image className="w-3.5 h-3.5 text-green-500" />;
-    if (fileType?.startsWith('video/')) return <Video className="w-3.5 h-3.5 text-purple-500" />;
-    if (fileType?.includes('pdf')) return <FileText className="w-3.5 h-3.5 text-red-500" />;
-    if (fileType?.includes('audio')) return <Mic className="w-3.5 h-3.5 text-blue-500" />;
-    return <FileText className="w-3.5 h-3.5 text-gray-500" />;
+    if (
+      fileType?.startsWith("image/")
+    ) {
+      return (
+        <Image className="h-3.5 w-3.5 text-emerald-400" />
+      );
+    }
+
+    if (
+      fileType?.startsWith("video/")
+    ) {
+      return (
+        <Video className="h-3.5 w-3.5 text-violet-400" />
+      );
+    }
+
+    if (fileType?.includes("pdf")) {
+      return (
+        <FileText className="h-3.5 w-3.5 text-red-400" />
+      );
+    }
+
+    if (fileType?.includes("audio")) {
+      return (
+        <Mic className="h-3.5 w-3.5 text-blue-400" />
+      );
+    }
+
+    return (
+      <FileText className="h-3.5 w-3.5 text-gray-500" />
+    );
   };
 
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+
+    if (bytes < 1024 * 1024) {
+      return (
+        (bytes / 1024).toFixed(1) +
+        " KB"
+      );
+    }
+
+    return (
+      (bytes / (1024 * 1024)).toFixed(1) +
+      " MB"
+    );
   };
 
   const renderAttachments = () => {
-    if (!message.attachments || message.attachments.length === 0) return null;
+    if (
+      !message.attachments ||
+      message.attachments.length === 0
+    ) {
+      return null;
+    }
 
     return (
-      <div className="mt-2 space-y-1">
-        <div className={`text-xs font-medium ${getMutedTextColor()} uppercase tracking-wide`}>
+      <div className="mt-3 space-y-2">
+        <div
+          className={`
+            text-[10px]
+            font-semibold
+            uppercase
+            tracking-wider
+            ${getMutedTextColor()}
+          `}
+        >
           Attachments ({message.attachments.length})
         </div>
-        {message.attachments.map((file, index) => (
-          <div key={index} className={`flex items-center gap-1.5 p-1.5 rounded border ${resolvedTheme === 'dark' ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'}`}>
-            {file.type === 'image' ? (
-              <div className="flex-shrink-0 w-8 h-8 rounded overflow-hidden border border-gray-300 dark:border-gray-600">
-                <img 
-                  src={file.previewUrl || 'images/offyai.png'}
-                  alt={file.originalName || file.name} 
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              </div>
-            ) : (
-              <div className={`flex-shrink-0 w-7 h-7 rounded flex items-center justify-center ${resolvedTheme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-100'}`}>
-                {getFileIcon(file.type || 'file')}
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className={`font-medium text-xs truncate ${resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                {file.originalName || file.name}
-              </div>
-              <div className={`text-xs ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>
-                {formatFileSize(file.size || 0)}
-              </div>
-            </div>
-            <button 
-              onClick={() => {
-                if (file.path && window.electronAPI) {
-                  window.electronAPI.openFile(file.path);
+
+        {message.attachments.map(
+          (file, index) => (
+            <div
+              key={index}
+              className={`
+                flex items-center gap-2
+                rounded-xl
+                border
+                p-2
+                ${
+                  resolvedTheme === "dark"
+                    ? "border-blue-400/10 bg-blue-500/[0.05]"
+                    : "border-blue-100 bg-blue-50/70"
                 }
-              }}
-              className={`p-1 ${resolvedTheme === 'dark' ? 'text-blue-400 hover:text-blue-300 hover:bg-blue-800/30' : 'text-blue-500 hover:text-blue-700 hover:bg-blue-100'} rounded transition-colors`}
+              `}
             >
-              <Download className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
+              {file.type === "image" ? (
+                <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg border border-white/10">
+                  <img
+                    src={
+                      file.previewUrl ||
+                      "images/offyai.png"
+                    }
+                    alt={
+                      file.originalName ||
+                      file.name
+                    }
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display =
+                        "none";
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  className={`
+                    flex h-9 w-9
+                    flex-shrink-0
+                    items-center justify-center
+                    rounded-lg
+                    ${
+                      resolvedTheme === "dark"
+                        ? "bg-blue-500/10"
+                        : "bg-blue-100"
+                    }
+                  `}
+                >
+                  {getFileIcon(
+                    file.type || "file"
+                  )}
+                </div>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <div
+                  className={`
+                    truncate
+                    text-xs
+                    font-medium
+                    ${
+                      resolvedTheme === "dark"
+                        ? "text-blue-200"
+                        : "text-blue-700"
+                    }
+                  `}
+                >
+                  {file.originalName ||
+                    file.name}
+                </div>
+
+                <div
+                  className={`
+                    mt-0.5
+                    text-[10px]
+                    ${
+                      resolvedTheme === "dark"
+                        ? "text-blue-400/70"
+                        : "text-blue-600"
+                    }
+                  `}
+                >
+                  {formatFileSize(
+                    file.size || 0
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (
+                    file.path &&
+                    window.electronAPI
+                  ) {
+                    window.electronAPI.openFile(
+                      file.path
+                    );
+                  }
+                }}
+                className={`
+                  rounded-lg
+                  p-1.5
+                  transition-colors
+                  ${
+                    resolvedTheme === "dark"
+                      ? "text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
+                      : "text-blue-500 hover:bg-blue-100 hover:text-blue-700"
+                  }
+                `}
+                aria-label={`Open ${file.originalName || file.name}`}
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )
+        )}
       </div>
     );
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.15 }}
-      className={`flex gap-2 p-2 ${getBackgroundColor()} border-b ${getBorderColor()} ${isUser ? 'justify-end' : 'justify-start'}`}
+      initial={{
+        opacity: 0,
+        y: 4,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.15,
+      }}
+      className={`
+        flex gap-2.5
+        px-3 py-2.5
+        sm:px-4
+        ${
+          isUser
+            ? "justify-end"
+            : "justify-start"
+        }
+      `}
     >
       {/* Avatar - Assistant */}
+
       {!isUser && (
-        <div className="flex-shrink-0">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center shadow bg-gradient-to-br from-blue-500 to-purple-600">
-            <Bot className="w-3.5 h-3.5 text-white" />
+        <div className="flex-shrink-0 pt-5">
+          <div
+            className="
+              flex h-8 w-8
+              items-center justify-center
+              rounded-xl
+              border border-blue-400/10
+              bg-gradient-to-br
+              from-blue-500
+              to-violet-600
+              shadow-sm
+              shadow-blue-950/20
+            "
+          >
+            <Bot className="h-4 w-4 text-white" />
           </div>
         </div>
       )}
 
       {/* Message Content */}
-      <div className={`flex flex-col ${isUser ? 'items-end max-w-[80%]' : 'items-start max-w-[80%]'}`}>
+
+      <div
+        className={`
+          flex max-w-[80%]
+          flex-col
+          ${
+            isUser
+              ? "items-end"
+              : "items-start"
+          }
+        `}
+      >
         {/* Header */}
-        <div className="flex items-center gap-1 mb-1">
-          <span className={`font-medium text-xs ${getTextColor()}`}>
-            {isUser ? "You" : "OffyAI"}
+
+        <div
+          className={`
+            mb-1.5
+            flex items-center gap-1.5
+            px-1
+          `}
+        >
+          <span
+            className={`
+              text-[11px]
+              font-semibold
+              ${getTextColor()}
+            `}
+          >
+            {isUser
+              ? "You"
+              : "OffyAI"}
           </span>
-          <span className={`text-xs ${getMutedTextColor()}`}>
-            {formatTime(message.timestamp)}
+
+          <span
+            className={`
+              text-[10px]
+              ${getMutedTextColor()}
+            `}
+          >
+            {formatTime(
+              message.timestamp
+            )}
           </span>
+
           {message.model && (
-            <span className={`text-xs px-1 py-0.5 rounded ${resolvedTheme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
+            <span
+              className={`
+                rounded-md
+                border
+                px-1.5 py-0.5
+                text-[9px]
+                font-medium
+                ${getBorderColor()}
+                ${
+                  resolvedTheme === "dark"
+                    ? "bg-white/[0.035] text-gray-500"
+                    : "bg-gray-100 text-gray-500"
+                }
+              `}
+            >
               {message.model}
             </span>
           )}
         </div>
 
         {/* Message Body */}
-        <div className={`w-full rounded-lg p-2 ${isUser ? (resolvedTheme === 'dark' ? 'bg-blue-900/30' : 'bg-blue-50') : (resolvedTheme === 'dark' ? 'bg-gray-800/50' : 'bg-white')} border ${getBorderColor()}`}>
-          <div className={`text-sm ${isUser ? (resolvedTheme === 'dark' ? 'text-white' : 'text-gray-800') : getTextColor()}`}>
+
+        <div
+          className={`
+            w-full
+            rounded-2xl
+            border
+            p-3
+            ${
+              isUser
+                ? resolvedTheme === "dark"
+                  ? "rounded-tr-md border-blue-400/10 bg-blue-600/10"
+                  : "rounded-tr-md border-blue-100 bg-blue-50"
+                : resolvedTheme === "dark"
+                ? "rounded-tl-md border-white/[0.06] bg-white/[0.025]"
+                : "rounded-tl-md border-gray-200 bg-white"
+            }
+            shadow-sm
+          `}
+        >
+          <div
+            className={`
+              text-sm
+              ${
+                isUser
+                  ? resolvedTheme === "dark"
+                    ? "text-gray-100"
+                    : "text-gray-800"
+                  : getTextColor()
+              }
+            `}
+          >
             {renderContent()}
             {renderAttachments()}
           </div>
 
           {/* Actions */}
-          {message.content && !isUser && (
-            <div className="flex items-center gap-0.5 mt-1">
-              <button
-                onClick={handleCopy}
-                className={`flex items-center gap-0.5 px-1.5 py-0.5 text-xs ${getMutedTextColor()} ${resolvedTheme === 'dark' ? 'hover:bg-gray-700' : 'hover:bg-gray-200'} rounded transition-colors border ${getBorderColor()}`}
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3 h-3" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3 h-3" />
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
-          )}
+
+          {message.content &&
+            !isUser && (
+              <div className="mt-2 flex items-center">
+                <button
+                  onClick={handleCopy}
+                  className={`
+                    flex items-center gap-1.5
+                    rounded-lg
+                    border
+                    px-2 py-1
+                    text-[10px]
+                    font-medium
+                    transition-all duration-150
+                    ${getBorderColor()}
+                    ${getMutedTextColor()}
+                    ${
+                      resolvedTheme === "dark"
+                        ? "hover:bg-white/[0.05] hover:text-gray-300"
+                        : "hover:bg-gray-100 hover:text-gray-800"
+                    }
+                  `}
+                  aria-label={
+                    copied
+                      ? "Message copied"
+                      : "Copy message"
+                  }
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-3 w-3 text-emerald-400" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
         </div>
       </div>
 
       {/* Avatar - User */}
+
       {isUser && (
-        <div className="flex-shrink-0">
-          <div className="w-7 h-7 rounded-full flex items-center justify-center shadow bg-blue-500">
-            <User className="w-3.5 h-3.5 text-white" />
+        <div className="flex-shrink-0 pt-5">
+          <div
+            className="
+              flex h-8 w-8
+              items-center justify-center
+              rounded-xl
+              border border-blue-400/10
+              bg-blue-600
+              shadow-sm
+              shadow-blue-950/20
+            "
+          >
+            <User className="h-4 w-4 text-white" />
           </div>
         </div>
       )}

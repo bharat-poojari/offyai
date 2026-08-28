@@ -2,7 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import ChatHistory from "./ChatHistory";
 import ChatInterface from "./ChatInterface";
 import { useChat } from "../../hooks/useChat";
-import { Menu, X, Plus, MessageSquare } from "lucide-react";
+import {
+  Menu,
+  X,
+  Plus,
+  MessageSquare,
+  Keyboard,
+} from "lucide-react";
 
 const ChatContainer = () => {
   const {
@@ -112,14 +118,14 @@ const ChatContainer = () => {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-[#090b10] text-gray-100">
       {/* ------------------------------------------------------------------ */}
       {/* MOBILE OVERLAY                                                     */}
       {/* ------------------------------------------------------------------ */}
 
       {isMobile && isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40 transition-opacity duration-300"
+          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[2px] transition-opacity duration-300"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -136,33 +142,49 @@ const ChatContainer = () => {
               ? "fixed inset-y-0 left-0 z-50 w-72"
               : "relative w-72"
           }
-          bg-gray-800/80 backdrop-blur-xl border-r border-gray-700/50
-          transform transition-all duration-300 ease-in-out
+          flex flex-col
+          border-r border-white/[0.06]
+          bg-[#0d1017]
+          shadow-[4px_0_24px_rgba(0,0,0,0.16)]
+          transform transition-transform duration-300 ease-out
           ${
             isMobile && !isSidebarOpen
               ? "-translate-x-full"
               : "translate-x-0"
           }
-          flex flex-col shadow-2xl
         `}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700/50">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-blue-400" />
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 ring-1 ring-blue-400/10">
+              <MessageSquare className="h-[18px] w-[18px] text-blue-400" />
+            </div>
 
-            <h1 className="text-lg font-semibold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Chat App
-            </h1>
+            <div>
+              <h1 className="text-[15px] font-semibold tracking-tight text-gray-100">
+                Chat App
+              </h1>
+
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-gray-500">
+                Conversations
+              </p>
+            </div>
           </div>
 
           {isMobile && (
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="p-1 rounded-lg hover:bg-gray-700/50 transition-colors"
+              className="
+                rounded-lg p-2
+                text-gray-500
+                transition-colors duration-200
+                hover:bg-white/[0.05]
+                hover:text-gray-200
+              "
               aria-label="Close sidebar"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" />
             </button>
           )}
         </div>
@@ -172,28 +194,42 @@ const ChatContainer = () => {
           <button
             onClick={handleNewChat}
             className="
-              w-full flex items-center justify-center gap-2
+              group w-full
+              flex items-center gap-2.5
+              rounded-xl
+              bg-blue-600
               px-4 py-2.5
-              bg-gradient-to-r from-blue-500 to-purple-500
-              hover:from-blue-600 hover:to-purple-600
-              rounded-xl text-white font-medium
+              text-sm font-medium text-white
+              shadow-sm shadow-blue-950/30
               transition-all duration-200
-              transform hover:scale-[1.02]
-              shadow-lg hover:shadow-blue-500/25
+              hover:bg-blue-500
+              hover:shadow-md hover:shadow-blue-950/30
+              active:scale-[0.99]
             "
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4 shrink-0" />
 
-            New Chat
+            <span>New Chat</span>
 
-            <span className="ml-auto text-xs opacity-60 bg-white/20 px-2 py-0.5 rounded">
-              ⌘K
+            <span
+              className="
+                ml-auto flex items-center gap-1
+                rounded-md
+                border border-white/10
+                bg-white/10
+                px-1.5 py-1
+                text-[10px] text-blue-100
+              "
+              aria-label="Command K"
+            >
+              <Keyboard className="h-3 w-3" />
+              <span>K</span>
             </span>
           </button>
         </div>
 
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+        <div className="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700/50 hover:scrollbar-thumb-gray-600/70">
           <ChatHistory
             chatSessions={chatSessions}
             currentSessionId={currentSessionId}
@@ -211,9 +247,15 @@ const ChatContainer = () => {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-gray-700/50">
-          <div className="text-xs text-gray-400 text-center">
-            {chatSessions.length} chats • Press ⌘K for new chat
+        <div className="border-t border-white/[0.06] p-3">
+          <div className="flex items-center justify-between rounded-lg bg-white/[0.025] px-3 py-2">
+            <span className="text-[11px] text-gray-500">
+              Chats
+            </span>
+
+            <span className="text-[11px] font-medium text-gray-400">
+              {chatSessions.length}
+            </span>
           </div>
         </div>
       </div>
@@ -222,27 +264,33 @@ const ChatContainer = () => {
       {/* MAIN CHAT AREA                                                      */}
       {/* ------------------------------------------------------------------ */}
 
-      <div className="flex-1 flex flex-col min-w-0 bg-gray-900/50 backdrop-blur-sm">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#0a0d13]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-800/30 border-b border-gray-700/30">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d1017]/80 px-4 py-3 backdrop-blur-xl">
+          <div className="flex min-w-0 items-center gap-3">
             {isMobile && (
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="p-2 rounded-lg hover:bg-gray-700/50 transition-colors"
+                className="
+                  rounded-lg p-2
+                  text-gray-500
+                  transition-colors duration-200
+                  hover:bg-white/[0.05]
+                  hover:text-gray-200
+                "
                 aria-label="Toggle sidebar"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="h-5 w-5" />
               </button>
             )}
 
             {currentChat && (
-              <div className="flex flex-col">
-                <span className="text-sm font-medium truncate max-w-[200px]">
+              <div className="flex min-w-0 flex-col">
+                <span className="max-w-[200px] truncate text-sm font-medium text-gray-200">
                   {currentChat.title || "New Chat"}
                 </span>
 
-                <span className="text-xs text-gray-400">
+                <span className="mt-0.5 text-xs text-gray-500">
                   {messages.length} messages
                 </span>
               </div>
@@ -251,7 +299,7 @@ const ChatContainer = () => {
 
           <div className="flex items-center gap-2">
             {currentChat && (
-              <span className="text-xs px-2 py-1 bg-gray-700/50 rounded-full text-gray-300">
+              <span className="rounded-lg border border-white/[0.06] bg-white/[0.035] px-2.5 py-1 text-[10px] font-medium text-gray-400">
                 {currentChat.model || "Default"}
               </span>
             )}
@@ -265,21 +313,7 @@ const ChatContainer = () => {
         <div className="flex-1 overflow-hidden">
           <ChatInterface
             currentChat={currentChat}
-
-            /*
-             * IMPORTANT:
-             *
-             * This was missing.
-             *
-             * useChat() contains the live streaming messages, but
-             * ChatInterface defaults messages to [] when this prop
-             * is not supplied.
-             *
-             * Passing messages here allows every streaming update
-             * to reach the Message component.
-             */
             messages={messages}
-
             isLoading={isLoading}
             error={error}
             sendMessage={sendMessage}

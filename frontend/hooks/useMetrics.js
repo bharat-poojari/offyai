@@ -394,6 +394,16 @@ export const useMetrics = (
     mountedRef.current =
       true;
 
+    if (!isElectron) {
+      setLoading(false);
+
+      return () => {
+        mountedRef.current = false;
+        stopPolling();
+        requestInProgressRef.current = false;
+      };
+    }
+
     const initialize =
       async () => {
         const connected =

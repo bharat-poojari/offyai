@@ -6,6 +6,7 @@
   "main": "main.js",
   "scripts": {
     "install-all": "npm install && cd frontend && npm install",
+    "lint": "cd frontend && npm run lint",
     "frontend:build": "cd frontend && npm run build",
     "electron:dev": "npm run frontend:build && electron .",
     "electron:prod": "electron .",

@@ -10,6 +10,7 @@ import {
   BarChart3,
   Plus,
   Settings,
+  HelpCircle,
   Upload,
   Cpu,
   Clock,
@@ -2162,6 +2163,27 @@ const Sidebar = ({
               <span className="min-w-0 flex-1 truncate text-left">
                 Settings
               </span>
+            )}
+          </button>
+
+          {/* Help */}
+          <button
+            type="button"
+            onClick={() => onViewChange("help")}
+            aria-current={currentView === "help" ? "page" : undefined}
+            title={!isExpanded ? "Help" : undefined}
+            className={`
+              group flex min-w-0 w-full items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 text-sm transition-all duration-200
+              ${!isExpanded ? "justify-center px-2" : ""}
+              ${currentView === "help"
+                ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"}
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+            `}
+          >
+            <HelpCircle className="h-3.5 w-3.5 shrink-0" />
+            {isExpanded && (
+              <span className="min-w-0 flex-1 truncate text-left">Help</span>
             )}
           </button>
         </div>

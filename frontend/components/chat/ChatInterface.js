@@ -16,6 +16,8 @@ import {
   Video,
   Zap,
   Code,
+  X,
+  AlertCircle,
 } from "lucide-react";
 
 import {
@@ -298,7 +300,7 @@ const ChatInterface = ({
           )
         ) {
           return (
-            <Image className="w-3 h-3 text-green-500" />
+            <Image className="w-3.5 h-3.5 text-emerald-400" />
           );
         }
 
@@ -308,7 +310,7 @@ const ChatInterface = ({
           )
         ) {
           return (
-            <Video className="w-3 h-3 text-purple-500" />
+            <Video className="w-3.5 h-3.5 text-violet-400" />
           );
         }
 
@@ -316,7 +318,7 @@ const ChatInterface = ({
           fileType?.includes("pdf")
         ) {
           return (
-            <FileText className="w-3 h-3 text-red-500" />
+            <FileText className="w-3.5 h-3.5 text-red-400" />
           );
         }
 
@@ -324,12 +326,12 @@ const ChatInterface = ({
           fileType?.includes("audio")
         ) {
           return (
-            <Mic className="w-3 h-3 text-blue-500" />
+            <Mic className="w-3.5 h-3.5 text-blue-400" />
           );
         }
 
         return (
-          <FileText className="w-3 h-3 text-gray-500" />
+          <FileText className="w-3.5 h-3.5 text-gray-500" />
         );
       },
       []
@@ -381,11 +383,11 @@ const ChatInterface = ({
 
   return (
     <div
-      className={`flex flex-col h-full ${
+      className={`relative flex h-full flex-col ${
         resolvedTheme === "dark"
-          ? "bg-gray-900"
-          : "bg-white"
-      } relative`}
+          ? "bg-[#0a0d13]"
+          : "bg-gray-50"
+      }`}
     >
       <FileUploadModal
         isOpen={
@@ -403,21 +405,27 @@ const ChatInterface = ({
       {/* MESSAGES                                                           */}
       {/* ------------------------------------------------------------------ */}
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div
+        className="
+          flex-1
+          overflow-y-auto
+          custom-scrollbar
+          scroll-smooth
+        "
+      >
         {!messages ||
         messages.length === 0 ? (
           <div
-            className={`flex items-center justify-center h-full ${
-              resolvedTheme ===
-              "dark"
+            className={`flex h-full items-center justify-center px-4 ${
+              resolvedTheme === "dark"
                 ? "text-gray-400"
                 : "text-gray-500"
-            } px-4`}
+            }`}
           >
-            <div className="text-center max-w-md mx-auto p-4">
+            <div className="mx-auto w-full max-w-md px-4">
               <motion.div
                 initial={{
-                  scale: 0.8,
+                  scale: 0.9,
                   opacity: 0,
                 }}
                 animate={{
@@ -425,16 +433,47 @@ const ChatInterface = ({
                   opacity: 1,
                 }}
                 transition={{
-                  duration: 0.5,
+                  duration: 0.35,
                 }}
-                className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg"
+                className="
+                  mx-auto mb-5
+                  flex h-14 w-14
+                  items-center justify-center
+                  rounded-2xl
+                  border border-blue-400/10
+                  bg-gradient-to-br
+                  from-blue-500/15
+                  to-violet-500/15
+                  shadow-lg shadow-blue-950/10
+                "
               >
-                <Bot className="w-6 h-6 text-white" />
+                <Bot className="h-7 w-7 text-blue-400" />
               </motion.div>
 
               <motion.h3
                 initial={{
-                  y: 20,
+                  y: 12,
+                  opacity: 0,
+                }}
+                animate={{
+                  y: 0,
+                  opacity: 1,
+                }}
+                transition={{
+                  delay: 0.05,
+                }}
+                className={`mb-1 text-center text-lg font-semibold tracking-tight ${
+                  resolvedTheme === "dark"
+                    ? "text-gray-100"
+                    : "text-gray-900"
+                }`}
+              >
+                Welcome to OffyAI
+              </motion.h3>
+
+              <motion.p
+                initial={{
+                  y: 12,
                   opacity: 0,
                 }}
                 animate={{
@@ -444,63 +483,40 @@ const ChatInterface = ({
                 transition={{
                   delay: 0.1,
                 }}
-                className={`text-base font-semibold ${
-                  resolvedTheme ===
-                  "dark"
-                    ? "text-white"
-                    : "text-gray-900"
-                } mb-1`}
-              >
-                Welcome to OffyAI
-              </motion.h3>
-
-              <motion.p
-                initial={{
-                  y: 20,
-                  opacity: 0,
-                }}
-                animate={{
-                  y: 0,
-                  opacity: 1,
-                }}
-                transition={{
-                  delay: 0.2,
-                }}
-                className={`${
-                  resolvedTheme ===
-                  "dark"
-                    ? "text-gray-400"
+                className={`mx-auto mb-5 max-w-sm text-center text-xs leading-5 ${
+                  resolvedTheme === "dark"
+                    ? "text-gray-500"
                     : "text-gray-500"
-                } mb-3 text-xs`}
+                }`}
               >
                 Start a conversation by sending a message below
               </motion.p>
 
-              <div className="grid grid-cols-2 gap-1 text-xs">
+              <div className="grid grid-cols-2 gap-2">
                 {[
                   {
                     icon: Zap,
                     text: "Fast responses",
                     color:
-                      "text-green-500",
+                      "text-emerald-400",
                   },
                   {
                     icon: FileText,
                     text: "File uploads",
                     color:
-                      "text-blue-500",
+                      "text-blue-400",
                   },
                   {
                     icon: Image,
                     text: "Image support",
                     color:
-                      "text-purple-500",
+                      "text-violet-400",
                   },
                   {
                     icon: Code,
                     text: "Code generation",
                     color:
-                      "text-orange-500",
+                      "text-orange-400",
                   },
                 ].map(
                   (
@@ -509,15 +525,21 @@ const ChatInterface = ({
                   ) => (
                     <div
                       key={index}
-                      className={`flex items-center gap-1 p-1 rounded ${
-                        resolvedTheme ===
-                        "dark"
-                          ? "bg-gray-800"
-                          : "bg-gray-100"
-                      }`}
+                      className={`
+                        flex items-center gap-2
+                        rounded-xl
+                        border
+                        px-3 py-2
+                        text-xs
+                        ${
+                          resolvedTheme === "dark"
+                            ? "border-white/[0.05] bg-white/[0.025] text-gray-400"
+                            : "border-gray-200 bg-white text-gray-500"
+                        }
+                      `}
                     >
                       <item.icon
-                        className={`w-2.5 h-2.5 ${item.color}`}
+                        className={`h-3.5 w-3.5 shrink-0 ${item.color}`}
                       />
 
                       <span>
@@ -530,7 +552,7 @@ const ChatInterface = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-1 px-3 py-2">
+          <div className="space-y-1 px-3 py-3 sm:px-4">
             {messages.map(
               (
                 message,
@@ -559,11 +581,17 @@ const ChatInterface = ({
                 "assistant" &&
               message.isStreaming
           ) && (
-            <div className="flex items-center gap-2 px-3 py-2 text-xs text-gray-500">
-              <div className="flex gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse" />
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:150ms]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:300ms]" />
+            <div
+              className="
+                flex items-center gap-2
+                px-4 py-2
+                text-xs text-gray-500
+              "
+            >
+              <div className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-500" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-500 [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-500 [animation-delay:300ms]" />
               </div>
 
               <span>
@@ -580,29 +608,34 @@ const ChatInterface = ({
         />
       </div>
 
-      {/* ERROR */}
+      {/* ------------------------------------------------------------------ */}
+      {/* ERROR                                                              */}
+      {/* ------------------------------------------------------------------ */}
 
       {error && (
         <motion.div
           initial={{
             opacity: 0,
-            y: 10,
+            y: 8,
           }}
           animate={{
             opacity: 1,
             y: 0,
           }}
-          className="mx-3 mb-1 p-1.5 bg-red-100 border border-red-200 text-red-800 rounded text-xs"
+          className="
+            mx-3 mb-2
+            rounded-xl
+            border border-red-500/15
+            bg-red-500/[0.06]
+            px-3 py-2
+            text-red-400
+          "
         >
-          <div className="flex items-center gap-1">
-            <div className="w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-bold">
-                !
-              </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
 
-            <div className="flex-1">
-              <p className="font-medium text-xs">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium">
                 {error}
               </p>
             </div>
@@ -610,10 +643,11 @@ const ChatInterface = ({
         </motion.div>
       )}
 
-      {/* ATTACHMENTS */}
+      {/* ------------------------------------------------------------------ */}
+      {/* ATTACHMENTS                                                        */}
+      {/* ------------------------------------------------------------------ */}
 
-      {attachments.length >
-        0 && (
+      {attachments.length > 0 && (
         <motion.div
           initial={{
             opacity: 0,
@@ -623,15 +657,30 @@ const ChatInterface = ({
             opacity: 1,
             height: "auto",
           }}
-          className="mx-3 mt-1 p-1.5 bg-blue-50 border border-blue-200 rounded text-xs"
+          className={`
+            mx-3 mb-2
+            rounded-xl
+            border
+            px-3 py-2
+            ${
+              resolvedTheme === "dark"
+                ? "border-white/[0.06] bg-white/[0.025]"
+                : "border-blue-100 bg-blue-50"
+            }
+          `}
         >
-          <div className="flex items-center justify-between mb-0.5">
-            <span className="text-xs font-medium text-blue-700">
-              Attached Files (
-              {
-                attachments.length
-              }
-              )
+          <div className="mb-2 flex items-center justify-between">
+            <span
+              className={`
+                text-xs font-medium
+                ${
+                  resolvedTheme === "dark"
+                    ? "text-gray-300"
+                    : "text-blue-700"
+                }
+              `}
+            >
+              Attached Files ({attachments.length})
             </span>
 
             <button
@@ -639,13 +688,22 @@ const ChatInterface = ({
               onClick={() =>
                 setAttachments([])
               }
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className={`
+                rounded-md px-2 py-1
+                text-[10px] font-medium
+                transition-colors
+                ${
+                  resolvedTheme === "dark"
+                    ? "text-gray-500 hover:bg-white/[0.05] hover:text-gray-300"
+                    : "text-blue-600 hover:bg-blue-100 hover:text-blue-800"
+                }
+              `}
             >
               Clear all
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-0.5">
+          <div className="flex flex-wrap gap-1.5">
             {attachments.map(
               (
                 file,
@@ -654,43 +712,56 @@ const ChatInterface = ({
                 <motion.div
                   key={index}
                   initial={{
-                    scale: 0.8,
+                    scale: 0.9,
                     opacity: 0,
                   }}
                   animate={{
                     scale: 1,
                     opacity: 1,
                   }}
-                  className={`flex items-center gap-0.5 px-1 py-0.5 rounded border shadow-sm ${
-                    resolvedTheme ===
-                    "dark"
-                      ? "bg-gray-800"
-                      : "bg-white"
-                  } text-xs`}
+                  className={`
+                    flex items-center gap-2
+                    rounded-lg
+                    border
+                    px-2 py-1.5
+                    text-xs
+                    ${
+                      resolvedTheme === "dark"
+                        ? "border-white/[0.06] bg-[#11151d]"
+                        : "border-gray-200 bg-white"
+                    }
+                  `}
                 >
                   {getFileIcon(
                     file.type
                   )}
 
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0">
                     <div
-                      className={`font-medium ${
-                        resolvedTheme ===
-                        "dark"
-                          ? "text-white"
-                          : "text-gray-900"
-                      } truncate max-w-[80px]`}
+                      className={`
+                        max-w-[120px]
+                        truncate
+                        text-[11px]
+                        font-medium
+                        ${
+                          resolvedTheme === "dark"
+                            ? "text-gray-300"
+                            : "text-gray-800"
+                        }
+                      `}
                     >
                       {file.name}
                     </div>
 
                     <div
-                      className={`${
-                        resolvedTheme ===
-                        "dark"
-                          ? "text-gray-400"
-                          : "text-gray-500"
-                      }`}
+                      className={`
+                        mt-0.5 text-[9px]
+                        ${
+                          resolvedTheme === "dark"
+                            ? "text-gray-600"
+                            : "text-gray-500"
+                        }
+                      `}
                     >
                       {formatFileSize(
                         file.size
@@ -705,9 +776,17 @@ const ChatInterface = ({
                         index
                       )
                     }
-                    className="p-0.5 text-gray-400 hover:text-red-500 transition-colors rounded text-xs"
+                    aria-label={`Remove ${file.name}`}
+                    className="
+                      rounded-md
+                      p-1
+                      text-gray-500
+                      transition-colors
+                      hover:bg-red-500/10
+                      hover:text-red-400
+                    "
                   >
-                    ×
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 </motion.div>
               )
@@ -716,21 +795,28 @@ const ChatInterface = ({
         </motion.div>
       )}
 
-      {/* INPUT */}
+      {/* ------------------------------------------------------------------ */}
+      {/* INPUT                                                              */}
+      {/* ------------------------------------------------------------------ */}
 
       <div
-        className={`border-t ${
-          resolvedTheme ===
-          "dark"
-            ? "border-gray-700 bg-gray-800"
-            : "border-gray-200 bg-gray-50"
-        } p-3`}
+        className={`
+          border-t
+          p-3
+          sm:px-4
+          ${
+            resolvedTheme === "dark"
+              ? "border-white/[0.06] bg-[#0d1017]/90"
+              : "border-gray-200 bg-white/90"
+          }
+          backdrop-blur-xl
+        `}
       >
         <form
           onSubmit={
             handleSubmit
           }
-          className="flex gap-2 items-end"
+          className="mx-auto flex max-w-4xl items-end gap-2"
         >
           {/* ATTACHMENT BUTTON */}
 
@@ -751,25 +837,30 @@ const ChatInterface = ({
               !currentChat ||
               isLoading
             }
-            className={`flex-shrink-0 p-2 ${
-              resolvedTheme ===
-              "dark"
-                ? "text-gray-400 hover:text-white hover:bg-gray-700"
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-200"
-            } rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border ${
-              resolvedTheme ===
-              "dark"
-                ? "border-gray-600"
-                : "border-gray-300"
-            }`}
+            className={`
+              flex h-10 w-10
+              shrink-0
+              items-center justify-center
+              rounded-xl
+              border
+              transition-all duration-200
+              disabled:cursor-not-allowed
+              disabled:opacity-30
+              ${
+                resolvedTheme === "dark"
+                  ? "border-white/[0.07] bg-white/[0.025] text-gray-500 hover:bg-white/[0.06] hover:text-gray-200"
+                  : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+              }
+            `}
             title="Attach files"
+            aria-label="Attach files"
           >
-            <Paperclip className="w-4 h-4" />
+            <Paperclip className="h-4 w-4" />
           </motion.button>
 
           {/* INPUT */}
 
-          <div className="flex-1 relative">
+          <div className="relative flex-1">
             <input
               ref={inputRef}
               type="text"
@@ -800,17 +891,22 @@ const ChatInterface = ({
                 isLoading
               }
               autoComplete="off"
-              className={`w-full ${
-                resolvedTheme ===
-                "dark"
-                  ? "bg-gray-700 text-white placeholder-gray-500"
-                  : "bg-white text-gray-900 placeholder-gray-400"
-              } border ${
-                resolvedTheme ===
-                "dark"
-                  ? "border-gray-600"
-                  : "border-gray-300"
-              } rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm`}
+              className={`
+                h-10 w-full
+                rounded-xl
+                border
+                px-3.5
+                text-sm
+                outline-none
+                transition-all duration-200
+                disabled:cursor-not-allowed
+                disabled:opacity-50
+                ${
+                  resolvedTheme === "dark"
+                    ? "border-white/[0.07] bg-white/[0.025] text-gray-100 placeholder-gray-600 focus:border-blue-500/40 focus:bg-white/[0.035] focus:ring-2 focus:ring-blue-500/10"
+                    : "border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
+                }
+              `}
             />
           </div>
 
@@ -843,24 +939,44 @@ const ChatInterface = ({
               !isLoading &&
               (
                 !currentChat ||
-                (!input.trim() && attachments.length === 0)
+                (!input.trim() &&
+                  attachments.length ===
+                    0)
               )
             }
-            className={`flex-shrink-0 h-9 px-4 ${
-              isLoading
-                ? "bg-red-600 hover:bg-red-700"
-                : "bg-blue-600 hover:bg-blue-700"
-            } disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 shadow hover:shadow-md disabled:shadow-none flex items-center justify-center gap-1.5 font-medium text-sm`}
+            className={`
+              flex h-10
+              shrink-0
+              items-center justify-center
+              gap-1.5
+              rounded-xl
+              px-3.5
+              text-sm
+              font-medium
+              text-white
+              shadow-sm
+              transition-all duration-200
+              active:scale-95
+              disabled:cursor-not-allowed
+              disabled:bg-gray-500
+              disabled:opacity-40
+              disabled:shadow-none
+              ${
+                isLoading
+                  ? "bg-red-600 hover:bg-red-500"
+                  : "bg-blue-600 hover:bg-blue-500"
+              }
+            `}
           >
             {isLoading ? (
               <>
-                <StopCircle className="w-3.5 h-3.5" />
-                Stop
+                <StopCircle className="h-3.5 w-3.5" />
+                <span>Stop</span>
               </>
             ) : (
               <>
-                <Send className="w-3.5 h-3.5" />
-                Send
+                <Send className="h-3.5 w-3.5" />
+                <span>Send</span>
               </>
             )}
           </motion.button>
@@ -871,3 +987,4 @@ const ChatInterface = ({
 };
 
 export default ChatInterface;
+

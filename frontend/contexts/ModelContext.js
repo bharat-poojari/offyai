@@ -305,6 +305,14 @@ export const ModelProvider = ({
 
         setError(null);
 
+        if (!isElectron()) {
+          setAvailableModels([]);
+          setCurrentModel(null);
+          setIsLoading(false);
+          loadingRef.current = false;
+          return;
+        }
+
         try {
           /*
            * modelsAPI.list() now prefers Electron IPC.

@@ -5,6 +5,8 @@ import Layout from "../components/layout/Layout";
 import ChatInterface from "../components/chat/ChatInterface";
 import MetricsPanel from "../components/monitoring/MetricsPanel";
 import { RealTimeCharts } from "../components/monitoring/RealTimeCharts";
+import HelpPage from "../components/help/HelpPage";
+import WelcomeScreen from "../components/onboarding/WelcomeScreen";
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useChat } from "../hooks/useChat";
@@ -12,6 +14,7 @@ import { useMetrics } from "../hooks/useMetrics";
 
 import {
   SETTINGS_KEY,
+  WELCOME_SEEN_KEY,
   DEFAULT_MODEL,
 } from "../utils/constants";
 
@@ -140,6 +143,40 @@ const Home = () => {
   const [currentView, setCurrentView] =
     useState("chat");
 
+  const [welcomeVisible, setWelcomeVisible] =
+    useState(false);
+
+  useEffect(() => {
+    const readWelcomeState = () => {
+      try {
+        setWelcomeVisible(
+          window.localStorage.getItem(WELCOME_SEEN_KEY) !== "true"
+        );
+      } catch (error) {
+        console.warn("Unable to read welcome state:", error);
+        setWelcomeVisible(true);
+      }
+    };
+
+    const frame = window.requestAnimationFrame(readWelcomeState);
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  const dismissWelcome = useCallback((openHelp = false) => {
+    try {
+      window.localStorage.setItem(WELCOME_SEEN_KEY, "true");
+    } catch (error) {
+      console.warn("Unable to save welcome state:", error);
+    }
+
+    setWelcomeVisible(false);
+
+    if (openHelp) {
+      setCurrentView("help");
+    }
+  }, []);
+
   /*
    * useMetrics is responsible for application metrics.
    *
@@ -212,6 +249,18 @@ const Home = () => {
 
   const checkApplicationStatus =
     useCallback(async () => {
+      if (!isElectron) {
+        setAppStatus({
+          ready: false,
+          electron: false,
+          aiConnected: false,
+          backend: false,
+          llama: false,
+          error: null,
+        });
+        return;
+      }
+
       try {
         /*
          * This is now the ONLY status check performed by Home.
@@ -527,8 +576,17 @@ const Home = () => {
               />
             </div>
           )}
+
+          {currentView === "help" && <HelpPage />}
         </Layout>
       </div>
+
+      {welcomeVisible && (
+        <WelcomeScreen
+          onContinue={() => dismissWelcome()}
+          onOpenManual={() => dismissWelcome(true)}
+        />
+      )}
     </>
   );
 };

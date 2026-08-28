@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { MessageSquare, Plus, Trash2, Clock } from "lucide-react";
+import {
+  MessageSquare,
+  Plus,
+  Trash2,
+  Clock,
+  Check,
+} from "lucide-react";
 
 const ChatHistory = ({
   chatSessions = [],
@@ -18,11 +24,17 @@ const ChatHistory = ({
     const diffTime = now - date;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     if (diffDays === 0)
-      return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     if (diffDays === 1) return "Yesterday";
     if (diffDays < 7)
       return date.toLocaleDateString([], { weekday: "short" });
-    return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    return date.toLocaleDateString([], {
+      month: "short",
+      day: "numeric",
+    });
   };
 
   const handleDelete = (id, e) => {
@@ -46,68 +58,178 @@ const ChatHistory = ({
           : firstUserMsg.content;
       }
     }
-    return "New Chat"; // fallback if no messages
+    return "New Chat";
   };
 
   // Button label: next chat should start blank
   const newChatLabel = "New Chat";
 
   return (
-    <div className="h-full flex flex-col bg-gray-900">
+    <div className="h-full flex flex-col bg-transparent">
       <button
         onClick={() => onCreateNewChat(newChatLabel)}
-        className="flex items-center gap-3 p-3 m-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        className="
+          group relative
+          flex items-center gap-3
+          mx-2 mt-1 mb-3
+          px-3.5 py-2.5
+          rounded-xl
+          border border-white/[0.06]
+          bg-white/[0.025]
+          text-gray-300
+          transition-all duration-200
+          hover:bg-white/[0.055]
+          hover:border-white/[0.09]
+          hover:text-white
+          active:scale-[0.99]
+        "
       >
-        <Plus className="w-5 h-5" />
-        <span>{newChatLabel}</span>
+        <span
+          className="
+            flex h-8 w-8 shrink-0
+            items-center justify-center
+            rounded-lg
+            bg-blue-500/10
+            text-blue-400
+            transition-colors duration-200
+            group-hover:bg-blue-500/15
+          "
+        >
+          <Plus className="h-4 w-4" />
+        </span>
+
+        <span className="text-sm font-medium">
+          {newChatLabel}
+        </span>
       </button>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-700/40 hover:scrollbar-thumb-gray-600/60">
         {chatSessions.length === 0 ? (
-          <div className="text-center text-gray-400 p-4">
-            <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No chats yet</p>
-            <p className="text-xs">Start a conversation to see it here</p>
+          <div className="flex flex-col items-center px-6 pt-16 text-center">
+            <div
+              className="
+                flex h-12 w-12
+                items-center justify-center
+                rounded-2xl
+                border border-white/[0.06]
+                bg-white/[0.025]
+                mb-4
+              "
+            >
+              <MessageSquare className="h-5 w-5 text-gray-500" />
+            </div>
+
+            <p className="text-sm font-medium text-gray-400">
+              No chats yet
+            </p>
+
+            <p className="mt-1 max-w-[190px] text-xs leading-5 text-gray-600">
+              Start a conversation to see it here
+            </p>
           </div>
         ) : (
-          <div className="space-y-1 p-2">
+          <div className="space-y-1 px-2 pb-3">
             {chatSessions.map((session) => (
               <div
                 key={session.id}
                 onClick={() => onSwitchChat(session.id)}
-                className={`group relative p-3 rounded-lg cursor-pointer transition-colors ${
-                  currentSessionId === session.id
-                    ? "bg-blue-600 text-white"
-                    : "hover:bg-gray-700 text-gray-300"
-                }`}
+                className={`
+                  group relative cursor-pointer
+                  rounded-xl
+                  border
+                  px-3 py-2.5
+                  transition-all duration-150
+                  ${
+                    currentSessionId === session.id
+                      ? "border-blue-500/15 bg-blue-500/[0.10] text-white shadow-sm"
+                      : "border-transparent text-gray-400 hover:border-white/[0.045] hover:bg-white/[0.035] hover:text-gray-200"
+                  }
+                `}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate text-sm">
+                <div className="flex items-center gap-3">
+                  {/* Chat icon */}
+                  <div
+                    className={`
+                      flex h-8 w-8 shrink-0
+                      items-center justify-center
+                      rounded-lg
+                      transition-colors duration-150
+                      ${
+                        currentSessionId === session.id
+                          ? "bg-blue-500/15 text-blue-400"
+                          : "bg-white/[0.035] text-gray-600 group-hover:text-gray-400"
+                      }
+                    `}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                  </div>
+
+                  {/* Chat information */}
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className={`
+                        truncate text-[13px] font-medium
+                        ${
+                          currentSessionId === session.id
+                            ? "text-gray-100"
+                            : "text-gray-300"
+                        }
+                      `}
+                    >
                       {getSessionTitle(session)}
                     </div>
+
                     <div
-                      className={`text-xs flex items-center gap-1 mt-1 ${
-                        currentSessionId === session.id
-                          ? "text-blue-100"
-                          : "text-gray-400"
-                      }`}
+                      className={`
+                        mt-1 flex items-center gap-1.5
+                        text-[10px]
+                        ${
+                          currentSessionId === session.id
+                            ? "text-blue-300/70"
+                            : "text-gray-600 group-hover:text-gray-500"
+                        }
+                      `}
                     >
-                      <Clock className="w-3 h-3" />
-                      {formatTime(session.updatedAt)}
+                      <Clock className="h-3 w-3 shrink-0" />
+
+                      <span className="truncate">
+                        {formatTime(session.updatedAt)}
+                      </span>
                     </div>
                   </div>
+
+                  {/* Delete */}
                   <button
                     onClick={(e) => handleDelete(session.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500 rounded transition-all"
+                    aria-label={
+                      showDeleteConfirm === session.id
+                        ? "Confirm delete"
+                        : "Delete chat"
+                    }
+                    className={`
+                      shrink-0
+                      rounded-lg
+                      p-1.5
+                      transition-all duration-150
+                      ${
+                        showDeleteConfirm === session.id
+                          ? "bg-red-500/15 text-red-400 opacity-100 hover:bg-red-500/20"
+                          : "text-gray-600 opacity-0 hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                      }
+                    `}
                   >
                     {showDeleteConfirm === session.id ? (
-                      <span className="text-xs text-white">Confirm?</span>
+                      <Check className="h-3.5 w-3.5" />
                     ) : (
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     )}
                   </button>
                 </div>
+
+                {/* Active indicator */}
+                {currentSessionId === session.id && (
+                  <div className="absolute bottom-2.5 left-0 h-4 w-0.5 rounded-r-full bg-blue-400" />
+                )}
               </div>
             ))}
           </div>
@@ -118,3 +240,4 @@ const ChatHistory = ({
 };
 
 export default ChatHistory;
+

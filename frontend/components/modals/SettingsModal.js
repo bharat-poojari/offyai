@@ -16,7 +16,8 @@ import {
   Sun,
   FolderOpen,
   RotateCcw,
-  Trash2
+  Trash2,
+  Monitor
 } from "lucide-react";
 
 import { useTheme } from "../../contexts/ThemeContext";

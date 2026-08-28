@@ -4,6 +4,7 @@ export const DEFAULT_CONTEXT_LENGTH = 1024;
 export const METRICS_UPDATE_INTERVAL = 3000;
 export const CHAT_HISTORY_KEY = "offyai_chat_history";
 export const SETTINGS_KEY = "offyai_settings";
+export const WELCOME_SEEN_KEY = "offyai_welcome_seen_v1";
 export const MODELS = [
   {
     id: "gpt2-124m-fresh-Q8_0",

@@ -27,6 +27,11 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   DEFAULT_WEB_API_URL;
 
+const HAS_WEB_API = Boolean(
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL
+);
+
 /* -------------------------------------------------------------------------- */
 /* Environment helpers                                                       */
 /* -------------------------------------------------------------------------- */
@@ -669,6 +674,14 @@ export const modelsAPI = {
       }
     }
 
+    if (!isElectron() && !HAS_WEB_API) {
+      return {
+        data: [],
+        models: [],
+        error: "No web model service is configured.",
+      };
+    }
+
     try {
       const response = await api.get(
         "/api/models"
@@ -969,6 +982,15 @@ export const systemAPI = {
       };
     }
 
+    if (!HAS_WEB_API) {
+      return {
+      ok: false,
+      electron: false,
+      backend: false,
+      message: "No web API is configured.",
+      };
+    }
+
     try {
       const response = await api.get(
         "/health"
@@ -1028,6 +1050,17 @@ export const systemAPI = {
       };
     }
 
+    if (!HAS_WEB_API) {
+      return {
+        backend: false,
+        llama: false,
+        electron: false,
+        backendUrl: null,
+        llamaUrl: null,
+        message: "No web API is configured.",
+      };
+    }
+
     try {
       const response = await api.get(
         "/health"
@@ -1078,6 +1111,10 @@ export const testBackendConnection =
 
     if (isElectron()) {
       return true;
+    }
+
+    if (!HAS_WEB_API) {
+      return false;
     }
 
     try {
