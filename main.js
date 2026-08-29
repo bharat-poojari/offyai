@@ -21,6 +21,13 @@ const {
   sessionManager
 } = require("./src/ipc/chatHandlers");
 
+const {
+  DEFAULT_MODEL_ID,
+  DEFAULT_MODEL_FILE,
+  isProtectedDefaultModel,
+  ensureDefaultModelEntry,
+} = require("./src/modelDefaults");
+
 const { setupMetricsHandlers } = require("./src/ipc/metricsHandlers");
 const { setupModelsHandlers } = require("./src/ipc/modelsHandlers");
 
@@ -34,6 +41,7 @@ let frontendErrorShowing = false;
 let frontendLoadStarted = false;
 let frontendLoadCompleted = false;
 let startupTimeout = null;
+let deferredStartupScheduled = false;
 
 const serverProcesses = new Set();
 const isDev = !app.isPackaged;
@@ -113,7 +121,73 @@ function resolveStoredAppPath(filePath) {
   );
 }
 
-function normalizeStoredSettings(settings) {
+function getExistingModelFiles() {
+  try {
+    const modelsPath = getModelsPath();
+    if (!fs.existsSync(modelsPath)) {
+      return new Set();
+    }
+
+    const files = fs.readdirSync(modelsPath, {
+      withFileTypes: true,
+    });
+
+    const names = new Set();
+
+    for (const file of files) {
+      if (!file.isFile()) {
+        continue;
+      }
+
+      const extension = path.extname(file.name).toLowerCase();
+
+      if ([".gguf", ".bin", ".ggml"].includes(extension)) {
+        names.add(file.name);
+        names.add(path.basename(file.name, extension));
+      }
+    }
+
+    return names;
+  } catch {
+    return new Set();
+  }
+}
+
+function hasExistingLocalModelReference(model) {
+  if (!model || typeof model !== "object") {
+    return false;
+  }
+
+  const files = getExistingModelFiles();
+
+  if (model.type === "local") {
+    if (
+      typeof model.fileName === "string" &&
+      files.has(model.fileName)
+    ) {
+      return true;
+    }
+
+    if (
+      typeof model.id === "string" &&
+      files.has(model.id)
+    ) {
+      return true;
+    }
+
+    if (
+      typeof model.path === "string" &&
+      model.path.trim()
+    ) {
+      const resolved = resolveStoredAppPath(model.path);
+      return fs.existsSync(resolved);
+    }
+  }
+
+  return false;
+}
+
+function sanitizeStaleModelSettings(settings) {
   if (
     !settings ||
     typeof settings !== "object" ||
@@ -123,6 +197,82 @@ function normalizeStoredSettings(settings) {
   }
 
   const normalized = { ...settings };
+
+  if (
+    normalized.activeModel &&
+    typeof normalized.activeModel === "object"
+  ) {
+    if (
+      normalized.activeModel.type === "local" &&
+      !hasExistingLocalModelReference(normalized.activeModel)
+    ) {
+      normalized.activeModel = null;
+    }
+  }
+
+  if (
+    typeof normalized.model === "string" &&
+    normalized.model.trim()
+  ) {
+    const modelName = normalized.model.trim();
+    const files = getExistingModelFiles();
+
+    if (
+      !files.has(modelName) &&
+      !files.has(modelName.replace(/\.(gguf|bin|ggml)$/i, ""))
+    ) {
+      normalized.model = "";
+    }
+  }
+
+  if (Array.isArray(normalized.availableModels)) {
+    normalized.availableModels = normalized.availableModels
+      .filter((model) => {
+        if (!model || typeof model !== "object") {
+          return false;
+        }
+
+        if (isProtectedDefaultModel(model.id, model.fileName || model.name)) {
+          return model.id === DEFAULT_MODEL_ID && model.fileName === DEFAULT_MODEL_FILE;
+        }
+
+        if (model.type === "local") {
+          return hasExistingLocalModelReference(model);
+        }
+
+        return true;
+      });
+  } else {
+    normalized.availableModels = [];
+  }
+
+  const ensuredSettings = ensureDefaultModelEntry({
+    ...normalized,
+    availableModels: normalized.availableModels,
+  });
+
+  normalized.availableModels = ensuredSettings.availableModels;
+
+  if (
+    !normalized.model ||
+    !normalized.availableModels.some((model) =>
+      model &&
+      (model.id === normalized.model || model.fileName === normalized.model || model.name === normalized.model)
+    )
+  ) {
+    normalized.model = DEFAULT_MODEL_ID;
+  }
+
+  if (
+    !normalized.activeModel ||
+    typeof normalized.activeModel !== "object" ||
+    !normalized.availableModels.some((model) => model && model.id === normalized.activeModel.id)
+  ) {
+    normalized.activeModel = {
+      ...buildDefaultLocalModel(),
+      path: buildDefaultLocalModel().path,
+    };
+  }
 
   if (
     normalized.activeModel &&
@@ -138,12 +288,133 @@ function normalizeStoredSettings(settings) {
     };
   }
 
-  return normalized;
+  return ensureDefaultModelEntry(normalized);
+}
+
+function normalizeStoredSettings(settings) {
+  return sanitizeStaleModelSettings(settings);
+}
+
+function applyFirstUseDefaults(settings) {
+  if (
+    !settings ||
+    settings.defaultsInitialized === true
+  ) {
+    return settings;
+  }
+
+  return saveSettings({
+    ...settings,
+    apiKey: "",
+    defaultsInitialized: true,
+    profile: {
+      ...(settings.profile || {}),
+      userName: "You",
+      userAbout: "",
+      userPhoto: "",
+      aiName: "OffyAI",
+      aiAbout: "",
+      aiPhoto: "",
+      includeUserContext: false,
+    },
+  });
+}
+
+function createDefaultSettings(settings) {
+  const defaultModel = buildDefaultLocalModel();
+
+  return {
+    ...settings,
+    apiKey: "",
+    serverUrl: "http://localhost:8080",
+    theme: "system",
+    model: settings?.model || defaultModel.id,
+    activeModel: settings?.activeModel || defaultModel,
+    defaultsInitialized: true,
+    profile: {
+      userName: "You",
+      userAbout: "",
+      userPhoto: "",
+      aiName: "OffyAI",
+      aiAbout: "",
+      aiPhoto: "",
+      includeUserContext: false,
+    },
+  };
 }
 
 const settingsFile = isDev
   ? path.join(__dirname, "settings.json")
   : path.join(app.getPath("userData"), "settings.json");
+const welcomeStateFile = path.join(
+  app.getPath("userData"),
+  "welcome-seen.json"
+);
+
+function getDefaultModelPath() {
+  const modelsPath = getModelsPath();
+  const defaultPath = path.join(modelsPath, DEFAULT_MODEL_FILE);
+
+  if (fs.existsSync(defaultPath)) {
+    return defaultPath;
+  }
+
+  const sourceCandidates = [
+    path.join(__dirname, "models", DEFAULT_MODEL_FILE),
+    path.join(process.cwd(), "models", DEFAULT_MODEL_FILE),
+    path.join(process.resourcesPath, "models", DEFAULT_MODEL_FILE),
+    path.join(process.resourcesPath, "app.asar.unpacked", "models", DEFAULT_MODEL_FILE),
+    path.join(app.getAppPath(), "models", DEFAULT_MODEL_FILE),
+  ].filter((candidate) => Boolean(candidate));
+
+  for (const source of sourceCandidates) {
+    try {
+      if (fs.existsSync(source) && fs.statSync(source).isFile()) {
+        fs.mkdirSync(path.dirname(defaultPath), { recursive: true });
+        fs.copyFileSync(source, defaultPath);
+        return defaultPath;
+      }
+    } catch (error) {
+      console.warn("Unable to install default model:", error);
+    }
+  }
+
+  return defaultPath;
+}
+
+function buildDefaultLocalModel() {
+  const defaultPath = getDefaultModelPath();
+
+  return {
+    id: DEFAULT_MODEL_ID,
+    fileName: DEFAULT_MODEL_FILE,
+    name: DEFAULT_MODEL_ID,
+    type: "local",
+    path: toAppRelativePath(defaultPath),
+  };
+}
+
+function hasSeenWelcome() {
+  try {
+    return JSON.parse(
+      fs.readFileSync(welcomeStateFile, "utf8")
+    ).seen === true;
+  } catch {
+    return false;
+  }
+}
+
+function markWelcomeSeen() {
+  fs.mkdirSync(path.dirname(welcomeStateFile), {
+    recursive: true,
+  });
+  fs.writeFileSync(
+    welcomeStateFile,
+    JSON.stringify({ seen: true }, null, 2),
+    "utf8"
+  );
+  return true;
+}
 
 function validateSettings(settings) {
   if (
@@ -299,6 +570,20 @@ function validateSettings(settings) {
 }
 
 function loadSettings() {
+  const defaultModel = buildDefaultLocalModel();
+
+  if (settingsCache && fs.existsSync(settingsFile)) {
+    try {
+      const currentMtime = fs.statSync(settingsFile).mtimeMs;
+
+      if (currentMtime === settingsCacheMtime) {
+        return settingsCache;
+      }
+    } catch {
+      // Fall through to a fresh read if file metadata is unavailable.
+    }
+  }
+
   if (!fs.existsSync(settingsFile)) {
     const templatePath = resolveAppPath("settings.json");
 
@@ -312,20 +597,64 @@ function loadSettings() {
       fs.readFileSync(templatePath, "utf8")
     );
 
-    return saveSettings(template);
+    const startupSettings = ensureDefaultModelEntry({
+      ...template,
+      model: template?.model || defaultModel.id,
+      activeModel: template?.activeModel || defaultModel,
+      defaultsInitialized: true,
+    });
+
+    const savedSettings = saveSettings(startupSettings);
+    settingsCache = savedSettings;
+    try {
+      settingsCacheMtime = fs.statSync(settingsFile).mtimeMs;
+    } catch {
+      settingsCacheMtime = null;
+    }
+    return savedSettings;
   }
 
   const parsed = JSON.parse(
     fs.readFileSync(settingsFile, "utf8")
   );
 
-  return validateSettings(
-    normalizeStoredSettings(parsed)
+  const normalizedSettings = normalizeStoredSettings(parsed);
+
+  const ensuredSettings = ensureDefaultModelEntry(normalizedSettings);
+
+  if (
+    (!ensuredSettings.activeModel || !ensuredSettings.model) ||
+    !ensuredSettings.availableModels.some((model) => model && model.id === ensuredSettings.model)
+  ) {
+    ensuredSettings.model = DEFAULT_MODEL_ID;
+    ensuredSettings.activeModel = buildDefaultLocalModel();
+  }
+
+  const readySettings = applyFirstUseDefaults(
+    validateSettings(ensuredSettings)
   );
+
+  settingsCache = readySettings;
+  try {
+    settingsCacheMtime = fs.statSync(settingsFile).mtimeMs;
+  } catch {
+    settingsCacheMtime = null;
+  }
+
+  return settingsCache;
 }
 
 function saveSettings(settings) {
-  const normalizedSettings = normalizeStoredSettings(settings);
+  const ensuredSettings = ensureDefaultModelEntry(settings);
+  const normalizedSettings = normalizeStoredSettings(ensuredSettings);
+
+  if (
+    (!normalizedSettings.activeModel || !normalizedSettings.model) ||
+    !normalizedSettings.availableModels.some((model) => model && model.id === normalizedSettings.model)
+  ) {
+    normalizedSettings.model = DEFAULT_MODEL_ID;
+    normalizedSettings.activeModel = buildDefaultLocalModel();
+  }
 
   validateSettings(normalizedSettings);
 
@@ -341,9 +670,18 @@ function saveSettings(settings) {
     "utf8"
   );
 
+  settingsCache = normalizedSettings;
+  try {
+    settingsCacheMtime = fs.statSync(settingsFile).mtimeMs;
+  } catch {
+    settingsCacheMtime = null;
+  }
+
   return normalizedSettings;
 }
 
+let settingsCache = null;
+let settingsCacheMtime = null;
 let appSettings = loadSettings();
 
 function getServerAddress() {
@@ -645,34 +983,42 @@ const modelManager =
   new ModelManager();
 
 function getModelsPath() {
-  const candidates = isDev
-    ? [
-        path.join(
-          __dirname,
-          "models"
-        ),
-        path.join(
-          process.cwd(),
-          "models"
-        )
-      ]
-    : [
-        path.join(
-          process.resourcesPath,
-          "models"
-        ),
-        path.join(
-          process.resourcesPath,
-          "app.asar.unpacked",
-          "models"
-        ),
-        path.join(
-          app.getPath("userData"),
-          "models"
-        )
-      ];
+  if (isDev) {
+    const devCandidates = [
+      path.join(__dirname, "models"),
+      path.join(process.cwd(), "models")
+    ];
 
-  for (const candidate of candidates) {
+    for (const candidate of devCandidates) {
+      try {
+        if (
+          fs.existsSync(candidate) &&
+          fs.statSync(candidate).isDirectory()
+        ) {
+          return candidate;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    const fallback = devCandidates[0];
+    fs.mkdirSync(fallback, { recursive: true });
+    return fallback;
+  }
+
+  const packagedFallback = path.join(
+    app.getPath("userData"),
+    "models"
+  );
+
+  const packagedCandidates = [
+    packagedFallback,
+    path.join(process.resourcesPath, "models"),
+    path.join(process.resourcesPath, "app.asar.unpacked", "models")
+  ];
+
+  for (const candidate of packagedCandidates) {
     try {
       if (
         fs.existsSync(candidate) &&
@@ -685,14 +1031,8 @@ function getModelsPath() {
     }
   }
 
-  const fallback =
-    candidates[0];
-
-  fs.mkdirSync(fallback, {
-    recursive: true
-  });
-
-  return fallback;
+  fs.mkdirSync(packagedFallback, { recursive: true });
+  return packagedFallback;
 }
 
 let lastLoggedModelPath = null;
@@ -1516,6 +1856,7 @@ class LlamaServerManager {
     this.host = null;
     this.capabilities = null;
     this.lastError = null;
+    this.stopping = false;
 
     this.refreshAddress();
   }
@@ -2040,6 +2381,8 @@ class LlamaServerManager {
       return this.process;
     }
 
+    this.stopping = false;
+
     if (this.starting) {
       return null;
     }
@@ -2241,13 +2584,18 @@ class LlamaServerManager {
           code,
           signal
         ) => {
-          console.log(
-            `llama-server exited. code=${code}, signal=${signal}`
-          );
+          const wasExpected = this.stopping;
+
+          if (!wasExpected || isDev) {
+            console.log(
+              `llama-server exited. code=${code}, signal=${signal}`
+            );
+          }
 
           if (
             code !== 0 &&
-            !isQuitting
+            !isQuitting &&
+            !wasExpected
           ) {
             this.lastError =
               `llama-server exited with code ${code}${
@@ -2411,6 +2759,7 @@ class LlamaServerManager {
     const child =
       this.process;
 
+    this.stopping = true;
     this.process = null;
     this.isRunning = false;
 
@@ -2748,6 +3097,8 @@ function setupApplicationIPC() {
     }
   );
 
+
+
   ipcMain.handle(
     "save-settings",
     async (
@@ -2759,6 +3110,103 @@ function setupApplicationIPC() {
       );
     }
   );
+
+  ipcMain.handle(
+    "reset-settings",
+    async () => {
+      return updateSettingsAndRestart(
+        createDefaultSettings(appSettings)
+      );
+    }
+  );
+
+  const welcomeStateFile =
+    isDev
+      ? path.join(__dirname, ".welcome-state.json")
+      : path.join(app.getPath("userData"), ".welcome-state.json");
+
+  function getWelcomeState() {
+    try {
+      if (fs.existsSync(welcomeStateFile)) {
+        const content = fs.readFileSync(welcomeStateFile, "utf8");
+        return JSON.parse(content);
+      }
+    } catch (error) {
+      console.warn("Error reading welcome state:", error);
+    }
+    return { seen: false };
+  }
+
+  function saveWelcomeState(state) {
+    try {
+      const directory = path.dirname(welcomeStateFile);
+      fs.mkdirSync(directory, { recursive: true });
+      fs.writeFileSync(
+        welcomeStateFile,
+        JSON.stringify(state, null, 2),
+        "utf8"
+      );
+      return state;
+    } catch (error) {
+      console.error("Error saving welcome state:", error);
+      throw error;
+    }
+  }
+
+  ipcMain.handle(
+    "get-welcome-state",
+    () => getWelcomeState()
+  );
+
+  ipcMain.handle(
+    "mark-welcome-seen",
+    async () => saveWelcomeState({ seen: true })
+  );
+
+  const chatHistoryFile =
+    isDev
+      ? path.join(__dirname, ".chat-history.json")
+      : path.join(app.getPath("userData"), ".chat-history.json");
+
+  function getChatHistory() {
+    try {
+      if (fs.existsSync(chatHistoryFile)) {
+        const content = fs.readFileSync(chatHistoryFile, "utf8");
+        const data = JSON.parse(content);
+        return Array.isArray(data) ? data : [];
+      }
+    } catch (error) {
+      console.warn("Error reading chat history:", error);
+    }
+    return [];
+  }
+
+  function saveChatHistory(sessions) {
+    try {
+      const directory = path.dirname(chatHistoryFile);
+      fs.mkdirSync(directory, { recursive: true });
+
+      const validSessions = Array.isArray(sessions) ? sessions : [];
+
+      fs.writeFileSync(
+        chatHistoryFile,
+        JSON.stringify(validSessions, null, 2),
+        "utf8"
+      );
+      return validSessions;
+    } catch (error) {
+      console.error("Error saving chat history:", error);
+      throw error;
+    }
+  }
+
+  ipcMain.handle("get-chat-history", () => {
+    return getChatHistory();
+  });
+
+  ipcMain.handle("save-chat-history", async (event, sessions) => {
+    return saveChatHistory(sessions);
+  });
 
   ipcMain.handle(
     "get-local-models",
@@ -2861,6 +3309,17 @@ function setupApplicationIPC() {
           modelType ===
           "local"
         ) {
+          if (
+            isProtectedDefaultModel(
+              modelId,
+              modelId
+            )
+          ) {
+            throw new Error(
+              "The built-in OffyAI model cannot be deleted."
+            );
+          }
+
           const modelsPath =
             getModelsPath();
 
@@ -3506,33 +3965,72 @@ async function startApplication() {
 
   llamaServer.refreshAddress();
 
-  resourceManager.startMonitoring();
-
   createSplashWindow();
-
   createMainWindow();
-
   initializeIPC();
 
-  setImmediate(() => {
-    void llamaServer
-      .start()
-      .then(() => {
-        console.log(
-          "Llama startup routine completed."
-        );
-      })
-      .catch((error) => {
-        console.error(
-          "Llama startup failed:",
-          error
-        );
-      });
-  });
+  const scheduleDeferredStartup = () => {
+    if (deferredStartupScheduled) {
+      return;
+    }
+
+    deferredStartupScheduled = true;
+
+    setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        resourceManager.startMonitoring();
+      }
+
+      void llamaServer
+        .start()
+        .then(() => {
+          console.log(
+            "Llama startup routine completed."
+          );
+        })
+        .catch((error) => {
+          console.error(
+            "Llama startup failed:",
+            error
+          );
+        });
+    }, 250);
+  };
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.once("ready-to-show", scheduleDeferredStartup);
+    setTimeout(() => {
+      if (!deferredStartupScheduled) {
+        scheduleDeferredStartup();
+      }
+    }, 1500);
+  } else {
+    scheduleDeferredStartup();
+  }
 
   console.log(
     "OffyAI startup sequence initialized."
   );
+}
+
+function scheduledStartupFallback() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    resourceManager.startMonitoring();
+  }
+
+  void llamaServer
+    .start()
+    .then(() => {
+      console.log(
+        "Llama startup routine completed after fallback."
+      );
+    })
+    .catch((error) => {
+      console.error(
+        "Llama startup failed after fallback:",
+        error
+      );
+    });
 }
 
 app.whenReady()

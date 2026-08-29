@@ -183,7 +183,31 @@ const SettingsModal = ({ isOpen, onClose }) => {
        *
        * The file completely replaces the frontend state.
        */
-      setSettings(loadedSettings);
+      setSettings({
+        ...loadedSettings,
+        ui:
+          loadedSettings.ui &&
+          typeof loadedSettings.ui === "object" &&
+          !Array.isArray(loadedSettings.ui)
+            ? {
+                fontSize: 13,
+                sidebarWidth: 280,
+                ...loadedSettings.ui
+              }
+            : {
+                fontSize: 13,
+                sidebarWidth: 280
+              },
+        profile:
+          loadedSettings.profile &&
+          typeof loadedSettings.profile === "object" &&
+          !Array.isArray(loadedSettings.profile)
+            ? loadedSettings.profile
+            : {}
+      });
+
+          setUserPhotoPreview(loadedSettings.profile?.userPhoto || "");
+          setAiPhotoPreview(loadedSettings.profile?.aiPhoto || "");
 
       /*
        * Synchronize the application's active theme from the file.
@@ -356,7 +380,31 @@ const SettingsModal = ({ isOpen, onClose }) => {
     /*
      * Replace state with the actual saved file.
      */
-    setSettings(verifiedSettings);
+    const normalizedSettings = {
+      ...verifiedSettings,
+      ui:
+        verifiedSettings.ui &&
+        typeof verifiedSettings.ui === "object" &&
+        !Array.isArray(verifiedSettings.ui)
+          ? verifiedSettings.ui
+          : {},
+      profile:
+        verifiedSettings.profile &&
+        typeof verifiedSettings.profile === "object" &&
+        !Array.isArray(verifiedSettings.profile)
+          ? verifiedSettings.profile
+          : {}
+    };
+
+    setSettings(normalizedSettings);
+    setUserPhotoPreview(normalizedSettings.profile?.userPhoto || "");
+    setAiPhotoPreview(normalizedSettings.profile?.aiPhoto || "");
+
+    window.dispatchEvent(
+      new CustomEvent("offyai-settings-saved", {
+        detail: normalizedSettings
+      })
+    );
 
     /*
      * Keep the application theme synchronized.
@@ -414,6 +462,54 @@ const SettingsModal = ({ isOpen, onClose }) => {
           "Failed to save settings."
       );
 
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleResetDefaults = async () => {
+    const confirmed = window.confirm(
+      "Restore the default settings?\n\n" +
+      "This clears the API key and profile images, resets the profile names, and restores the local server URL. Installed models are kept."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      requireElectronAPI();
+
+      if (typeof window.electronAPI.resetSettings !== "function") {
+        throw new Error(
+          "window.electronAPI.resetSettings() is not implemented."
+        );
+      }
+
+      const resetSettings = await window.electronAPI.resetSettings();
+      const normalizedSettings = {
+        ...resetSettings,
+        profile: resetSettings.profile || {},
+        ui: resetSettings.ui || {},
+      };
+
+      setSettings(normalizedSettings);
+      setUserPhotoPreview("");
+      setAiPhotoPreview("");
+      setTheme(normalizedSettings.theme || "system");
+      window.dispatchEvent(
+        new CustomEvent("offyai-settings-saved", {
+          detail: normalizedSettings,
+        })
+      );
+      showMessage("success", "Default settings restored.");
+    } catch (error) {
+      console.error("Failed to restore default settings:", error);
+      showMessage(
+        "error",
+        error?.message || "Failed to restore default settings."
+      );
     } finally {
       setSaving(false);
     }
@@ -764,6 +860,20 @@ const SettingsModal = ({ isOpen, onClose }) => {
      */
     const modelId = model.id;
 
+    if (
+      modelId === "offyai" ||
+      model.fileName === "offyai.gguf" ||
+      model.name === "offyai" ||
+      model.name === "offyai.gguf"
+    ) {
+      showMessage(
+        "error",
+        "The built-in OffyAI model cannot be deleted."
+      );
+
+      return;
+    }
+
     if (!modelId) {
       showMessage(
         "error",
@@ -994,6 +1104,25 @@ const SettingsModal = ({ isOpen, onClose }) => {
     showRestart = false
   }) => (
     <div className="flex flex-wrap gap-3 pt-4">
+
+      <button
+        type="button"
+        onClick={handleResetDefaults}
+        disabled={saving || deletingModelId !== null}
+        className="
+          px-4 py-2
+          border border-amber-300 dark:border-amber-700
+          text-amber-700 dark:text-amber-300
+          hover:bg-amber-50 dark:hover:bg-amber-950/30
+          disabled:opacity-50
+          rounded-lg
+          transition-colors
+          flex items-center gap-2
+        "
+      >
+        <RotateCcw className="w-4 h-4" />
+        Restore Defaults
+      </button>
 
       <button
         type="button"
@@ -2431,14 +2560,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
   |--------------------------------------------------------------------------
   */
 
-  const renderUISettings = () => {
+  const renderProfileSettings = () => {
       /*
       |--------------------------------------------------------------------------
       | Profile
       |--------------------------------------------------------------------------
       */
 
-      const renderProfileSettings = () => {
         const handleUserPhotoChange = async (e) => {
           const file = e.target.files?.[0];
           if (file) {
@@ -2630,9 +2758,9 @@ const SettingsModal = ({ isOpen, onClose }) => {
             <SaveButtons label="Save Profile Settings" />
           </div>
         );
-      };
+  };
 
-    return (
+  const renderUISettings = () => (
     <div className="space-y-6">
 
       <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
@@ -2706,125 +2834,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
         </div>
 
 
-        <div className="mt-8 space-y-5">
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.ui.compactMode
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "ui",
-                  "compactMode",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Compact Mode
-            </span>
-
-          </label>
-
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.ui.showTimestamps
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "ui",
-                  "showTimestamps",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Show Timestamps
-            </span>
-
-          </label>
-
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.ui.smoothScrolling
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "ui",
-                  "smoothScrolling",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Smooth Scrolling
-            </span>
-
-          </label>
-
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.ui.hoverEffects
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "ui",
-                  "hoverEffects",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Hover Effects
-            </span>
-
-          </label>
-
-        </div>
-
       </div>
 
 
@@ -2834,7 +2843,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
     </div>
   );
-  };
 
 
   /*

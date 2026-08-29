@@ -887,7 +887,6 @@ const ChatInterface = ({
                 placeholderText
               }
               disabled={
-                !currentChat ||
                 isLoading
               }
               autoComplete="off"

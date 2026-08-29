@@ -8,4 +8,9 @@ export default defineConfig([
     "out/**",
     "node_modules/**",
   ]),
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
 ]);

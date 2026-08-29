@@ -1798,7 +1798,7 @@ const ModelUploadModal = ({
                             text-amber-200/55
                           "
                         >
-                          The model will be copied into the application's local models directory. Importing it does not automatically activate the model.
+                          The model will be copied into the application&apos;s local models directory. Importing it does not automatically activate the model.
                         </p>
                       </div>
                     </div>

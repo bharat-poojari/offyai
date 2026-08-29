@@ -52,7 +52,17 @@ export const ProfileProvider = ({ children }) => {
   useEffect(() => {
     loadProfile();
 
-    const handleSettingsSaved = () => {
+    const handleSettingsSaved = (event) => {
+      const savedSettings = event.detail;
+
+      if (isValidSettings(savedSettings)) {
+        setProfile({
+          ...DEFAULT_PROFILE,
+          ...(savedSettings.profile || {})
+        });
+        return;
+      }
+
       loadProfile();
     };
 

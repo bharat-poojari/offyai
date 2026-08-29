@@ -48,6 +48,7 @@
     --header-text: 222.2 84% 4.9%;
     --tc: black;
     --bc: white;
+    --app-font-size: 13px;
   }
 
   .dark {
@@ -108,7 +109,7 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, 'Helvetica Neue', sans-serif;
-    font-size: 13px;
+    font-size: var(--app-font-size);
     line-height: 1.5;
     font-weight: 400;
     overflow: hidden;

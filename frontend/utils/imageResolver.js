@@ -29,9 +29,7 @@ export const resolveImagePath = (imagePath) => {
 
   // In production Electron build, use file:// protocol to access bundled assets
   if (isElectron()) {
-    // For static assets, construct file:// URL
-    // In Next.js static export, public files are in the out/ directory
-    return `/${imagePath}`;
+    return `./${imagePath.replace(/^\/+/, "")}`;
   }
 
   // Default fallback

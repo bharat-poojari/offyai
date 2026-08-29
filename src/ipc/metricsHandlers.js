@@ -1,13 +1,16 @@
 "use strict";
 
-const { ipcMain } = require("electron");
+const { app, ipcMain } = require("electron");
 const axios = require("axios");
 const si = require("systeminformation");
 const fs = require("fs");
 const path = require("path");
 
 const LLAMA_SERVER_URL = "http://localhost:8080";
-const SETTINGS_FILE = path.join(__dirname, "../../settings.json");
+const SETTINGS_FILE =
+  app && typeof app.getPath === "function"
+    ? path.join(app.getPath("userData"), "settings.json")
+    : path.join(__dirname, "../../settings.json");
 
 /* ============================================================================
  * SETTINGS / MODEL

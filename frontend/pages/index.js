@@ -147,27 +147,35 @@ const Home = () => {
     useState(false);
 
   useEffect(() => {
-    const readWelcomeState = () => {
+    const readWelcomeState = async () => {
       try {
-        setWelcomeVisible(
-          window.localStorage.getItem(WELCOME_SEEN_KEY) !== "true"
-        );
+        if (typeof window.electronAPI?.getWelcomeState === "function") {
+          const state = await window.electronAPI.getWelcomeState();
+          setWelcomeVisible(state?.seen !== true);
+          return;
+        }
+
+        setWelcomeVisible(window.localStorage.getItem(WELCOME_SEEN_KEY) !== "true");
       } catch (error) {
         console.warn("Unable to read welcome state:", error);
         setWelcomeVisible(true);
       }
     };
 
-    const frame = window.requestAnimationFrame(readWelcomeState);
-
-    return () => window.cancelAnimationFrame(frame);
+    readWelcomeState();
   }, []);
 
   const dismissWelcome = useCallback((openHelp = false) => {
-    try {
-      window.localStorage.setItem(WELCOME_SEEN_KEY, "true");
-    } catch (error) {
-      console.warn("Unable to save welcome state:", error);
+    if (typeof window.electronAPI?.markWelcomeSeen === "function") {
+      window.electronAPI.markWelcomeSeen().catch((error) => {
+        console.warn("Unable to save welcome state:", error);
+      });
+    } else {
+      try {
+        window.localStorage.setItem(WELCOME_SEEN_KEY, "true");
+      } catch (error) {
+        console.warn("Unable to save welcome state:", error);
+      }
     }
 
     setWelcomeVisible(false);

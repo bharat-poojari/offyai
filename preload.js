@@ -68,6 +68,42 @@ const electronAPI = {
       settings
     ),
 
+  getWelcomeState: () =>
+    invoke(
+      "get-welcome-state"
+    ),
+
+  markWelcomeSeen: () =>
+    invoke(
+      "mark-welcome-seen"
+    ),
+
+  resetSettings: () =>
+    invoke(
+      "reset-settings"
+    ),
+
+  getWelcomeState: () =>
+    invoke(
+      "get-welcome-state"
+    ),
+
+  markWelcomeSeen: () =>
+    invoke(
+      "mark-welcome-seen"
+    ),
+
+  getChatHistory: () =>
+    invoke(
+      "get-chat-history"
+    ),
+
+  saveChatHistory: (sessions) =>
+    invoke(
+      "save-chat-history",
+      sessions
+    ),
+
   /*
    * --------------------------------------------------------------------------
    * LEGACY MODEL API

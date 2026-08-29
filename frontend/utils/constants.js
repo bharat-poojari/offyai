@@ -1,5 +1,5 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-export const DEFAULT_MODEL = "gpt2-124m-fresh-Q8_0";
+export const DEFAULT_MODEL = "offyai";
 export const DEFAULT_CONTEXT_LENGTH = 1024;
 export const METRICS_UPDATE_INTERVAL = 3000;
 export const CHAT_HISTORY_KEY = "offyai_chat_history";

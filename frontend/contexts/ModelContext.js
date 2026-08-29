@@ -118,6 +118,18 @@ const createModelFromId = (
   };
 };
 
+const isBuiltInDefaultModel = (model) => {
+  const modelId = getModelId(model);
+  const modelName = model?.name || model?.fileName || model?.model || "";
+
+  return (
+    modelId === "offyai" ||
+    modelName === "offyai" ||
+    modelName === "offyai.gguf" ||
+    model?.fileName === "offyai.gguf"
+  );
+};
+
 /* -------------------------------------------------------------------------- */
 /* Provider                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -158,6 +170,13 @@ export const ModelProvider = ({
    * all running simultaneously.
    */
   const loadingRef = useRef(false);
+
+  /*
+   * Prevent rapid repeated scans of the model directory.
+   * A refresh triggered by a UI action should not immediately
+   * retrigger the same work again while the previous request is still fresh.
+   */
+  const lastLoadTimestampRef = useRef(0);
 
   /*
    * Track whether the provider is still mounted.
@@ -227,10 +246,11 @@ export const ModelProvider = ({
                   activeId
               );
 
-            return (
-              matchingModel ||
-              settings.activeModel
-            );
+            if (matchingModel) {
+              return matchingModel;
+            }
+
+            return null;
           }
 
           /*
@@ -256,15 +276,10 @@ export const ModelProvider = ({
             }
 
             /*
-             * The selected model may have been removed from
-             * the currently enumerated list. Preserve the setting
-             * rather than silently switching to another model.
+             * The selected model is no longer present in the model directory.
+             * Clear the stale selection instead of displaying a phantom name.
              */
-            return createModelFromId(
-              modelId,
-              settings.modelType ||
-                "local"
-            );
+            return null;
           }
         }
 
@@ -273,7 +288,8 @@ export const ModelProvider = ({
          * first available model.
          */
         if (models.length > 0) {
-          return models[0];
+          const defaultModel = models.find((model) => isBuiltInDefaultModel(model));
+          return defaultModel || models[0];
         }
 
         return null;
@@ -290,10 +306,20 @@ export const ModelProvider = ({
       async ({
         silent = false,
       } = {}) => {
+        const now = Date.now();
+
         /*
          * Do not start another request while one is already running.
          */
         if (loadingRef.current) {
+          return;
+        }
+
+        /*
+         * Debounce rapid refreshes to prevent expensive model scans from
+         * stacking up when the app is switching models or re-rendering.
+         */
+        if (!silent && now - lastLoadTimestampRef.current < 750) {
           return;
         }
 
@@ -334,6 +360,8 @@ export const ModelProvider = ({
           setAvailableModels(
             models
           );
+
+          lastLoadTimestampRef.current = Date.now();
 
           /*
            * Resolve the active model using persisted settings.

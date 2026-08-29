@@ -7,6 +7,7 @@ export const useLocalStorage = (key, initialValue) => {
       ? initialValue()
       : initialValue
   );
+  const [isHydrated, setIsHydrated] = useState(false);
 
   /*
    * Keep a ref containing the latest value.
@@ -141,8 +142,10 @@ export const useLocalStorage = (key, initialValue) => {
         `Error reading localStorage key "${key}":`,
         error
       );
+    } finally {
+      setIsHydrated(true);
     }
   }, [key]);
 
-  return [storedValue, setValue];
+  return [storedValue, setValue, isHydrated];
 };

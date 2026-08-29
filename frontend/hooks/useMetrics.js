@@ -203,6 +203,17 @@ export const useMetrics = (
       pollingRef.current = false;
     }, []);
 
+  const isPageVisible =
+    useCallback(() => {
+      if (
+        typeof document === "undefined"
+      ) {
+        return true;
+      }
+
+      return document.visibilityState !== "hidden";
+    }, []);
+
   /* ==========================================================================
    * FETCH METRICS
    * ======================================================================== */
@@ -355,7 +366,8 @@ export const useMetrics = (
   const startPolling =
     useCallback(() => {
       if (
-        pollingRef.current
+        pollingRef.current ||
+        !isPageVisible()
       ) {
         return;
       }
@@ -379,12 +391,17 @@ export const useMetrics = (
       intervalRef.current =
         setInterval(() => {
           /*
-           * A failed sample does not permanently disable real-time
-           * monitoring. The next interval gets another real sample.
+           * Only keep polling while the page is visible.
+           * This avoids unnecessary background metrics work.
            */
+          if (!isPageVisible()) {
+            stopPolling();
+            return;
+          }
+
           void fetchMetrics();
         }, interval);
-    }, [fetchMetrics]);
+    }, [fetchMetrics, isPageVisible, stopPolling]);
 
   /* ==========================================================================
    * INITIALIZATION
@@ -417,24 +434,44 @@ export const useMetrics = (
           return;
         }
 
-        /*
-         * Start polling regardless of the first result.
-         *
-         * If the server/system is temporarily unavailable, the next
-         * interval will retry rather than requiring a manual refresh.
-         */
-        startPolling();
+        if (isPageVisible()) {
+          startPolling();
+        }
 
         if (!connected) {
           setLoading(false);
         }
       };
 
+    const handleVisibilityChange =
+      () => {
+        if (!mountedRef.current) {
+          return;
+        }
+
+        if (isPageVisible()) {
+          void fetchMetrics({ manual: true });
+          startPolling();
+        } else {
+          stopPolling();
+        }
+      };
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
+
     void initialize();
 
     return () => {
       mountedRef.current =
         false;
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
 
       stopPolling();
 
@@ -443,6 +480,7 @@ export const useMetrics = (
     };
   }, [
     fetchMetrics,
+    isPageVisible,
     startPolling,
     stopPolling,
   ]);

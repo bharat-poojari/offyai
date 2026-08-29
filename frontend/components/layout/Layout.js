@@ -143,6 +143,58 @@ const Layout = ({
   }, []);
 
   /* ---------------------------------------------------------------------- */
+  /* Apply saved interface settings                                         */
+  /* ---------------------------------------------------------------------- */
+
+  useEffect(() => {
+    const applyUiSettings = (savedSettings) => {
+      const nextUi = savedSettings?.ui;
+
+      if (!nextUi || typeof nextUi !== "object") {
+        return;
+      }
+
+      const fontSize = Number(nextUi.fontSize);
+      const configuredWidth = Number(nextUi.sidebarWidth);
+      const nextWidth = Number.isFinite(configuredWidth)
+        ? Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, configuredWidth))
+        : DEFAULT_SIDEBAR_WIDTH;
+
+      if (Number.isFinite(fontSize) && fontSize >= 10 && fontSize <= 24) {
+        document.documentElement.style.fontSize = `${fontSize}px`;
+        document.documentElement.style.setProperty(
+          "--app-font-size",
+          `${fontSize}px`
+        );
+      }
+
+      setSidebarWidth(nextWidth);
+      sidebarWidthRef.current = nextWidth;
+    };
+
+    const loadUiSettings = async () => {
+      try {
+        if (typeof window.electronAPI?.getSettings === "function") {
+          applyUiSettings(await window.electronAPI.getSettings());
+        }
+      } catch (error) {
+        console.warn("Unable to load interface settings:", error);
+      }
+    };
+
+    const handleSettingsSaved = (event) => {
+      applyUiSettings(event.detail);
+    };
+
+    loadUiSettings();
+    window.addEventListener("offyai-settings-saved", handleSettingsSaved);
+
+    return () => {
+      window.removeEventListener("offyai-settings-saved", handleSettingsSaved);
+    };
+  }, []);
+
+  /* ---------------------------------------------------------------------- */
   /* Sidebar toggle                                                         */
   /* ---------------------------------------------------------------------- */
 

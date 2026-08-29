@@ -1,34 +1,33 @@
 "use strict";
 
-const { ipcMain, dialog } = require("electron");
+const { app, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const {
+  DEFAULT_MODEL_ID,
+  DEFAULT_MODEL_FILE,
+  isProtectedDefaultModel,
+  ensureDefaultModelEntry,
+} = require("../modelDefaults");
+const { resolveModelsDirectory } = require("./modelPaths");
 
 /*
  * ============================================================================
  * PATHS
  * ============================================================================
  *
- * modelsHandlers.js is located at:
- *
- *   <project-root>/src/ipc/modelsHandlers.js
- *
- * Therefore:
- *
- *   ../../models
- *
- * resolves to:
- *
- *   <project-root>/models
- *
- * This is the directory where uploaded models are stored.
+ * The packaged app must write uploaded models to the user-writable data folder;
+ * the app bundle itself is read-only. In development we keep using the project
+ * local models directory so the app behaves consistently in both modes.
  * ============================================================================
  */
 
-const MODELS_DIR = path.resolve(
-  __dirname,
-  "../../models"
-);
+const MODELS_DIR = resolveModelsDirectory({
+  rootDir: __dirname,
+  userDataDir: app?.getPath?.("userData"),
+  isPackaged: !!(app && app.isPackaged),
+  resourcesPath: process.resourcesPath,
+});
 
 const APP_ROOT = path.resolve(
   __dirname,
@@ -76,10 +75,21 @@ function resolveProjectRelativePath(filePath) {
   return path.resolve(APP_ROOT, trimmed);
 }
 
-const SETTINGS_FILE = path.resolve(
-  __dirname,
-  "../../settings.json"
-);
+const SETTINGS_FILE =
+  typeof app !== "undefined" &&
+  app &&
+  typeof app.getPath === "function"
+    ? path.join(
+        app.getPath("userData"),
+        "settings.json"
+      )
+    : path.resolve(
+        __dirname,
+        "../../settings.json"
+      );
+
+let settingsCache = null;
+let settingsCacheMtime = null;
 
 const MODEL_EXTENSIONS = [
   ".gguf",
@@ -152,6 +162,12 @@ function readSettings() {
       return {};
     }
 
+    const currentMtime = fs.statSync(SETTINGS_FILE).mtimeMs;
+
+    if (settingsCache && currentMtime === settingsCacheMtime) {
+      return settingsCache;
+    }
+
     const raw = fs.readFileSync(
       SETTINGS_FILE,
       "utf8"
@@ -171,6 +187,8 @@ function readSettings() {
       return {};
     }
 
+    settingsCache = settings;
+    settingsCacheMtime = currentMtime;
     return settings;
   } catch (error) {
     console.error(
@@ -223,6 +241,13 @@ function writeSettings(settings) {
       temporaryFile,
       SETTINGS_FILE
     );
+
+    settingsCache = settings;
+    try {
+      settingsCacheMtime = fs.statSync(SETTINGS_FILE).mtimeMs;
+    } catch {
+      settingsCacheMtime = null;
+    }
 
     return true;
   } catch (error) {
@@ -297,16 +322,23 @@ function persistModelSettings(
   settings,
   appSettings
 ) {
+  const nextSettings = ensureDefaultModelEntry({
+    ...settings,
+    availableModels: Array.isArray(settings.availableModels)
+      ? settings.availableModels
+      : [],
+  });
+
   writeSettings(
-    settings
+    nextSettings
   );
 
   synchronizeAppSettings(
     appSettings,
-    settings
+    nextSettings
   );
 
-  return settings;
+  return nextSettings;
 }
 
 /*
@@ -757,6 +789,44 @@ function updateAvailableModel(
       [];
   }
 
+  if (
+    isProtectedDefaultModel(
+      modelInfo.id,
+      modelInfo.fileName || modelInfo.name
+    )
+  ) {
+    const defaultEntry = {
+      ...modelInfo,
+      id: DEFAULT_MODEL_ID,
+      fileName: DEFAULT_MODEL_FILE,
+      name: DEFAULT_MODEL_ID,
+      type: "local",
+      path: `models/${DEFAULT_MODEL_FILE}`,
+    };
+
+    const index =
+      settings.availableModels.findIndex(
+        (model) =>
+          model &&
+          isProtectedDefaultModel(
+            model.id,
+            model.fileName || model.name
+          )
+      );
+
+    if (index >= 0) {
+      settings.availableModels[index] = {
+        ...settings.availableModels[index],
+        ...defaultEntry,
+      };
+    } else {
+      settings.availableModels.unshift(defaultEntry);
+    }
+
+    settings.availableModels = ensureDefaultModelEntry(settings).availableModels;
+    return;
+  }
+
   const index =
     settings.availableModels.findIndex(
       (model) =>
@@ -781,6 +851,8 @@ function updateAvailableModel(
       modelInfo
     );
   }
+
+  settings.availableModels = ensureDefaultModelEntry(settings).availableModels;
 }
 
 function removeAvailableModel(
@@ -800,11 +872,20 @@ function removeAvailableModel(
 
   settings.availableModels =
     settings.availableModels.filter(
-      (model) =>
-        !model ||
-        model.id !==
-          modelId
+      (model) => {
+        if (!model || typeof model !== "object") {
+          return false;
+        }
+
+        if (isProtectedDefaultModel(model.id, model.fileName || model.name)) {
+          return true;
+        }
+
+        return model.id !== modelId;
+      }
     );
+
+  settings.availableModels = ensureDefaultModelEntry(settings).availableModels;
 }
 
 /*
@@ -1953,6 +2034,19 @@ function setupModelsHandlers(
           modelType ===
           "local"
         ) {
+          if (
+            isProtectedDefaultModel(
+              normalizedModelId,
+              normalizedModelId
+            )
+          ) {
+            return {
+              success: false,
+              error:
+                "The built-in OffyAI model cannot be deleted.",
+            };
+          }
+
           const localModel =
             findLocalModel(
               normalizedModelId

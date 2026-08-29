@@ -179,7 +179,11 @@ const buildRequestHistory = (
 };
 
 export const useChat = () => {
-  const [chatSessions, setChatSessions] = useLocalStorage(
+  const [
+    chatSessions,
+    setChatSessions,
+    isChatHistoryHydrated,
+  ] = useLocalStorage(
     CHAT_HISTORY_KEY,
     []
   );
@@ -204,13 +208,65 @@ export const useChat = () => {
 
   /*
    * --------------------------------------------------------------------------
+   * RESTORE FROM ELECTRON BACKUP
+   * --------------------------------------------------------------------------
+   *
+   * On app startup, restore chat history from Electron's userData if
+   * localStorage is empty. This handles the case where localStorage
+   * fails in the packaged app environment.
+   */
+  useEffect(() => {
+    const restoreFromElectron = async () => {
+      try {
+        if (!isElectronEnvironment()) {
+          return;
+        }
+
+        if (!isChatHistoryHydrated) {
+          return;
+        }
+
+        if (Array.isArray(chatSessions) && chatSessions.length > 0) {
+          return;
+        }
+
+        if (
+          typeof window.electronAPI?.getChatHistory === "function"
+        ) {
+          const electronHistory = await window.electronAPI.getChatHistory();
+
+          if (Array.isArray(electronHistory) && electronHistory.length > 0) {
+            setChatSessions(electronHistory);
+          }
+        }
+      } catch (error) {
+        console.warn(
+          "Error restoring chat history from Electron:",
+          error
+        );
+      }
+    };
+
+    restoreFromElectron();
+  }, [isChatHistoryHydrated, setChatSessions]);
+
+  /*
+   * --------------------------------------------------------------------------
    * INITIAL SESSION
    * --------------------------------------------------------------------------
    */
 
   useEffect(() => {
+    if (!isChatHistoryHydrated) {
+      return;
+    }
+
     if (Array.isArray(chatSessions) && chatSessions.length > 0) {
-      if (!currentSessionId) {
+      const hasCurrentSession = chatSessions.some(
+        (session) => session.id === currentSessionId
+      );
+
+      if (!hasCurrentSession) {
         const firstId = chatSessions[0].id;
 
         currentSessionIdRef.current = firstId;
@@ -235,7 +291,49 @@ export const useChat = () => {
 
     setChatSessions([newChat]);
     setCurrentSessionId(newChat.id);
-  }, [chatSessions, currentSessionId, setChatSessions]);
+  }, [
+    chatSessions,
+    currentSessionId,
+    isChatHistoryHydrated,
+    setChatSessions,
+  ]);
+
+  /*
+   * --------------------------------------------------------------------------
+   * PERSISTENT STORAGE SYNC
+   * --------------------------------------------------------------------------
+   *
+   * Sync chat history to Electron's userData as a backup to browser
+   * localStorage. This ensures chat history persists across app restarts
+   * even if browser storage fails in the packaged app.
+   */
+  useEffect(() => {
+    if (!isChatHistoryHydrated || !isElectronEnvironment()) {
+      return;
+    }
+
+    const syncToElectron = async () => {
+      try {
+        if (
+          typeof window.electronAPI?.saveChatHistory === "function"
+        ) {
+          const validSessions = Array.isArray(chatSessions)
+            ? chatSessions
+            : [];
+          await window.electronAPI.saveChatHistory(
+            validSessions
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "Error syncing chat history to Electron:",
+          error
+        );
+      }
+    };
+
+    syncToElectron();
+  }, [chatSessions, isChatHistoryHydrated]);
 
   /*
    * --------------------------------------------------------------------------
@@ -699,6 +797,31 @@ export const useChat = () => {
       let fullContent = "";
       let completed = false;
       let stopped = false;
+      let contentUpdateTimer = null;
+
+      const flushContent = () => {
+        contentUpdateTimer = null;
+
+        if (completed || stopped) {
+          return;
+        }
+
+        updateMessages(
+          sessionId,
+          (messages) =>
+            messages.map((message) =>
+              message.id === assistantMessageId
+                ? {
+                    ...message,
+                    content: fullContent,
+                    isStreaming: true,
+                    stopped: false,
+                    error: false,
+                  }
+                : message
+            )
+        );
+      };
 
       /*
        * ----------------------------------------------------------------------
@@ -731,24 +854,12 @@ export const useChat = () => {
 
         fullContent += chunk;
 
-        /*
-         * React state is updated immediately for every received chunk.
-         */
-        updateMessages(
-          sessionId,
-          (messages) =>
-            messages.map((message) =>
-              message.id === assistantMessageId
-                ? {
-                    ...message,
-                    content: fullContent,
-                    isStreaming: true,
-                    stopped: false,
-                    error: false,
-                  }
-                : message
-            )
-        );
+        if (contentUpdateTimer === null) {
+          contentUpdateTimer = window.setTimeout(
+            flushContent,
+            16
+          );
+        }
       };
 
       /*
@@ -769,6 +880,11 @@ export const useChat = () => {
 
         completed = true;
         stopped = Boolean(wasStopped);
+
+        if (contentUpdateTimer !== null) {
+          window.clearTimeout(contentUpdateTimer);
+          contentUpdateTimer = null;
+        }
 
         const suppliedContent =
           typeof content === "string"
@@ -895,6 +1011,11 @@ export const useChat = () => {
       const handleError = (streamError) => {
         if (completed || stopped) {
           return;
+        }
+
+        if (contentUpdateTimer !== null) {
+          window.clearTimeout(contentUpdateTimer);
+          contentUpdateTimer = null;
         }
 
         console.error(

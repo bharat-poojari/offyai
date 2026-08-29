@@ -1,41 +1,27 @@
 {
-  "apiKey": "0316",
+  "apiKey": "",
   "serverUrl": "http://localhost:8080",
-  "model": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
+  "model": "offyai",
   "activeModel": {
-    "id": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
-    "fileName": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL.gguf",
-    "path": "models\\Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL.gguf",
+    "id": "offyai",
+    "fileName": "offyai.gguf",
+    "name": "offyai",
     "type": "local",
-    "name": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
-    "size": "19.14 MB",
-    "sizeBytes": 20069536,
-    "format": "gguf",
-    "created": "2026-08-27T13:05:35.878Z",
-    "modified": "2026-08-27T12:57:01.221Z",
-    "isDirectory": false,
-    "uploadedAt": "2026-08-27T13:05:35.932Z"
+    "path": "models/offyai.gguf"
   },
   "remoteModels": [],
   "availableModels": [
     {
-      "id": "SmolLM2-135M-Instruct-Q2_K",
-      "fileName": "SmolLM2-135M-Instruct-Q2_K.gguf",
-      "size": "84.12 MB",
-      "uploadedAt": "2025-10-26T05:54:56.997Z",
-      "type": "local",
-      "sizeBytes": 88202080
-    },
-    {
-      "id": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL",
-      "fileName": "Stentor-30M-Instruct-heretic-safety-defiltered.i1-IQ4_NL.gguf",
-      "size": "19.14 MB",
-      "sizeBytes": 20069536,
-      "uploadedAt": "2026-08-27T13:05:35.932Z",
+      "id": "offyai",
+      "fileName": "offyai.gguf",
+      "size": "0 B",
+      "sizeBytes": 0,
+      "uploadedAt": "2026-08-29T08:26:44.247Z",
       "type": "local"
     }
   ],
   "theme": "system",
+  "defaultsInitialized": true,
   "performance": {
     "lowMemoryMode": false,
     "maxMemoryUsage": 2048,
@@ -76,7 +62,7 @@
     "responseDelay": 0
   },
   "ui": {
-    "fontSize": 14,
+    "fontSize": 15,
     "compactMode": false,
     "showTimestamps": true,
     "smoothScrolling": true,
@@ -93,7 +79,7 @@
     "highlightColor": "#3b82f6",
     "backgroundType": "solid",
     "customBackground": "",
-    "sidebarWidth": 280,
+    "sidebarWidth": 360,
     "panelOpacity": 95,
     "hoverEffects": true,
     "focusRing": true,
@@ -126,28 +112,13 @@
     "backupEnabled": true,
     "backupInterval": 24
   },
-  "system": {
-    "language": "en",
-    "region": "US",
-    "timezone": "Asia/Calcutta",
-    "dateFormat": "MM/DD/YYYY",
-    "timeFormat": "12h",
-    "weekStart": "sunday",
-    "measurementSystem": "metric",
-    "keyboardLayout": "us",
-    "mouseSpeed": 50,
-    "scrollSpeed": 50,
-    "powerMode": "balanced",
-    "sleepDelay": 30,
-    "hibernateDelay": 120,
-    "notifications": true,
-    "soundEffects": true,
-    "autoStart": false,
-    "updateChannel": "stable",
-    "logLevel": "info",
-    "debugMode": false,
-    "performanceMode": false,
-    "hardwareAcceleration": true
-  },
-  "modelType": "local"
+  "profile": {
+    "userName": "You",
+    "userAbout": "",
+    "userPhoto": "",
+    "aiName": "OffyAI",
+    "aiAbout": "",
+    "aiPhoto": "",
+    "includeUserContext": false
+  }
 }

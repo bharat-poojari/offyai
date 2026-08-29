@@ -45,63 +45,108 @@
       "output": "dist-electron"
     },
     "files": [
+      "package.json",
       "main.js",
-      "splash.html",
-      "favicon.ico",
-      "README.md",
-      "LICENSE.txt",
       "preload.js",
+      "splash.html",
       "settings.json",
       "src/**/*",
       "frontend/out/**/*",
-      "!**/node_modules/*/{README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.npm-metadata.json}"
-    ],
-    "extraResources": [
-      {
-        "from": "models",
-        "to": "models",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "llama",
-        "to": "llama",
-        "filter": [
-          "**/*"
-        ]
-      }
+      "LICENSE.txt",
+      "node_modules/**/*",
+      "!**/.git/**",
+      "!**/.gitignore",
+      "!**/.env*",
+      "!**/.DS_Store",
+      "!**/*.md",
+      "!**/*.log",
+      "!**/*.map",
+      "!**/*.jsonl",
+      "!**/OFFYAI_TRAINING_CONTEXT.txt",
+      "!**/package-lock.json",
+      "!**/package.json.backup",
+      "!**/dist-electron/**",
+      "!**/frontend/public/**",
+      "!**/frontend/.next/**",
+      "!**/frontend/node_modules/**",
+      "!**/models/**",
+      "!**/llama/**",
+      "!**/__pycache__/**",
+      "!**/.idea/**",
+      "!**/.vscode/**",
+      "!**/node_modules/**/{README,README.md,readme,readme.md,CHANGELOG,LICENSE,LICENSE*,.bin,.cache,*.md}",
+      "!**/node_modules/**/.bin",
+      "!**/node_modules/**/*.d.ts"
     ],
     "asar": true,
-    "asarUnpack": [
-      "models/**/*",
-      "llama/**/*",
-      "*.dll",
-      "*.exe",
-      "*.node",
-      "preload.js"
-    ],
     "win": {
       "target": [
         {
           "target": "nsis",
           "arch": [
-            "x64",
-            "ia32"
+            "x64"
           ]
         }
       ],
-      "icon": "frontend/public/images/offyai.png"
+      "icon": "frontend/public/images/offyai.png",
+      "files": [
+        "package.json",
+        "main.js",
+        "preload.js",
+        "splash.html",
+        "settings.json",
+        "src/**/*",
+        "frontend/out/**/*",
+        "LICENSE.txt",
+        "node_modules/**/*",
+        "!**/.git/**",
+        "!**/.gitignore",
+        "!**/.env*",
+        "!**/.DS_Store",
+        "!**/*.md",
+        "!**/*.log",
+        "!**/*.map",
+        "!**/*.jsonl",
+        "!**/OFFYAI_TRAINING_CONTEXT.txt",
+        "!**/package-lock.json",
+        "!**/package.json.backup",
+        "!**/dist-electron/**",
+        "!**/frontend/public/**",
+        "!**/frontend/.next/**",
+        "!**/frontend/node_modules/**",
+        "!**/__pycache__/**",
+        "!**/.idea/**",
+        "!**/.vscode/**",
+        "!**/node_modules/**/{README,README.md,readme,readme.md,CHANGELOG,LICENSE,LICENSE*,.bin,.cache,*.md}",
+        "!**/node_modules/**/.bin",
+        "!**/node_modules/**/*.d.ts"
+      ],
+      "extraResources": [
+        {
+          "from": "llama",
+          "to": "llama",
+          "filter": [
+            "**/*.exe",
+            "**/*.dll"
+          ]
+        },
+        {
+          "from": "models",
+          "to": "models",
+          "filter": [
+            "**/*.gguf",
+            "**/*.bin",
+            "**/*.ggml"
+          ]
+        }
+      ],
+      "asarUnpack": [
+        "llama/**/*",
+        "*.dll",
+        "*.exe",
+        "*.node",
+        "preload.js"
+      ]
     },
     "nsis": {
       "oneClick": false,
