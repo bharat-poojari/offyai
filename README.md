@@ -1,3 +1,28 @@
+<p align="center">
+  <img
+    src="https://raw.githubusercontent.com/bharat-poojari/offyai/main/offyai.png"
+    alt="OffyAI"
+    width="600"
+  />
+</p>
+
+<h1 align="center">OffyAI</h1>
+
+<p align="center">
+  <strong>Private. Fast. Local. Yours.</strong>
+</p>
+
+<p align="center">
+  A modern local-first AI desktop application for running and interacting with local Large Language Models.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/AI-Local-blue" alt="Local AI">
+  <img src="https://img.shields.io/badge/Platform-Windows-lightgrey" alt="Windows">
+  <img src="https://img.shields.io/badge/Status-Active%20Development-orange" alt="Active Development">
+</p>
+
+---
 # OffyAI
 
 > **Private. Fast. Local. Yours.**
