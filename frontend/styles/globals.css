@@ -134,6 +134,8 @@ div.bg-gray-800,div.p-4.space-y-4 {
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
   }
   
   .custom-scrollbar::-webkit-scrollbar {
@@ -153,6 +155,10 @@ div.bg-gray-800,div.p-4.space-y-4 {
   
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    min-height: 36px;
   }
 
   /* Card Styles */

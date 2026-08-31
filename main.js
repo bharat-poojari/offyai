@@ -253,6 +253,11 @@ function sanitizeStaleModelSettings(settings) {
 
   normalized.availableModels = ensuredSettings.availableModels;
 
+  const fallbackModel =
+    normalized.availableModels.find((model) => model && !isProtectedDefaultModel(model.id, model.fileName || model.name)) ||
+    normalized.availableModels[0] ||
+    buildDefaultLocalModel();
+
   if (
     !normalized.model ||
     !normalized.availableModels.some((model) =>
@@ -260,7 +265,7 @@ function sanitizeStaleModelSettings(settings) {
       (model.id === normalized.model || model.fileName === normalized.model || model.name === normalized.model)
     )
   ) {
-    normalized.model = DEFAULT_MODEL_ID;
+    normalized.model = fallbackModel?.id || DEFAULT_MODEL_ID;
   }
 
   if (
@@ -269,8 +274,12 @@ function sanitizeStaleModelSettings(settings) {
     !normalized.availableModels.some((model) => model && model.id === normalized.activeModel.id)
   ) {
     normalized.activeModel = {
-      ...buildDefaultLocalModel(),
-      path: buildDefaultLocalModel().path,
+      ...fallbackModel,
+      id: fallbackModel.id,
+      fileName: fallbackModel.fileName || fallbackModel.name,
+      name: fallbackModel.name || fallbackModel.id,
+      type: fallbackModel.type || "local",
+      path: fallbackModel.path || buildDefaultLocalModel().path,
     };
   }
 
@@ -684,9 +693,42 @@ let settingsCache = null;
 let settingsCacheMtime = null;
 let appSettings = loadSettings();
 
+function replaceAppSettings(nextSettings) {
+  if (!nextSettings || typeof nextSettings !== "object") {
+    return appSettings;
+  }
+
+  if (nextSettings === appSettings) {
+    return appSettings;
+  }
+
+  if (
+    typeof nextSettings.serverUrl !== "string" ||
+    !nextSettings.serverUrl.trim()
+  ) {
+    nextSettings.serverUrl =
+      appSettings?.serverUrl ||
+      "http://localhost:8080";
+  }
+
+  if (appSettings && typeof appSettings === "object") {
+    for (const key of Object.keys(appSettings)) {
+      delete appSettings[key];
+    }
+
+    Object.assign(appSettings, nextSettings);
+    return appSettings;
+  }
+
+  appSettings = nextSettings;
+  return appSettings;
+}
+
 function getServerAddress() {
   const configuredUrl = new URL(
-    appSettings.serverUrl
+    typeof appSettings?.serverUrl === "string" && appSettings.serverUrl.trim()
+      ? appSettings.serverUrl
+      : "http://localhost:8080"
   );
 
   return {
@@ -2006,6 +2048,17 @@ class LlamaServerManager {
         normalized.includes(
           "--low-vram"
         ),
+      jinja:
+        normalized.includes(
+          "--jinja"
+        ),
+      chatTemplate:
+        normalized.includes(
+          "--chat-template"
+        ) ||
+        normalized.includes(
+          "--chat-template-file"
+        ),
       temperature:
         normalized.includes(
           "--temp"
@@ -2257,6 +2310,14 @@ class LlamaServerManager {
         "--port",
         String(this.port)
       );
+    }
+
+    if (capabilities.jinja) {
+      args.push("--jinja");
+    }
+
+    if (capabilities.chatTemplate) {
+      args.push("--chat-template", "chatml");
     }
 
     if (capabilities.threads) {
@@ -2752,7 +2813,16 @@ class LlamaServerManager {
       );
     }
 
-    return this.start();
+    const child = await this.start();
+
+    if (!this.isRunning) {
+      throw new Error(
+        this.lastError ||
+          "llama-server failed to start with the selected model."
+      );
+    }
+
+    return child;
   }
 
   stop() {
@@ -2883,8 +2953,7 @@ async function updateSettingsAndRestart(
       resolvedSettings
     );
 
-    appSettings =
-      loadSettings();
+    replaceAppSettings(loadSettings());
 
     llamaServer.refreshAddress();
 
@@ -2954,8 +3023,7 @@ async function updateSettingsAndRestart(
         oldSettings
       );
 
-      appSettings =
-        oldSettings;
+      replaceAppSettings(oldSettings);
 
       llamaServer.refreshAddress();
     } catch {}
@@ -3088,8 +3156,7 @@ function setupApplicationIPC() {
   ipcMain.handle(
     "get-settings",
     () => {
-      appSettings =
-        loadSettings();
+      replaceAppSettings(loadSettings());
 
       llamaServer.refreshAddress();
 
@@ -3169,35 +3236,15 @@ function setupApplicationIPC() {
       : path.join(app.getPath("userData"), ".chat-history.json");
 
   function getChatHistory() {
-    try {
-      if (fs.existsSync(chatHistoryFile)) {
-        const content = fs.readFileSync(chatHistoryFile, "utf8");
-        const data = JSON.parse(content);
-        return Array.isArray(data) ? data : [];
-      }
-    } catch (error) {
-      console.warn("Error reading chat history:", error);
-    }
+    // Local-only chat state: keep persisted history in browser localStorage.
+    // The Electron backup is intentionally ignored to prevent deleted chats
+    // from reappearing when the app reopens.
     return [];
   }
 
   function saveChatHistory(sessions) {
-    try {
-      const directory = path.dirname(chatHistoryFile);
-      fs.mkdirSync(directory, { recursive: true });
-
-      const validSessions = Array.isArray(sessions) ? sessions : [];
-
-      fs.writeFileSync(
-        chatHistoryFile,
-        JSON.stringify(validSessions, null, 2),
-        "utf8"
-      );
-      return validSessions;
-    } catch (error) {
-      console.error("Error saving chat history:", error);
-      throw error;
-    }
+    // No-op: chat history is stored locally in the browser, not in userData.
+    return Array.isArray(sessions) ? sessions : [];
   }
 
   ipcMain.handle("get-chat-history", () => {
@@ -3389,8 +3436,7 @@ function setupApplicationIPC() {
               nextSettings
             );
 
-            appSettings =
-              loadSettings();
+            replaceAppSettings(loadSettings());
           }
         } else {
           const nextSettings =
@@ -3410,8 +3456,7 @@ function setupApplicationIPC() {
             nextSettings
           );
 
-          appSettings =
-            loadSettings();
+          replaceAppSettings(loadSettings());
         }
 
         return {
@@ -3616,8 +3661,7 @@ function setupApplicationIPC() {
     "restart-llama-server",
     async () => {
       try {
-        appSettings =
-          loadSettings();
+        replaceAppSettings(loadSettings());
 
         await llamaServer.restart();
 

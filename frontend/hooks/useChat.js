@@ -208,47 +208,13 @@ export const useChat = () => {
 
   /*
    * --------------------------------------------------------------------------
-   * RESTORE FROM ELECTRON BACKUP
+   * LOCAL STORAGE ONLY
    * --------------------------------------------------------------------------
    *
-   * On app startup, restore chat history from Electron's userData if
-   * localStorage is empty. This handles the case where localStorage
-   * fails in the packaged app environment.
+   * Chat history is kept in the browser's local storage for this app.
+   * We intentionally do not restore or mirror stale data from Electron's
+   * userData backup because that can resurrect chats the user already deleted.
    */
-  useEffect(() => {
-    const restoreFromElectron = async () => {
-      try {
-        if (!isElectronEnvironment()) {
-          return;
-        }
-
-        if (!isChatHistoryHydrated) {
-          return;
-        }
-
-        if (Array.isArray(chatSessions) && chatSessions.length > 0) {
-          return;
-        }
-
-        if (
-          typeof window.electronAPI?.getChatHistory === "function"
-        ) {
-          const electronHistory = await window.electronAPI.getChatHistory();
-
-          if (Array.isArray(electronHistory) && electronHistory.length > 0) {
-            setChatSessions(electronHistory);
-          }
-        }
-      } catch (error) {
-        console.warn(
-          "Error restoring chat history from Electron:",
-          error
-        );
-      }
-    };
-
-    restoreFromElectron();
-  }, [isChatHistoryHydrated, setChatSessions]);
 
   /*
    * --------------------------------------------------------------------------
@@ -300,40 +266,13 @@ export const useChat = () => {
 
   /*
    * --------------------------------------------------------------------------
-   * PERSISTENT STORAGE SYNC
+   * LOCAL STORAGE ONLY
    * --------------------------------------------------------------------------
    *
-   * Sync chat history to Electron's userData as a backup to browser
-   * localStorage. This ensures chat history persists across app restarts
-   * even if browser storage fails in the packaged app.
+   * The app stores chat sessions in localStorage and does not mirror them into
+   * Electron's userData backup. This keeps chat state local to the app and avoids
+   * resurrecting deleted sessions from a stale backup file.
    */
-  useEffect(() => {
-    if (!isChatHistoryHydrated || !isElectronEnvironment()) {
-      return;
-    }
-
-    const syncToElectron = async () => {
-      try {
-        if (
-          typeof window.electronAPI?.saveChatHistory === "function"
-        ) {
-          const validSessions = Array.isArray(chatSessions)
-            ? chatSessions
-            : [];
-          await window.electronAPI.saveChatHistory(
-            validSessions
-          );
-        }
-      } catch (error) {
-        console.warn(
-          "Error syncing chat history to Electron:",
-          error
-        );
-      }
-    };
-
-    syncToElectron();
-  }, [chatSessions, isChatHistoryHydrated]);
 
   /*
    * --------------------------------------------------------------------------

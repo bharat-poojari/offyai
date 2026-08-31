@@ -36,6 +36,41 @@ function isProtectedDefaultModel(modelId, fileName = "") {
   });
 }
 
+function chooseValidFallbackModel(settings = {}, defaultPath = `models/${DEFAULT_MODEL_FILE}`) {
+  const items = Array.isArray(settings.availableModels)
+    ? settings.availableModels.filter((model) => model && typeof model === "object")
+    : [];
+
+  const currentModelId = typeof settings.model === "string" ? settings.model.trim() : "";
+  const activeModelId = settings.activeModel && typeof settings.activeModel === "object"
+    ? String(settings.activeModel.id || settings.activeModel.modelId || settings.activeModel.name || "").trim()
+    : "";
+
+  const nonDefaultCandidates = items.filter((model) => !isProtectedDefaultModel(model.id, model.fileName || model.name));
+
+  const preferred =
+    nonDefaultCandidates.find((model) => model.id === currentModelId || model.fileName === currentModelId || model.name === currentModelId) ||
+    nonDefaultCandidates.find((model) => model.id === activeModelId || model.fileName === activeModelId || model.name === activeModelId) ||
+    nonDefaultCandidates[0] ||
+    items.find((model) => model.id === currentModelId || model.fileName === currentModelId || model.name === currentModelId) ||
+    items.find((model) => model.id === activeModelId || model.fileName === activeModelId || model.name === activeModelId) ||
+    items[0] ||
+    buildProtectedDefaultModel({ defaultPath });
+
+  if (!preferred || typeof preferred !== "object") {
+    return buildProtectedDefaultModel({ defaultPath });
+  }
+
+  return {
+    ...preferred,
+    id: preferred.id || DEFAULT_MODEL_ID,
+    fileName: preferred.fileName || DEFAULT_MODEL_FILE,
+    name: preferred.name || preferred.id || DEFAULT_MODEL_ID,
+    type: preferred.type || "local",
+    path: preferred.path || defaultPath,
+  };
+}
+
 function ensureDefaultModelEntry(settings = {}, { defaultPath = `models/${DEFAULT_MODEL_FILE}` } = {}) {
   const protectedDefault = buildProtectedDefaultModel({ defaultPath });
 
@@ -141,33 +176,62 @@ function ensureDefaultModelEntry(settings = {}, { defaultPath = `models/${DEFAUL
       ? nextSettings.model.trim()
       : "";
 
-  const activeModelIsValid =
+  const activeModelId =
     nextSettings.activeModel &&
-    typeof nextSettings.activeModel === "object" &&
-    typeof nextSettings.activeModel.id === "string" &&
-    nextSettings.activeModel.id.trim() &&
-    validModelIds.has(nextSettings.activeModel.id);
+    typeof nextSettings.activeModel === "object"
+      ? String(nextSettings.activeModel.id || nextSettings.activeModel.modelId || nextSettings.activeModel.name || "").trim()
+      : "";
 
-  if (activeModelIsValid) {
-    nextSettings.model = nextSettings.activeModel.id;
-  } else if (currentModelId && validModelIds.has(currentModelId)) {
-    nextSettings.model = currentModelId;
+  const activeModelIsValid =
+    activeModelId &&
+    validModelIds.has(activeModelId);
+
+  const fallbackModel = chooseValidFallbackModel(nextSettings, defaultPath);
+
+  const selectedModelMatch =
+    currentModelId && validModelIds.has(currentModelId)
+      ? nextSettings.availableModels.find((model) => model && model.id === currentModelId)
+      : null;
+
+  const activeModelMatch =
+    activeModelIsValid
+      ? nextSettings.availableModels.find((model) => model && model.id === activeModelId)
+      : null;
+
+  if (selectedModelMatch) {
+    nextSettings.model = selectedModelMatch.id;
+    nextSettings.activeModel = {
+      ...selectedModelMatch,
+      id: selectedModelMatch.id,
+      fileName: selectedModelMatch.fileName || selectedModelMatch.name || DEFAULT_MODEL_FILE,
+      name: selectedModelMatch.name || selectedModelMatch.id || DEFAULT_MODEL_ID,
+      type: selectedModelMatch.type || "local",
+      path: selectedModelMatch.path || defaultPath,
+    };
+  } else if (activeModelMatch) {
+    nextSettings.model = activeModelMatch.id;
+    nextSettings.activeModel = {
+      ...activeModelMatch,
+      id: activeModelMatch.id,
+      fileName: activeModelMatch.fileName || activeModelMatch.name || DEFAULT_MODEL_FILE,
+      name: activeModelMatch.name || activeModelMatch.id || DEFAULT_MODEL_ID,
+      type: activeModelMatch.type || "local",
+      path: activeModelMatch.path || defaultPath,
+    };
+  } else if (fallbackModel && fallbackModel.id && validModelIds.has(fallbackModel.id)) {
+    nextSettings.model = fallbackModel.id;
+    nextSettings.activeModel = {
+      ...fallbackModel,
+      id: fallbackModel.id || DEFAULT_MODEL_ID,
+      fileName: fallbackModel.fileName || DEFAULT_MODEL_FILE,
+      name: fallbackModel.name || fallbackModel.id || DEFAULT_MODEL_ID,
+      type: fallbackModel.type || "local",
+      path: fallbackModel.path || defaultPath,
+    };
   } else if (nextSettings.availableModels.some((model) => model && model.id === DEFAULT_MODEL_ID)) {
     nextSettings.model = DEFAULT_MODEL_ID;
-  }
-
-  if (
-    !nextSettings.activeModel ||
-    typeof nextSettings.activeModel !== "object" ||
-    !validModelIds.has(nextSettings.activeModel.id)
-  ) {
     nextSettings.activeModel = {
-      ...protectedDefault,
-      ...(nextSettings.activeModel && typeof nextSettings.activeModel === "object" ? nextSettings.activeModel : {}),
-      id: DEFAULT_MODEL_ID,
-      fileName: DEFAULT_MODEL_FILE,
-      name: DEFAULT_MODEL_ID,
-      type: "local",
+      ...buildProtectedDefaultModel({ defaultPath }),
       path: defaultPath,
     };
   }
@@ -188,7 +252,7 @@ function ensureDefaultModelEntry(settings = {}, { defaultPath = `models/${DEFAUL
   }
 
   if (!nextSettings.model || !validModelIds.has(nextSettings.model)) {
-    nextSettings.model = DEFAULT_MODEL_ID;
+    nextSettings.model = nextSettings.activeModel?.id || DEFAULT_MODEL_ID;
   }
 
   return nextSettings;

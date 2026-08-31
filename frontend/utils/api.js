@@ -710,6 +710,17 @@ export const modelsAPI = {
     modelType = "local",
     modelConfig = null
   ) {
+    if (hasElectronMethod("activateModel")) {
+      return unwrapResult(
+        await callElectron(
+          "activateModel",
+          modelId,
+          modelType,
+          modelConfig
+        )
+      );
+    }
+
     if (hasElectronMethod("setActiveModel")) {
       return unwrapResult(
         await callElectron(
@@ -851,6 +862,146 @@ export const modelsAPI = {
 
       throw error;
     }
+  },
+
+  async searchHuggingFaceModels(payload) {
+    if (hasElectronMethod("searchHuggingFaceModels")) {
+      return await callElectron(
+        "searchHuggingFaceModels",
+        payload
+      );
+    }
+
+    try {
+      const query = payload?.query || payload?.goal || "qwen gguf";
+      const limit = Math.min(Number(payload?.limit || 12) || 12, 24);
+      const response = await fetch(
+        `https://huggingface.co/api/models?search=${encodeURIComponent(query)}&sort=downloads&direction=-1&limit=${limit}&filter=gguf&expand[]=siblings`
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to fetch Hugging Face recommendations.");
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        data: Array.isArray(data) ? data : [],
+      };
+    } catch (error) {
+      console.error(
+        "Search Hugging Face model error:",
+        error
+      );
+
+      return {
+        success: false,
+        data: [],
+        error: error.message,
+      };
+    }
+  },
+
+  async searchModelCatalog(payload) {
+    if (hasElectronMethod("searchModelCatalog")) {
+      return await callElectron(
+        "searchModelCatalog",
+        payload
+      );
+    }
+
+    try {
+      const query = payload?.query || payload?.goal || "qwen gguf";
+      const limit = Math.min(Number(payload?.limit || 12) || 12, 24);
+      const requests = [
+        fetch(
+          `https://huggingface.co/api/models?search=${encodeURIComponent(query)}&sort=downloads&direction=-1&limit=${limit}&filter=gguf&expand[]=siblings`
+        ).then(async (response) => {
+          if (!response.ok) {
+            throw new Error("Hugging Face fetch failed");
+          }
+          const data = await response.json();
+          return {
+            source: "huggingface",
+            data: Array.isArray(data) ? data : [],
+          };
+        }),
+        fetch(
+          `https://modelscope.cn/api/v1/models?search=${encodeURIComponent(query)}&limit=${limit}&type=llm`
+        ).then(async (response) => {
+          if (!response.ok) {
+            throw new Error("ModelScope fetch failed");
+          }
+          const data = await response.json();
+          const items = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+          return {
+            source: "modelscope",
+            data: items,
+          };
+        }),
+      ];
+
+      const results = await Promise.allSettled(requests);
+      const merged = [];
+
+      for (const result of results) {
+        if (result.status !== "fulfilled") {
+          continue;
+        }
+
+        const source = result.value.source;
+        const items = Array.isArray(result.value.data) ? result.value.data : [];
+
+        for (const item of items) {
+          const id = String(item?.id || item?.model_id || item?.name || "").trim();
+          if (!id) {
+            continue;
+          }
+
+          merged.push({
+            ...item,
+            source,
+            id,
+            name: item?.name || item?.display_name || item?.model_name || id.split("/").pop() || "Unknown model",
+            repoUrl: item?.repoUrl || item?.url || item?.html_url || item?.web_url || item?.model_url || item?.cardData?.repoUrl || "",
+            downloadUrl: item?.downloadUrl || item?.download_url || item?.files?.[0]?.download_url || item?.file_url || item?.url || "",
+            tags: Array.isArray(item?.tags) ? item.tags : Array.isArray(item?.tag) ? item.tag : [],
+            downloads: Number(item?.downloads || item?.download_count || item?.stats?.downloads || 0),
+            likes: Number(item?.likes || item?.star_count || item?.stars || item?.stats?.likes || 0),
+            summary: item?.summary || item?.description || item?.cardData?.description || "",
+            modelId: item?.modelId || item?.model_id || id,
+            recommendedFile: item?.recommendedFile || item?.fileName || item?.model_name || "",
+          });
+        }
+      }
+
+      return {
+        success: true,
+        data: merged.slice(0, limit * 2),
+      };
+    } catch (error) {
+      console.error("Search model catalog error:", error);
+      return {
+        success: false,
+        data: [],
+        error: error.message,
+      };
+    }
+  },
+
+  async downloadHuggingFaceModel(payload) {
+    if (hasElectronMethod("downloadHuggingFaceModel")) {
+      return unwrapResult(
+        await callElectron(
+          "downloadHuggingFaceModel",
+          payload
+        )
+      );
+    }
+
+    throw new Error(
+      "Direct Hugging Face downloads are not supported in the web fallback."
+    );
   },
 
   /**

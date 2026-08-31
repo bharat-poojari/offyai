@@ -50,6 +50,9 @@ const Layout = ({
   const [settingsOpen, setSettingsOpen] =
     useState(false);
 
+  const [settingsInitialTab, setSettingsInitialTab] =
+    useState("general");
+
   const [modelUploadOpen, setModelUploadOpen] =
     useState(false);
 
@@ -507,6 +510,10 @@ const Layout = ({
               onSettingsOpen={() =>
                 setSettingsOpen(true)
               }
+              onChangeModel={() => {
+                setSettingsInitialTab("models");
+                setSettingsOpen(true);
+              }}
               onModelUploadOpen={() =>
                 setModelUploadOpen(true)
               }
@@ -598,6 +605,10 @@ const Layout = ({
               onSettingsOpen={() =>
                 setSettingsOpen(true)
               }
+              onChangeModel={() => {
+                setSettingsInitialTab("models");
+                setSettingsOpen(true);
+              }}
               onModelUploadOpen={() =>
                 setModelUploadOpen(true)
               }
@@ -643,9 +654,11 @@ const Layout = ({
 
       <SettingsModal
         isOpen={settingsOpen}
-        onClose={() =>
-          setSettingsOpen(false)
-        }
+        initialTab={settingsInitialTab}
+        onClose={() => {
+          setSettingsOpen(false);
+          setSettingsInitialTab("general");
+        }}
       />
 
       {/* ------------------------------------------------------------------ */}
@@ -659,6 +672,11 @@ const Layout = ({
         onClose={() =>
           setModelUploadOpen(false)
         }
+        onOpenSettings={(tab = "models") => {
+          setSettingsInitialTab(tab);
+          setModelUploadOpen(false);
+          setSettingsOpen(true);
+        }}
         onUploadSuccess={() => {
           setModelUploadOpen(false);
         }}

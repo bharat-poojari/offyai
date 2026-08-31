@@ -35,6 +35,7 @@ const ChatInterface = ({
   error = null,
   sendMessage = async () => false,
   stopGeneration = () => {},
+  currentModel = "default",
 }) => {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState([]);
@@ -154,7 +155,7 @@ const ChatInterface = ({
         const result =
           await sendMessage(
             currentInput,
-            "default",
+            currentModel,
             currentAttachments
           );
 
@@ -186,6 +187,7 @@ const ChatInterface = ({
       attachments,
       isLoading,
       currentChat,
+      currentModel,
       sendMessage,
     ]
   );

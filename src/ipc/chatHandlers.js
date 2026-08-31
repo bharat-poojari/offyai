@@ -241,66 +241,33 @@ class SessionManager {
   constructor() {
     this.sessions = new Map();
     this.sessionsFile = null;
-    this._loaded = false;
+    this._loaded = true;
   }
 
   _getSessionsFile() {
-    if (this.sessionsFile) {
-      return this.sessionsFile;
-    }
-
-    try {
-      this.sessionsFile = path.join(
-        app.getPath("userData"),
-        "chat-sessions.json"
-      );
-    } catch {
-      // app may not be ready yet in some contexts; fall back to cwd.
-      this.sessionsFile = path.join(process.cwd(), "chat-sessions.json");
-    }
-
-    return this.sessionsFile;
+    return null;
   }
 
   _ensureLoaded() {
-    if (this._loaded) {
-      return;
-    }
-
+    // Chat history is intentionally local-only in browser storage.
+    // We do not read or restore from Electron disk state because that
+    // reintroduces deleted sessions and violates the local-only requirement.
     this._loaded = true;
-
-    const file = this._getSessionsFile();
-
-    try {
-      if (fs.existsSync(file)) {
-        const raw = JSON.parse(fs.readFileSync(file, "utf8"));
-
-        if (raw && typeof raw === "object") {
-          for (const [id, session] of Object.entries(raw)) {
-            this.sessions.set(id, session);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Failed to load chat sessions:", error);
-    }
   }
 
   _persist() {
-    const file = this._getSessionsFile();
+    // Intentionally disabled: chat sessions are not stored on disk in Electron.
+    return;
+  }
 
+  _clearPersistedLegacyFile() {
     try {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-
-      const serialized = {};
-
-      for (const [id, session] of this.sessions) {
-        serialized[id] = session;
+      const legacyFile = path.join(app.getPath("userData"), "chat-sessions.json");
+      if (fs.existsSync(legacyFile)) {
+        fs.unlinkSync(legacyFile);
       }
-
-      fs.writeFileSync(file, JSON.stringify(serialized, null, 2), "utf8");
-    } catch (error) {
-      console.error("Failed to persist chat sessions:", error);
+    } catch {
+      // Ignore legacy cleanup failures.
     }
   }
 
@@ -358,18 +325,21 @@ class SessionManager {
   async deleteSession(sessionId) {
     this._ensureLoaded();
     this.sessions.delete(sessionId);
+    this._clearPersistedLegacyFile();
     this._persist();
   }
 
   async clearHistory() {
     this._ensureLoaded();
     this.sessions.clear();
+    this._clearPersistedLegacyFile();
     this._persist();
   }
 
   clear() {
     this._ensureLoaded();
     this.sessions.clear();
+    this._clearPersistedLegacyFile();
     this._persist();
   }
 }

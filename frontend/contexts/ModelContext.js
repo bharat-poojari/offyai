@@ -130,6 +130,16 @@ const isBuiltInDefaultModel = (model) => {
   );
 };
 
+const getPreferredFallbackModel = (models) => {
+  if (!Array.isArray(models) || models.length === 0) {
+    return null;
+  }
+
+  const nonDefaultModel = models.find((model) => !isBuiltInDefaultModel(model));
+
+  return nonDefaultModel || models[0] || null;
+};
+
 /* -------------------------------------------------------------------------- */
 /* Provider                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -224,39 +234,9 @@ export const ModelProvider = ({
 
         if (settings) {
           /*
-           * Newer settings may already contain the complete model object.
-           */
-          if (
-            settings.activeModel &&
-            typeof settings.activeModel ===
-              "object"
-          ) {
-            const activeId =
-              getModelId(
-                settings.activeModel
-              );
-
-            /*
-             * Prefer the freshly loaded model object when possible.
-             */
-            const matchingModel =
-              models.find(
-                (model) =>
-                  getModelId(model) ===
-                  activeId
-              );
-
-            if (matchingModel) {
-              return matchingModel;
-            }
-
-            return null;
-          }
-
-          /*
-           * Otherwise settings may only contain:
-           *
-           *   model: "model-id"
+           * Prefer the user-selected model ID when it is valid and present.
+           * A stale activeModel payload should never override the real saved
+           * model choice.
            */
           if (settings.model) {
             const modelId =
@@ -274,22 +254,38 @@ export const ModelProvider = ({
             if (matchingModel) {
               return matchingModel;
             }
+          }
 
-            /*
-             * The selected model is no longer present in the model directory.
-             * Clear the stale selection instead of displaying a phantom name.
-             */
-            return null;
+          if (
+            settings.activeModel &&
+            typeof settings.activeModel ===
+              "object"
+          ) {
+            const activeId =
+              getModelId(
+                settings.activeModel
+              );
+
+            const matchingModel =
+              models.find(
+                (model) =>
+                  getModelId(model) ===
+                  activeId
+              );
+
+            if (matchingModel) {
+              return matchingModel;
+            }
           }
         }
 
         /*
-         * If there is no persisted selection, use the
-         * first available model.
+         * If the saved selection is stale or missing, prefer the first valid
+         * local model rather than forcing the built-in default. This keeps the
+         * upload/import/delete/switch flow consistent after a model change.
          */
         if (models.length > 0) {
-          const defaultModel = models.find((model) => isBuiltInDefaultModel(model));
-          return defaultModel || models[0];
+          return getPreferredFallbackModel(models);
         }
 
         return null;
@@ -305,6 +301,7 @@ export const ModelProvider = ({
     useCallback(
       async ({
         silent = false,
+        force = false,
       } = {}) => {
         const now = Date.now();
 
@@ -319,7 +316,7 @@ export const ModelProvider = ({
          * Debounce rapid refreshes to prevent expensive model scans from
          * stacking up when the app is switching models or re-rendering.
          */
-        if (!silent && now - lastLoadTimestampRef.current < 750) {
+        if (!force && !silent && now - lastLoadTimestampRef.current < 750) {
           return;
         }
 
@@ -357,8 +354,10 @@ export const ModelProvider = ({
           const models =
             extractModels(response);
 
-          setAvailableModels(
-            models
+          setAvailableModels((previousModels) =>
+            models.length > 0 || previousModels.length === 0
+              ? models
+              : previousModels
           );
 
           lastLoadTimestampRef.current = Date.now();
@@ -473,63 +472,20 @@ export const ModelProvider = ({
           if (
             !mountedRef.current
           ) {
-            return;
+            return model;
           }
 
           /*
-           * Update UI immediately.
+           * Update UI immediately and refresh the authoritative model list so
+           * every component sees the new active selection consistently.
            */
           setCurrentModel(
             model
           );
 
-          /*
-           * Persist the selection if Electron exposes settings.
-           *
-           * This is optional. Failure here should NOT invalidate
-           * the model activation itself.
-           */
-          if (
-            isElectron() &&
-            typeof window.electronAPI
-              ?.saveSettings ===
-              "function"
-          ) {
-            try {
-              let currentSettings = {};
-
-              if (
-                typeof window
-                  .electronAPI
-                  ?.getSettings ===
-                "function"
-              ) {
-                currentSettings =
-                  (await window.electronAPI.getSettings()) ||
-                  {};
-              }
-
-              await window.electronAPI.saveSettings(
-                {
-                  ...currentSettings,
-                  activeModel: model,
-                  model: modelId,
-                  modelType:
-                    model.type ||
-                    "local",
-                }
-              );
-            } catch (settingsError) {
-              /*
-               * Settings persistence failure should not
-               * make model activation fail.
-               */
-              console.warn(
-                "Failed to persist active model settings:",
-                settingsError
-              );
-            }
-          }
+          await loadModels({
+            silent: false,
+          });
 
           return model;
         } catch (error) {
@@ -550,7 +506,7 @@ export const ModelProvider = ({
           throw error;
         }
       },
-      []
+      [loadModels]
     );
 
   /* ---------------------------------------------------------------------- */
@@ -567,6 +523,7 @@ export const ModelProvider = ({
          */
         await loadModels({
           silent: false,
+          force: true,
         });
       },
       [loadModels]

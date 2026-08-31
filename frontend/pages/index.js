@@ -551,6 +551,9 @@ const Home = () => {
                 isLoading
               }
               error={error}
+              currentModel={
+                currentModel
+              }
               sendMessage={async (
                 text,
                 model,

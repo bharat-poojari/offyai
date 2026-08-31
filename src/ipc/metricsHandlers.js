@@ -338,6 +338,35 @@ async function getCpuTemperature() {
   }
 }
 
+async function getHardwareProfile() {
+  try {
+    const [cpu, memory, os] = await Promise.all([
+      si.cpu(),
+      si.mem(),
+      si.osInfo(),
+    ]);
+
+    return {
+      cpu:
+        typeof cpu?.brand === "string" && cpu.brand.trim()
+          ? cpu.brand.trim()
+          : null,
+      memoryTotalBytes:
+        Number.isFinite(Number(memory?.total)) && Number(memory.total) > 0
+          ? Number(memory.total)
+          : null,
+      os:
+        [os?.distro, os?.release].filter(Boolean).join(" ") || null,
+    };
+  } catch (error) {
+    return {
+      cpu: null,
+      memoryTotalBytes: null,
+      os: null,
+    };
+  }
+}
+
 /* ============================================================================
  * REAL-TIME METRICS
  * ========================================================================== */
@@ -349,12 +378,14 @@ async function collectRealtimeMetrics() {
     gpu,
     temperature,
     modelInfo,
+    hardware,
   ] = await Promise.all([
     getCpuUsage(),
     getMemoryUsage(),
     getGpuMetrics(),
     getCpuTemperature(),
     getModelInfo(),
+    getHardwareProfile(),
   ]);
 
   return {
@@ -402,6 +433,7 @@ async function collectRealtimeMetrics() {
 
       uptime:
         process.uptime(),
+      hardware,
     },
   };
 }

@@ -26,7 +26,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useModel } from "../../contexts/ModelContext";
 import { useProfile } from "../../contexts/ProfileContext";
 import { resolveImagePath, fileToDataURL } from "../../utils/imageResolver";
-
+import { modelsAPI } from "../../utils/api";
 
 /*
 |--------------------------------------------------------------------------
@@ -56,8 +56,8 @@ import { resolveImagePath, fileToDataURL } from "../../utils/imageResolver";
 */
 
 
-const SettingsModal = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState("general");
+const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   /*
    * null means settings have not been loaded yet.
@@ -95,7 +95,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
    *
    * The settings UI itself still gets the model data from settings.json.
    */
-  const { setActiveModel } = useModel();
+  const { setActiveModel, refreshModels } = useModel();
 
 
   /*
@@ -166,6 +166,15 @@ const SettingsModal = ({ isOpen, onClose }) => {
       const loadedSettings =
         await window.electronAPI.getSettings();
 
+      const liveModels = await modelsAPI.list();
+      const scannedModels = Array.isArray(liveModels)
+        ? liveModels
+        : Array.isArray(liveModels?.data)
+          ? liveModels.data
+          : Array.isArray(liveModels?.models)
+            ? liveModels.models
+            : [];
+
       if (
         !loadedSettings ||
         typeof loadedSettings !== "object" ||
@@ -185,6 +194,12 @@ const SettingsModal = ({ isOpen, onClose }) => {
        */
       setSettings({
         ...loadedSettings,
+        availableModels:
+          scannedModels.length > 0
+            ? scannedModels.filter((model) => model?.type === "local")
+            : Array.isArray(loadedSettings.availableModels)
+              ? loadedSettings.availableModels
+              : [],
         ui:
           loadedSettings.ui &&
           typeof loadedSettings.ui === "object" &&
@@ -247,6 +262,8 @@ const SettingsModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    setActiveTab(initialTab || "general");
+
     const loadTimer = window.setTimeout(() => {
       loadSettings();
     }, 0);
@@ -254,7 +271,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
     return () => {
       window.clearTimeout(loadTimer);
     };
-  }, [isOpen]);
+  }, [isOpen, initialTab]);
 
 
   /*
@@ -576,7 +593,17 @@ const SettingsModal = ({ isOpen, onClose }) => {
         );
       }
 
-      setSettings(verifiedSettings);
+      setSettings({
+        ...verifiedSettings,
+        availableModels:
+          Array.isArray(verifiedSettings.availableModels)
+            ? verifiedSettings.availableModels
+            : [],
+      });
+
+      if (typeof refreshModels === "function") {
+        await refreshModels();
+      }
 
       if (verifiedSettings.theme) {
         setTheme(verifiedSettings.theme);
@@ -683,7 +710,13 @@ const SettingsModal = ({ isOpen, onClose }) => {
         );
       }
 
-      setSettings(verifiedSettings);
+      setSettings({
+        ...verifiedSettings,
+        availableModels:
+          Array.isArray(verifiedSettings.availableModels)
+            ? verifiedSettings.availableModels
+            : [],
+      });
 
       if (verifiedSettings.theme) {
         setTheme(verifiedSettings.theme);
@@ -772,22 +805,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
        * This is application runtime state.
        * The persisted source remains settings.json.
        */
-      if (
-        typeof setActiveModel === "function" &&
-        verifiedSettings.activeModel
-      ) {
-        try {
-          await setActiveModel(
-            verifiedSettings.activeModel
-          );
-        } catch (contextError) {
-          console.warn(
-            "Model context update failed:",
-            contextError
-          );
-        }
-      }
-
       showMessage(
         "success",
         `Active model changed to ${
@@ -830,15 +847,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
   |   ↓
   | Electron main process
   |   ↓
-  | Delete model file
-  |   ↓
-  | Update settings.json
-  |   ↓
-  | Return result
-  |   ↓
-  | getSettings()
-  |   ↓
-  | React
+  | Delete model file and refresh settings
   |
   |--------------------------------------------------------------------------
   */
@@ -1007,6 +1016,10 @@ const SettingsModal = ({ isOpen, onClose }) => {
 
       setSettings(verifiedSettings);
 
+      if (typeof refreshModels === "function") {
+        await refreshModels();
+      }
+
       /*
        * Synchronize theme if necessary.
        */
@@ -1018,22 +1031,6 @@ const SettingsModal = ({ isOpen, onClose }) => {
        * If the backend returned an active model,
        * synchronize ModelContext.
        */
-      if (
-        typeof setActiveModel === "function" &&
-        verifiedSettings.activeModel
-      ) {
-        try {
-          await setActiveModel(
-            verifiedSettings.activeModel
-          );
-        } catch (contextError) {
-          console.warn(
-            "Model context update after deletion failed:",
-            contextError
-          );
-        }
-      }
-
       showMessage(
         "success",
         `"${modelName}" was deleted successfully.`
@@ -1708,7 +1705,7 @@ const SettingsModal = ({ isOpen, onClose }) => {
     return (
       <div className="space-y-6">
 
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
+        <div className="mx-auto w-full max-w-5xl rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
 
           <div className="flex items-center justify-between mb-6">
 

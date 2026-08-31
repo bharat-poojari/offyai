@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Settings, Upload, Cpu } from "lucide-react";
+import { Settings, Upload, Cpu, RefreshCw } from "lucide-react";
 import { useModel } from "../../contexts/ModelContext";
 
 const Header = ({
@@ -7,6 +7,7 @@ const Header = ({
   onToggleSidebar,
   onSettingsOpen,
   onModelUploadOpen,
+  onChangeModel,
 }) => {
   const [appIcon, setAppIcon] = useState(null);
   const { currentModel, isLoading } = useModel();
@@ -274,6 +275,18 @@ const Header = ({
             <span className="hidden sm:inline">
               Upload
             </span>
+          </button>
+
+          {/* Settings */}
+          <button
+            type="button"
+            onClick={onChangeModel || onSettingsOpen}
+            aria-label="Change model"
+            title="Change model"
+            className="flex items-center gap-1.5 rounded-lg border border-blue-200/70 bg-blue-50/70 px-2.5 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100 dark:border-blue-900/60 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Change model</span>
           </button>
 
           {/* Settings */}

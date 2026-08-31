@@ -194,6 +194,57 @@ const electronAPI = {
       filePath
     ),
 
+  searchHuggingFaceModels: (
+    payload
+  ) =>
+    invoke(
+      "models:searchHuggingFace",
+      payload
+    ),
+
+  searchModelCatalog: (
+    payload
+  ) =>
+    invoke(
+      "models:searchModelCatalog",
+      payload
+    ),
+
+  getHuggingFaceFileMetadata: (
+    payload
+  ) =>
+    invoke(
+      "models:getHuggingFaceFileMetadata",
+      payload
+    ),
+
+  downloadHuggingFaceModel: (
+    payload
+  ) =>
+    invoke(
+      "models:downloadHuggingFace",
+      payload
+    ),
+
+  onModelDownloadProgress: (callback) => {
+    if (typeof callback !== "function") {
+      return () => {};
+    }
+
+    const listener = (_event, progress) => callback(progress);
+    ipcRenderer.on("models:download-progress", listener);
+
+    return () => {
+      ipcRenderer.removeListener("models:download-progress", listener);
+    };
+  },
+
+  pauseModelDownload: () =>
+    invoke("models:pauseDownload"),
+
+  cancelModelDownload: () =>
+    invoke("models:cancelDownload"),
+
   /*
    * Activate model.
    */

@@ -45,6 +45,7 @@ const Sidebar = ({
   onTogglePinChat,
   onSettingsOpen,
   onModelUploadOpen,
+  onChangeModel,
 }) => {
   /* ====================================================================== */
   /* STATE                                                                  */
@@ -2106,6 +2107,19 @@ const Sidebar = ({
               <span className="min-w-0 flex-1 truncate text-left">
                 Upload Model
               </span>
+            )}
+          </button>
+
+          {/* Settings */}
+          <button
+            type="button"
+            onClick={onChangeModel || onSettingsOpen}
+            title={!isExpanded ? "Change model" : undefined}
+            className={`group flex min-w-0 w-full items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 text-sm text-blue-600 transition-all duration-200 hover:bg-blue-50 hover:text-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300 ${!isExpanded ? "justify-center px-2" : ""} focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+          >
+            <Cpu className="h-3.5 w-3.5 shrink-0" />
+            {isExpanded && (
+              <span className="min-w-0 flex-1 truncate text-left">Change Model</span>
             )}
           </button>
 

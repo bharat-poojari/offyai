@@ -7,17 +7,24 @@
     "fileName": "offyai.gguf",
     "name": "offyai",
     "type": "local",
-    "path": "models/offyai.gguf"
+    "path": "models/offyai.gguf",
+    "size": "100.57 MB",
+    "sizeBytes": 105454144,
+    "format": "gguf",
+    "uploadedAt": "2026-08-29T13:04:51.200Z"
   },
   "remoteModels": [],
   "availableModels": [
     {
       "id": "offyai",
       "fileName": "offyai.gguf",
-      "size": "0 B",
-      "sizeBytes": 0,
-      "uploadedAt": "2026-08-29T08:26:44.247Z",
-      "type": "local"
+      "name": "offyai",
+      "type": "local",
+      "path": "models/offyai.gguf",
+      "size": "100.57 MB",
+      "sizeBytes": 105454144,
+      "format": "gguf",
+      "uploadedAt": "2026-08-29T13:04:51.200Z"
     }
   ],
   "theme": "system",
@@ -62,7 +69,7 @@
     "responseDelay": 0
   },
   "ui": {
-    "fontSize": 15,
+    "fontSize": 13,
     "compactMode": false,
     "showTimestamps": true,
     "smoothScrolling": true,
@@ -79,7 +86,7 @@
     "highlightColor": "#3b82f6",
     "backgroundType": "solid",
     "customBackground": "",
-    "sidebarWidth": 360,
+    "sidebarWidth": 230,
     "panelOpacity": 95,
     "hoverEffects": true,
     "focusRing": true,
