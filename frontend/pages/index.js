@@ -195,7 +195,7 @@ const Home = () => {
     history,
     isConnected,
     refresh,
-  } = useMetrics();
+  } = useMetrics(null, currentView === "metrics");
 
   /*
    * Application status is maintained in ONE place only.
@@ -337,7 +337,7 @@ const Home = () => {
             "Unable to determine application status.",
         });
       }
-    }, []);
+    }, [isElectron]);
 
   useEffect(() => {
     let mounted = true;
@@ -393,11 +393,7 @@ const Home = () => {
     setCurrentModelName(
       formatModelName(modelData)
     );
-  }, [
-    metrics?.model,
-    metrics?.modelName,
-    settings?.model,
-  ]);
+  }, [metrics, settings?.model]);
 
   /* ---------------------------------------------------------------------- */
   /* Chat callbacks                                                          */

@@ -143,7 +143,8 @@ const normalizeMetrics = (
  * ========================================================================== */
 
 export const useMetrics = (
-  sessionId = null
+  sessionId = null,
+  enabled = true
 ) => {
   const [
     metrics,
@@ -223,6 +224,10 @@ export const useMetrics = (
       async ({
         manual = false,
       } = {}) => {
+        if (!enabled) {
+          return false;
+        }
+
         if (
           requestInProgressRef.current
         ) {
@@ -356,7 +361,7 @@ export const useMetrics = (
           }
         }
       },
-      [sessionId]
+      [enabled, sessionId]
     );
 
   /* ==========================================================================
@@ -366,6 +371,7 @@ export const useMetrics = (
   const startPolling =
     useCallback(() => {
       if (
+        !enabled ||
         pollingRef.current ||
         !isPageVisible()
       ) {
@@ -401,7 +407,7 @@ export const useMetrics = (
 
           void fetchMetrics();
         }, interval);
-    }, [fetchMetrics, isPageVisible, stopPolling]);
+    }, [enabled, fetchMetrics, isPageVisible, stopPolling]);
 
   /* ==========================================================================
    * INITIALIZATION
@@ -410,6 +416,16 @@ export const useMetrics = (
   useEffect(() => {
     mountedRef.current =
       true;
+
+    if (!enabled) {
+      stopPolling();
+      setLoading(false);
+      return () => {
+        mountedRef.current = false;
+        stopPolling();
+        requestInProgressRef.current = false;
+      };
+    }
 
     if (!isElectron) {
       setLoading(false);
@@ -480,6 +496,7 @@ export const useMetrics = (
     };
   }, [
     fetchMetrics,
+    enabled,
     isPageVisible,
     startPolling,
     stopPolling,

@@ -1,3 +1,5 @@
+/* Settings photos may be local Electron paths or data URLs. */
+/* eslint-disable @next/next/no-img-element */
 import React, { useEffect, useState } from "react";
 import {
   X,
@@ -14,6 +16,7 @@ import {
   MessageSquare,
   Moon,
   Sun,
+  Upload,
   FolderOpen,
   RotateCcw,
   Trash2,
@@ -55,8 +58,228 @@ import { modelsAPI } from "../../utils/api";
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| Presentational helpers
+|--------------------------------------------------------------------------
+|
+| Purely visual — no state, no side effects. Every prop they take maps
+| 1:1 to the same values/handlers the original checkboxes used, so
+| swapping a <input type="checkbox"> for <Toggle> changes nothing about
+| how settings are read or written.
+|--------------------------------------------------------------------------
+*/
 
-const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
+const Toggle = ({ checked, onChange, disabled, title, description }) => (
+  <div
+    className={`
+      flex items-start justify-between gap-4
+      rounded-xl border p-4
+      transition-colors
+      ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+      ${
+        checked
+          ? "border-[var(--border)] bg-[var(--accent-subtle)]"
+          : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border)]"
+      }
+    `}
+  >
+    <div className="min-w-0 flex-1">
+      <div className="block text-sm font-medium text-[var(--text-primary)]">
+        {title}
+      </div>
+      {description && (
+        <div className="mt-0.5 block text-xs leading-relaxed text-[var(--text-secondary)]">
+          {description}
+        </div>
+      )}
+    </div>
+
+    <button
+      type="button"
+      role="switch"
+      aria-label={title}
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => {
+        if (typeof onChange === "function") {
+          onChange({ target: { checked: !checked } });
+        }
+      }}
+      className={`
+        relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-200
+        ${checked ? "border-[var(--primary)] bg-[var(--primary)]" : "border-[var(--border)] bg-[var(--surface-raised)]"}
+        ${disabled ? "cursor-not-allowed" : "cursor-pointer"}
+      `}
+    >
+      <span
+        className={`
+          inline-block h-5 w-5 rounded-full bg-[var(--surface)] shadow-sm transition-transform duration-200
+          ${checked ? "translate-x-5" : "translate-x-0.5"}
+        `}
+      />
+    </button>
+  </div>
+);
+
+const FieldLabel = ({ children, hint }) => (
+  <div className="mb-2 flex items-baseline justify-between gap-2">
+    <label className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+      {children}
+    </label>
+    {hint !== undefined && (
+      <span className="font-mono text-xs text-[var(--primary)]">
+        {hint}
+      </span>
+    )}
+  </div>
+);
+
+const Panel = ({ title, description, children, className = "" }) => (
+  <section
+    className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 ${className}`}
+  >
+    {(title || description) && (
+      <div className="mb-5">
+        {title && (
+          <h3 className="text-base font-semibold text-[var(--text-primary)]">
+            {title}
+          </h3>
+        )}
+        {description && (
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            {description}
+          </p>
+        )}
+      </div>
+    )}
+    {children}
+  </section>
+);
+
+const inputClass = `
+  w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--text-primary)]
+  placeholder:text-[var(--text-secondary)] transition-colors
+  focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30
+  disabled:cursor-not-allowed disabled:opacity-60
+`;
+
+const SaveButtons = ({
+  label = "Save Settings",
+  showRestart = false,
+  saving,
+  deletingModelId,
+  onResetDefaults,
+  onClose,
+  onApplyAndRestart,
+  onSave,
+}) => (
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <button
+      type="button"
+      onClick={onResetDefaults}
+      disabled={saving || deletingModelId !== null}
+      className="inline-flex items-center gap-2 rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50 disabled:opacity-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30"
+    >
+      <RotateCcw className="h-4 w-4" />
+      Restore Defaults
+    </button>
+
+    <div className="flex flex-wrap items-center gap-3">
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={saving || deletingModelId !== null}
+        className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-50 dark:text-slate-300 dark:hover:bg-slate-800"
+      >
+        Cancel
+      </button>
+
+      {showRestart && (
+        <button
+          type="button"
+          onClick={onApplyAndRestart}
+          disabled={saving || deletingModelId !== null}
+          className="inline-flex items-center gap-2 rounded-lg border border-emerald-600 px-4 py-2 text-sm font-medium text-emerald-700 transition-colors hover:bg-emerald-50 disabled:opacity-50 disabled:border-slate-300 disabled:text-slate-400 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+        >
+          <RotateCcw className="h-4 w-4" />
+          {saving ? "Applying..." : "Apply & Restart"}
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saving || deletingModelId !== null}
+        className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-500 disabled:bg-slate-400"
+      >
+        {saving ? (
+          <RefreshCw className="h-4 w-4 animate-spin" />
+        ) : (
+          <Save className="h-4 w-4" />
+        )}
+        {saving ? "Saving..." : label}
+      </button>
+    </div>
+  </div>
+);
+
+const rangeClass = "w-full cursor-pointer accent-[var(--primary)]";
+
+/*
+|--------------------------------------------------------------------------
+| Static UI metadata (labels only — not part of settings.json)
+|--------------------------------------------------------------------------
+*/
+
+const TAB_META = {
+  general: {
+    label: "General",
+    icon: SettingsIcon,
+    blurb: "Connection, active model, and theme."
+  },
+  performance: {
+    label: "Performance",
+    icon: Zap,
+    blurb: "Hardware usage and inference throughput."
+  },
+  models: {
+    label: "Models",
+    icon: Cpu,
+    blurb: "Installed local models and storage."
+  },
+  profile: {
+    label: "Profile",
+    icon: User,
+    blurb: "How you and the assistant are identified."
+  },
+  theme: {
+    label: "Appearance",
+    icon: Palette,
+    blurb: "Light, dark, or system appearance."
+  },
+  ui: {
+    label: "Interface",
+    icon: Layout,
+    blurb: "Layout density and text size."
+  },
+  chat: {
+    label: "Chat",
+    icon: MessageSquare,
+    blurb: "Generation parameters and system prompt."
+  }
+};
+
+const FOOTER_CONFIG = {
+  general: { label: "Save Settings", showRestart: false },
+  performance: { label: "Save Performance Settings", showRestart: true },
+  profile: { label: "Save Profile Settings", showRestart: false },
+  theme: { label: "Save Appearance", showRestart: false },
+  ui: { label: "Save Interface Settings", showRestart: false },
+  chat: { label: "Save Chat Settings", showRestart: true }
+};
+
+const SettingsModal = ({ isOpen, onClose, onImportModel, initialTab = "general" }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
 
   /*
@@ -271,6 +494,8 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
     return () => {
       window.clearTimeout(loadTimer);
     };
+  // loadSettings is intentionally invoked only when the modal opens.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialTab]);
 
 
@@ -1096,100 +1321,6 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   |--------------------------------------------------------------------------
   */
 
-  const SaveButtons = ({
-    label = "Save Settings",
-    showRestart = false
-  }) => (
-    <div className="flex flex-wrap gap-3 pt-4">
-
-      <button
-        type="button"
-        onClick={handleResetDefaults}
-        disabled={saving || deletingModelId !== null}
-        className="
-          px-4 py-2
-          border border-amber-300 dark:border-amber-700
-          text-amber-700 dark:text-amber-300
-          hover:bg-amber-50 dark:hover:bg-amber-950/30
-          disabled:opacity-50
-          rounded-lg
-          transition-colors
-          flex items-center gap-2
-        "
-      >
-        <RotateCcw className="w-4 h-4" />
-        Restore Defaults
-      </button>
-
-      <button
-        type="button"
-        onClick={onClose}
-        disabled={saving || deletingModelId !== null}
-        className="
-          px-4 py-2
-          text-gray-700 dark:text-gray-300
-          bg-gray-100 dark:bg-gray-600
-          hover:bg-gray-200 dark:hover:bg-gray-500
-          disabled:opacity-50
-          rounded-lg
-          transition-colors
-        "
-      >
-        Cancel
-      </button>
-
-
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={saving || deletingModelId !== null}
-        className="
-          px-4 py-2
-          bg-blue-600 hover:bg-blue-700
-          disabled:bg-gray-400
-          text-white
-          rounded-lg
-          transition-colors
-          flex items-center gap-2
-        "
-      >
-        {saving ? (
-          <RefreshCw className="w-4 h-4 animate-spin" />
-        ) : (
-          <Save className="w-4 h-4" />
-        )}
-
-        {saving ? "Saving..." : label}
-      </button>
-
-
-      {showRestart && (
-        <button
-          type="button"
-          onClick={handleApplyAndRestart}
-          disabled={saving || deletingModelId !== null}
-          className="
-            px-4 py-2
-            bg-emerald-600 hover:bg-emerald-500
-            disabled:bg-gray-400
-            text-white
-            rounded-lg
-            transition-colors
-            flex items-center gap-2
-          "
-        >
-          <RotateCcw className="w-4 h-4" />
-
-          {saving
-            ? "Applying..."
-            : "Apply & Restart"}
-        </button>
-      )}
-
-    </div>
-  );
-
-
   /*
   |--------------------------------------------------------------------------
   | General
@@ -1197,249 +1328,127 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   */
 
   const renderGeneralSettings = () => (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
 
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-        <h3 className="text-lg font-semibold tracking-tight mb-4">
-          Application Configuration
-        </h3>
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Panel
+        title="Application Configuration"
+        description="Connection details used to reach the local inference server."
+        className="xl:col-span-2"
+      >
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
           {/* API Key */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              API Key
-            </label>
-
+            <FieldLabel>API Key</FieldLabel>
             <div className="relative">
-
               <input
-                type={
-                  showApiKey
-                    ? "text"
-                    : "password"
-                }
+                type={showApiKey ? "text" : "password"}
                 value={settings.apiKey ?? ""}
                 onChange={(event) =>
-                  updateSetting(
-                    "apiKey",
-                    event.target.value
-                  )
+                  updateSetting("apiKey", event.target.value)
                 }
-                className="
-                  w-full
-                  px-3 py-2 pr-10
-                  border border-gray-300 dark:border-gray-600
-                  rounded-lg
-                  focus:outline-none
-                  focus:ring-2
-                  focus:ring-blue-500
-                  bg-white dark:bg-gray-700
-                  text-gray-900 dark:text-white
-                "
+                className={`${inputClass} pr-10`}
               />
-
-
               <button
                 type="button"
-                onClick={() =>
-                  setShowApiKey(
-                    (value) => !value
-                  )
-                }
-                className="
-                  absolute
-                  right-3
-                  top-1/2
-                  -translate-y-1/2
-                  text-gray-500
-                "
+                onClick={() => setShowApiKey((value) => !value)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 {showApiKey ? (
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
-
             </div>
-
           </div>
 
-
           {/* Server URL */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Server URL
-            </label>
-
+            <FieldLabel>Server URL</FieldLabel>
             <input
               type="url"
               value={settings.serverUrl ?? ""}
               onChange={(event) =>
-                updateSetting(
-                  "serverUrl",
-                  event.target.value
-                )
+                updateSetting("serverUrl", event.target.value)
               }
               required
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                focus:outline-none
-                focus:ring-2
-                focus:ring-blue-500
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             />
-
           </div>
 
-
           {/* Model ID */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Model
-            </label>
-
+            <FieldLabel>Model</FieldLabel>
             <input
               type="text"
               value={settings.model ?? ""}
               readOnly
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-gray-100 dark:bg-gray-900
-                text-gray-700 dark:text-gray-300
-              "
+              className={`${inputClass} cursor-not-allowed bg-[var(--surface-raised)] font-mono text-xs`}
             />
-
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1.5 text-xs text-[var(--text-secondary)]">
               Select the active model from the Models tab.
             </p>
-
           </div>
 
-
           {/* Theme */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Theme
-            </label>
-
+            <FieldLabel>Theme</FieldLabel>
             <select
               value={settings.theme ?? "dark"}
-              onChange={(event) =>
-                handleThemeChange(
-                  event.target.value
-                )
-              }
+              onChange={(event) => handleThemeChange(event.target.value)}
               disabled={saving || deletingModelId !== null}
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                focus:outline-none
-                focus:ring-2
-                focus:ring-blue-500
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             >
-
-              <option value="light">
-                Light
-              </option>
-
-              <option value="dark">
-                Dark
-              </option>
-
-              <option value="system">
-                System
-              </option>
-
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+              <option value="system">System</option>
             </select>
-
           </div>
 
         </div>
-
-      </div>
-
+      </Panel>
 
       {/* Active model */}
-
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-        <h3 className="text-lg font-semibold tracking-tight mb-4">
-          Active Model
-        </h3>
-
+      <Panel title="Active Model">
         {settings.activeModel ? (
-
-          <div className="
-            rounded-lg
-            border border-gray-200 dark:border-gray-700
-            p-4
-          ">
-
-            <div className="font-medium">
-              {settings.activeModel.name ||
-                settings.activeModel.id}
+          <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-4 dark:border-teal-800/60 dark:bg-teal-950/20">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-teal-500" />
+              <span className="truncate font-medium text-[var(--text-primary)]">
+                {settings.activeModel.name || settings.activeModel.id}
+              </span>
             </div>
 
-            <div className="text-sm text-gray-500 mt-1">
-              ID: {settings.activeModel.id}
-            </div>
-
-            {settings.activeModel.fileName && (
-              <div className="text-sm text-gray-500">
-                File: {settings.activeModel.fileName}
+            <dl className="mt-3 space-y-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex gap-2">
+                <dt className="shrink-0 font-semibold">ID</dt>
+                <dd className="truncate font-mono">{settings.activeModel.id}</dd>
               </div>
-            )}
-
-            {settings.activeModel.path && (
-              <div className="text-sm text-gray-500 break-all">
-                Path: {settings.activeModel.path}
+              {settings.activeModel.fileName && (
+                <div className="flex gap-2">
+                  <dt className="shrink-0 font-semibold">File</dt>
+                  <dd className="truncate font-mono">{settings.activeModel.fileName}</dd>
+                </div>
+              )}
+              {settings.activeModel.path && (
+                <div className="flex gap-2">
+                  <dt className="shrink-0 font-semibold">Path</dt>
+                  <dd className="break-all font-mono">{settings.activeModel.path}</dd>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <dt className="shrink-0 font-semibold">Type</dt>
+                <dd>{settings.activeModel.type}</dd>
               </div>
-            )}
-
-            <div className="text-sm text-gray-500">
-              Type: {settings.activeModel.type}
-            </div>
-
+            </dl>
           </div>
-
         ) : (
-
-          <div className="text-gray-500">
+          <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
             No active model configured.
           </div>
-
         )}
-
-      </div>
-
-
-      <SaveButtons />
+      </Panel>
 
     </div>
   );
@@ -1454,32 +1463,22 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   const renderPerformanceSettings = () => (
     <div className="space-y-6">
 
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-        <h3 className="text-lg font-semibold tracking-tight mb-6">
-          Performance
-        </h3>
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* CPU Threads */}
+      <Panel
+        title="Compute"
+        description="How the local model uses the hardware available to it."
+      >
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
 
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              CPU Threads:{" "}
-              {settings.performance.cpuThreads}
-            </label>
-
+            <FieldLabel hint={settings.performance.cpuThreads}>
+              CPU Threads
+            </FieldLabel>
             <input
               type="range"
               min="1"
               max="32"
               step="1"
-              value={
-                settings.performance.cpuThreads
-              }
+              value={settings.performance.cpuThreads}
               onChange={(event) =>
                 updateNestedSetting(
                   "performance",
@@ -1487,29 +1486,20 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
                   Number(event.target.value)
                 )
               }
-              className="w-full accent-blue-600 cursor-pointer"
+              className={rangeClass}
             />
-
           </div>
 
-
-          {/* GPU Layers */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              GPU Layers:{" "}
-              {settings.performance.gpuLayers}
-            </label>
-
+            <FieldLabel hint={settings.performance.gpuLayers}>
+              GPU Layers
+            </FieldLabel>
             <input
               type="number"
               min="0"
               max="999"
               step="1"
-              value={
-                settings.performance.gpuLayers
-              }
+              value={settings.performance.gpuLayers}
               onChange={(event) =>
                 updateNestedSetting(
                   "performance",
@@ -1517,39 +1507,22 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
                   Number(event.target.value)
                 )
               }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             />
-
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
               0 means CPU-only inference.
             </p>
-
           </div>
 
-
-          {/* Context Size */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Context Size:{" "}
-              {settings.performance.contextSize}
-            </label>
-
+            <FieldLabel hint={settings.performance.contextSize}>
+              Context Size
+            </FieldLabel>
             <input
               type="number"
               min="512"
               step="512"
-              value={
-                settings.performance.contextSize
-              }
+              value={settings.performance.contextSize}
               onChange={(event) =>
                 updateNestedSetting(
                   "performance",
@@ -1557,35 +1530,19 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
                   Number(event.target.value)
                 )
               }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             />
-
           </div>
 
-
-          {/* Batch Size */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Batch Size:{" "}
-              {settings.performance.batchSize}
-            </label>
-
+            <FieldLabel hint={settings.performance.batchSize}>
+              Batch Size
+            </FieldLabel>
             <input
               type="number"
               min="1"
               step="1"
-              value={
-                settings.performance.batchSize
-              }
+              value={settings.performance.batchSize}
               onChange={(event) =>
                 updateNestedSetting(
                   "performance",
@@ -1593,93 +1550,33 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
                   Number(event.target.value)
                 )
               }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             />
-
           </div>
 
         </div>
+      </Panel>
 
-
-        <div className="mt-8 space-y-4">
-
-          {/* mmap */}
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.performance.mmap
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "performance",
-                  "mmap",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Memory Mapping (mmap)
-            </span>
-
-          </label>
-
-
-          {/* mlock */}
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.performance.mlock
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "performance",
-                  "mlock",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Lock Model Memory (mlock)
-            </span>
-
-          </label>
-
+      <Panel title="Memory">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Toggle
+            title="Memory Mapping (mmap)"
+            description="Map the model file into memory instead of loading it fully."
+            checked={settings.performance.mmap}
+            onChange={(event) =>
+              updateNestedSetting("performance", "mmap", event.target.checked)
+            }
+          />
+          <Toggle
+            title="Lock Model Memory (mlock)"
+            description="Prevent the model from being swapped to disk."
+            checked={settings.performance.mlock}
+            onChange={(event) =>
+              updateNestedSetting("performance", "mlock", event.target.checked)
+            }
+          />
         </div>
-
-      </div>
-
-
-      <SaveButtons
-        label="Save Performance Settings"
-        showRestart
-      />
+      </Panel>
 
     </div>
   );
@@ -1703,365 +1600,160 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
         : [];
 
     return (
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
 
-        <div className="mx-auto w-full max-w-5xl rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-          <div className="flex items-center justify-between mb-6">
-
-            <div>
-
-              <h3 className="text-lg font-semibold tracking-tight">
-                Available Models
-              </h3>
-
-              <p className="text-sm text-gray-500 mt-1">
-                Models currently listed in settings.json.
-              </p>
-
+        <Panel
+          title="Available Models"
+          description="Models currently listed in settings.json."
+          className="xl:col-span-2"
+        >
+          <div className="mb-5 flex items-center justify-between">
+            <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+              {availableModels.length} model{availableModels.length === 1 ? "" : "s"}
             </div>
-
-
-            <div className="
-              text-sm
-              px-3 py-1
-              rounded-full
-              bg-gray-100 dark:bg-gray-700
-            ">
-              {availableModels.length} model
-              {availableModels.length === 1
-                ? ""
-                : "s"}
-            </div>
-
           </div>
 
-
           {availableModels.length === 0 ? (
-
-            <div className="
-              text-center
-              py-10
-              text-gray-500
-            ">
+            <div className="rounded-xl border border-dashed border-slate-300 py-10 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
               No models are listed in settings.json.
             </div>
-
           ) : (
-
-            <div className="space-y-3">
-
+            <div className="space-y-2.5">
               {availableModels.map((model) => {
-
-                const isActive =
-                  settings.activeModel?.id ===
-                  model.id;
-
-                const isDeleting =
-                  deletingModelId === model.id;
+                const isActive = settings.activeModel?.id === model.id;
+                const isDeleting = deletingModelId === model.id;
 
                 return (
                   <div
                     key={model.id}
                     className={`
-                      w-full
-                      p-4
-                      border
-                      rounded-lg
-                      transition-colors
+                      rounded-xl border p-4 transition-colors
                       ${
                         isActive
-                          ? `
-                            border-blue-500/70
-                            bg-blue-50/80
-                            shadow-md shadow-blue-500/10 dark:bg-blue-950/30
-                          `
-                          : `
-                            border-slate-200 dark:border-slate-700/80
-                            hover:border-gray-400
-                            dark:hover:border-gray-500
-                          `
+                          ? "border-teal-400 bg-teal-50/70 dark:border-teal-700 dark:bg-teal-950/20"
+                          : "border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700"
                       }
                     `}
                   >
-
-                    <div className="
-                      flex
-                      items-start
-                      justify-between
-                      gap-4
-                    ">
-
-                      {/* Model information */}
+                    <div className="flex items-start justify-between gap-4">
 
                       <button
                         type="button"
-                        onClick={() =>
-                          handleSetActiveModel(model)
-                        }
-                        disabled={
-                          saving ||
-                          deletingModelId !== null
-                        }
-                        className="
-                          flex-1
-                          min-w-0
-                          text-left
-                          disabled:opacity-50
-                          disabled:cursor-not-allowed
-                        "
+                        onClick={() => handleSetActiveModel(model)}
+                        disabled={saving || deletingModelId !== null}
+                        className="min-w-0 flex-1 text-left disabled:cursor-not-allowed disabled:opacity-50"
                       >
-
-                        <div className="font-medium">
-
-                          {model.name ||
-                            model.id}
-
+                        <div className="flex items-center gap-2">
+                          {isActive && (
+                            <CheckCircle className="h-4 w-4 shrink-0 text-teal-500" />
+                          )}
+                          <span className="truncate font-medium text-slate-900 dark:text-white">
+                            {model.name || model.id}
+                          </span>
                         </div>
 
-
-                        <div className="
-                          text-sm
-                          text-gray-500
-                          mt-1
-                          break-all
-                        ">
-
-                          {model.fileName ||
-                            model.id}
-
+                        <div className="mt-1 truncate font-mono text-xs text-slate-500 dark:text-slate-400">
+                          {model.fileName || model.id}
                         </div>
 
-
-                        <div className="
-                          text-xs
-                          text-gray-500
-                          mt-1
-                          flex flex-wrap
-                          gap-3
-                        ">
-
-                          {model.type && (
-                            <span>
-                              Type: {model.type}
-                            </span>
-                          )}
-
-                          {model.size && (
-                            <span>
-                              Size: {model.size}
-                            </span>
-                          )}
-
-                          {model.uploadedAt && (
-                            <span>
-                              Added:{" "}
-                              {model.uploadedAt}
-                            </span>
-                          )}
-
+                        <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500 dark:text-slate-400">
+                          {model.type && <span>Type: {model.type}</span>}
+                          {model.size && <span>Size: {model.size}</span>}
+                          {model.uploadedAt && <span>Added: {model.uploadedAt}</span>}
                         </div>
-
                       </button>
 
-
-                      {/* Right-side actions */}
-
-                      <div className="
-                        flex
-                        items-center
-                        gap-2
-                        flex-shrink-0
-                      ">
-
-                        {isActive && (
-                          <CheckCircle
-                            className="
-                              w-5 h-5
-                              text-green-500
-                            "
-                            title="Active model"
-                          />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteModel(model)}
+                        disabled={saving || deletingModelId !== null || isActive}
+                        title={
+                          isActive
+                            ? "Select another model before deleting this model"
+                            : "Delete model"
+                        }
+                        className="
+                          inline-flex shrink-0 items-center justify-center gap-2
+                          rounded-lg border border-red-200 bg-red-50 px-3 py-2
+                          text-red-600 transition-colors
+                          hover:border-red-300 hover:bg-red-100
+                          disabled:cursor-not-allowed disabled:opacity-40
+                          dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-400 dark:hover:bg-red-950/40
+                        "
+                      >
+                        {isDeleting ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
                         )}
-
-
-                        {/* Delete */}
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDeleteModel(model)
-                          }
-                          disabled={
-                            saving ||
-                            deletingModelId !== null ||
-                            isActive
-                          }
-                          title={
-                            isActive
-                              ? "Select another model before deleting this model"
-                              : "Delete model"
-                          }
-                          className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
-                            px-3
-                            py-2
-                            rounded-lg
-                            border
-                            border-red-200
-                            dark:border-red-800
-                            bg-red-50
-                            dark:bg-red-900/20
-                            text-red-600
-                            dark:text-red-400
-                            hover:bg-red-100
-                            dark:hover:bg-red-900/40
-                            hover:border-red-300
-                            dark:hover:border-red-700
-                            disabled:opacity-40
-                            disabled:cursor-not-allowed
-                            transition-colors
-                          "
-                        >
-
-                          {isDeleting ? (
-                            <RefreshCw
-                              className="
-                                w-4 h-4
-                                animate-spin
-                              "
-                            />
-                          ) : (
-                            <Trash2
-                              className="w-4 h-4"
-                            />
-                          )}
-
-                          <span className="hidden sm:inline">
-                            {isDeleting
-                              ? "Deleting..."
-                              : "Delete"}
-                          </span>
-
-                        </button>
-
-                      </div>
+                        <span className="hidden sm:inline">
+                          {isDeleting ? "Deleting..." : "Delete"}
+                        </span>
+                      </button>
 
                     </div>
-
                   </div>
                 );
               })}
-
             </div>
-
           )}
+        </Panel>
 
-        </div>
+        <div className="flex flex-col gap-6">
 
-
-        {/* Active Model */}
-
-        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-          <h3 className="text-lg font-semibold tracking-tight mb-4">
-            Active Model
-          </h3>
-
-          {settings.activeModel ? (
-
-            <div className="
-              p-4
-              rounded-lg
-              border
-              border-blue-200
-              dark:border-blue-800
-              bg-blue-50/80 dark:bg-blue-950/30
-            ">
-
-              <div className="font-medium">
-                {settings.activeModel.name ||
-                  settings.activeModel.id}
+          <Panel title="Active Model">
+            {settings.activeModel ? (
+              <div className="rounded-xl border border-teal-200 bg-teal-50/60 p-4 dark:border-teal-800/60 dark:bg-teal-950/20">
+                <div className="font-medium text-slate-900 dark:text-white">
+                  {settings.activeModel.name || settings.activeModel.id}
+                </div>
+                <div className="mt-1 truncate font-mono text-xs text-slate-500 dark:text-slate-400">
+                  {settings.activeModel.fileName}
+                </div>
+                <div className="mt-1 break-all font-mono text-xs text-slate-500 dark:text-slate-400">
+                  {settings.activeModel.path}
+                </div>
               </div>
-
-              <div className="text-sm text-gray-500 mt-1">
-                {settings.activeModel.fileName}
+            ) : (
+              <div className="text-sm text-slate-500 dark:text-slate-400">
+                No active model.
               </div>
+            )}
+          </Panel>
 
-              <div className="text-xs text-gray-500 mt-1 break-all">
-                {settings.activeModel.path}
-              </div>
+          <Panel title="Actions" className="p-5">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={onImportModel}
+                disabled={saving || deletingModelId !== null || !onImportModel}
+                className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg bg-[var(--primary)] px-2.5 py-2 text-xs font-medium text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span className="truncate">Import Model</span>
+              </button>
 
+              <button
+                type="button"
+                onClick={handleOpenModelsFolder}
+                disabled={saving || deletingModelId !== null}
+                className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                <span className="truncate">Open Folder</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleApplyAndRestart}
+                disabled={saving || deletingModelId !== null}
+                className="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--primary)]/40 bg-[var(--accent-subtle)] px-2.5 py-2 text-xs font-medium text-[var(--primary)] transition-colors hover:bg-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span className="truncate">{saving ? "Applying..." : "Restart"}</span>
+              </button>
             </div>
-
-          ) : (
-
-            <div className="text-gray-500">
-              No active model.
-            </div>
-
-          )}
-
-        </div>
-
-
-        {/* Model actions */}
-
-        <div className="flex flex-wrap gap-3">
-
-          <button
-            type="button"
-            onClick={handleOpenModelsFolder}
-            disabled={
-              saving ||
-              deletingModelId !== null
-            }
-            className="
-              px-4 py-2
-              bg-slate-700 hover:bg-slate-600
-              disabled:bg-gray-400
-              text-white
-              rounded-lg
-              transition-colors
-              flex items-center gap-2
-            "
-          >
-
-            <FolderOpen className="w-4 h-4" />
-
-            Open Models Folder
-
-          </button>
-
-
-          <button
-            type="button"
-            onClick={handleApplyAndRestart}
-            disabled={
-              saving ||
-              deletingModelId !== null
-            }
-            className="
-              px-4 py-2
-              bg-emerald-600 hover:bg-emerald-500
-              disabled:bg-gray-400
-              text-white
-              rounded-lg
-              transition-colors
-              flex items-center gap-2
-            "
-          >
-
-            <RotateCcw className="w-4 h-4" />
-
-            {saving
-              ? "Applying..."
-              : "Apply & Restart"}
-
-          </button>
+          </Panel>
 
         </div>
 
@@ -2076,166 +1768,52 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   |--------------------------------------------------------------------------
   */
 
-  const renderThemeSettings = () => (
-    <div className="space-y-6">
+  const renderThemeSettings = () => {
+    const options = [
+      { id: "light", label: "Light", icon: Sun, iconClass: "text-amber-500" },
+      { id: "dark", label: "Dark", icon: Moon, iconClass: "text-indigo-400" },
+      { id: "system", label: "System", icon: Monitor, iconClass: "text-slate-500" }
+    ];
 
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
+    return (
+      <Panel
+        title="Appearance"
+        description="Choose how OffyAI looks. System follows your OS setting."
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {options.map(({ id, label, icon: Icon, iconClass }) => {
+            const isSelected = settings.theme === id;
 
-        <h3 className="text-lg font-semibold tracking-tight mb-6">
-          Appearance
-        </h3>
-
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-          {/* Light */}
-
-          <button
-            type="button"
-            disabled={
-              saving ||
-              deletingModelId !== null
-            }
-            onClick={() =>
-              handleThemeChange("light")
-            }
-            className={`
-              p-5
-              border
-              rounded-lg
-              transition-colors
-              ${
-                settings.theme === "light"
-                  ? `
-                    border-blue-500
-                    bg-blue-50
-                    dark:bg-blue-900/20
-                  `
-                  : `
-                    border-gray-200
-                    dark:border-gray-700
-                    hover:border-gray-400
-                  `
-              }
-            `}
-          >
-
-            <Sun className="
-              w-8 h-8
-              mx-auto
-              mb-3
-              text-yellow-500
-            " />
-
-            <div className="font-medium">
-              Light
-            </div>
-
-          </button>
-
-
-          {/* Dark */}
-
-          <button
-            type="button"
-            disabled={
-              saving ||
-              deletingModelId !== null
-            }
-            onClick={() =>
-              handleThemeChange("dark")
-            }
-            className={`
-              p-5
-              border
-              rounded-lg
-              transition-colors
-              ${
-                settings.theme === "dark"
-                  ? `
-                    border-blue-500
-                    bg-blue-50
-                    dark:bg-blue-900/20
-                  `
-                  : `
-                    border-gray-200
-                    dark:border-gray-700
-                    hover:border-gray-400
-                  `
-              }
-            `}
-          >
-
-            <Moon className="
-              w-8 h-8
-              mx-auto
-              mb-3
-              text-blue-500
-            " />
-
-            <div className="font-medium">
-              Dark
-            </div>
-
-          </button>
-
-
-          {/* System */}
-
-          <button
-            type="button"
-            disabled={
-              saving ||
-              deletingModelId !== null
-            }
-            onClick={() =>
-              handleThemeChange("system")
-            }
-            className={`
-              p-5
-              border
-              rounded-lg
-              transition-colors
-              ${
-                settings.theme === "system"
-                  ? `
-                    border-blue-500
-                    bg-blue-50
-                    dark:bg-blue-900/20
-                  `
-                  : `
-                    border-gray-200
-                    dark:border-gray-700
-                    hover:border-gray-400
-                  `
-              }
-            `}
-          >
-
-            <Monitor className="
-              w-8 h-8
-              mx-auto
-              mb-3
-              text-gray-500
-            " />
-
-            <div className="font-medium">
-              System
-            </div>
-
-          </button>
-
+            return (
+              <button
+                key={id}
+                type="button"
+                disabled={saving || deletingModelId !== null}
+                onClick={() => handleThemeChange(id)}
+                className={`
+                  relative rounded-xl border p-6 text-center transition-colors
+                  disabled:opacity-50
+                  ${
+                    isSelected
+                      ? "border-teal-500 bg-teal-50/70 dark:border-teal-600 dark:bg-teal-950/20"
+                      : "border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700"
+                  }
+                `}
+              >
+                {isSelected && (
+                  <CheckCircle className="absolute right-3 top-3 h-4 w-4 text-teal-500" />
+                )}
+                <Icon className={`mx-auto mb-3 h-8 w-8 ${iconClass}`} />
+                <div className="font-medium text-slate-900 dark:text-white">
+                  {label}
+                </div>
+              </button>
+            );
+          })}
         </div>
-
-      </div>
-
-
-      <SaveButtons
-        label="Save Appearance"
-      />
-
-    </div>
-  );
+      </Panel>
+    );
+  };
 
 
   /*
@@ -2247,305 +1825,136 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   const renderChatSettings = () => (
     <div className="space-y-6">
 
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-        <h3 className="text-lg font-semibold tracking-tight mb-6">
-          Chat Generation
-        </h3>
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* Max Tokens */}
+      <Panel title="Generation Parameters">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
 
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Max Tokens:{" "}
-              {settings.chat.maxTokens}
-            </label>
-
+            <FieldLabel hint={settings.chat.maxTokens}>Max Tokens</FieldLabel>
             <input
               type="number"
               min="1"
               step="1"
-              value={
-                settings.chat.maxTokens
-              }
+              value={settings.chat.maxTokens}
               onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "maxTokens",
-                  Number(event.target.value)
-                )
+                updateNestedSetting("chat", "maxTokens", Number(event.target.value))
               }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             />
-
           </div>
 
-
-          {/* Temperature */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Temperature:{" "}
-              {settings.chat.temperature}
-            </label>
-
+            <FieldLabel hint={settings.chat.temperature}>Temperature</FieldLabel>
             <input
               type="range"
               min="0"
               max="2"
               step="0.1"
-              value={
-                settings.chat.temperature
-              }
+              value={settings.chat.temperature}
               onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "temperature",
-                  Number(event.target.value)
-                )
+                updateNestedSetting("chat", "temperature", Number(event.target.value))
               }
-              className="w-full accent-blue-600 cursor-pointer"
+              className={rangeClass}
             />
-
           </div>
 
-
-          {/* Top P */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Top P:{" "}
-              {settings.chat.topP}
-            </label>
-
+            <FieldLabel hint={settings.chat.topP}>Top P</FieldLabel>
             <input
               type="range"
               min="0"
               max="1"
               step="0.05"
-              value={
-                settings.chat.topP
-              }
+              value={settings.chat.topP}
               onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "topP",
-                  Number(event.target.value)
-                )
+                updateNestedSetting("chat", "topP", Number(event.target.value))
               }
-              className="w-full accent-blue-600 cursor-pointer"
+              className={rangeClass}
             />
-
           </div>
 
-
-          {/* Top K */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Top K:{" "}
-              {settings.chat.topK}
-            </label>
-
+            <FieldLabel hint={settings.chat.topK}>Top K</FieldLabel>
             <input
               type="number"
               min="0"
               step="1"
-              value={
-                settings.chat.topK
-              }
+              value={settings.chat.topK}
               onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "topK",
-                  Number(event.target.value)
-                )
+                updateNestedSetting("chat", "topK", Number(event.target.value))
               }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             />
-
           </div>
 
-
-          {/* Context Window */}
-
           <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Context Window:{" "}
-              {settings.chat.contextWindow}
-            </label>
-
+            <FieldLabel hint={settings.chat.contextWindow}>
+              Context Window
+            </FieldLabel>
             <input
               type="number"
               min="512"
               step="512"
-              value={
-                settings.chat.contextWindow
-              }
+              value={settings.chat.contextWindow}
               onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "contextWindow",
-                  Number(event.target.value)
-                )
+                updateNestedSetting("chat", "contextWindow", Number(event.target.value))
               }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
+              className={inputClass}
             />
-
           </div>
 
         </div>
+      </Panel>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-        <div className="mt-8 space-y-5">
-
-          {/* Memory */}
-
-          <div>
-
-            <label
-              htmlFor="chat-memory-mode"
-              className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2"
-            >
-              Conversation Memory
-            </label>
-
-            <select
-              id="chat-memory-mode"
-              value={settings.chat.memoryMode || "chat"}
-              onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "memoryMode",
-                  event.target.value
-                )
-              }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-              "
-            >
-              <option value="off">Off</option>
-              <option value="chat">This chat only (recommended)</option>
-              <option value="application">All chats in this application</option>
-            </select>
-
-            <p className="text-xs text-gray-500 mt-2">
-              Uses only conversations stored locally in this application.
-              Deleting a chat also removes it from application memory.
-            </p>
-
-          </div>
-
-          {/* Stream */}
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.chat.streamResponses
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "streamResponses",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Stream Responses
-            </span>
-
+        <Panel title="Memory">
+          <label
+            htmlFor="chat-memory-mode"
+            className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+          >
+            Conversation Memory
           </label>
+          <select
+            id="chat-memory-mode"
+            value={settings.chat.memoryMode || "chat"}
+            onChange={(event) =>
+              updateNestedSetting("chat", "memoryMode", event.target.value)
+            }
+            className={inputClass}
+          >
+            <option value="off">Off</option>
+            <option value="chat">This chat only (recommended)</option>
+            <option value="application">All chats in this application</option>
+          </select>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Uses only conversations stored locally in this application.
+            Deleting a chat also removes it from application memory.
+          </p>
+        </Panel>
 
-
-          {/* System Prompt */}
-
-          <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              System Prompt
-            </label>
-
-            <textarea
-              rows={6}
-              value={
-                settings.chat.systemPrompt ?? ""
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "chat",
-                  "systemPrompt",
-                  event.target.value
-                )
-              }
-              className="
-                w-full
-                px-3 py-2
-                border border-gray-300 dark:border-gray-600
-                rounded-lg
-                focus:outline-none
-                focus:ring-2
-                focus:ring-blue-500
-                bg-white dark:bg-gray-700
-                text-gray-900 dark:text-white
-                resize-y
-              "
-            />
-
-          </div>
-
-        </div>
+        <Panel title="Streaming">
+          <Toggle
+            title="Stream Responses"
+            description="Show tokens as they are generated instead of waiting for the full reply."
+            checked={settings.chat.streamResponses}
+            onChange={(event) =>
+              updateNestedSetting("chat", "streamResponses", event.target.checked)
+            }
+          />
+        </Panel>
 
       </div>
 
-
-      <SaveButtons
-        label="Save Chat Settings"
-        showRestart
-      />
+      <Panel title="System Prompt">
+        <textarea
+          rows={8}
+          value={settings.chat.systemPrompt ?? ""}
+          onChange={(event) =>
+            updateNestedSetting("chat", "systemPrompt", event.target.value)
+          }
+          className={`${inputClass} resize-y font-mono text-xs leading-relaxed`}
+        />
+      </Panel>
 
     </div>
   );
@@ -2558,287 +1967,212 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   */
 
   const renderProfileSettings = () => {
-      /*
-      |--------------------------------------------------------------------------
-      | Profile
-      |--------------------------------------------------------------------------
-      */
+    /*
+    |--------------------------------------------------------------------------
+    | Profile
+    |--------------------------------------------------------------------------
+    */
 
-        const handleUserPhotoChange = async (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            try {
-              const dataUrl = await fileToDataURL(file);
-              setUserPhotoPreview(dataUrl);
-              updateNestedSetting("profile", "userPhoto", dataUrl);
-            } catch (error) {
-              console.error("Failed to load user photo:", error);
-            }
-          }
-        };
+    const handleUserPhotoChange = async (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        try {
+          const dataUrl = await fileToDataURL(file);
+          setUserPhotoPreview(dataUrl);
+          updateNestedSetting("profile", "userPhoto", dataUrl);
+        } catch (error) {
+          console.error("Failed to load user photo:", error);
+        }
+      }
+    };
 
-        const handleAiPhotoChange = async (e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            try {
-              const dataUrl = await fileToDataURL(file);
-              setAiPhotoPreview(dataUrl);
-              updateNestedSetting("profile", "aiPhoto", dataUrl);
-            } catch (error) {
-              console.error("Failed to load AI photo:", error);
-            }
-          }
-        };
+    const handleAiPhotoChange = async (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        try {
+          const dataUrl = await fileToDataURL(file);
+          setAiPhotoPreview(dataUrl);
+          updateNestedSetting("profile", "aiPhoto", dataUrl);
+        } catch (error) {
+          console.error("Failed to load AI photo:", error);
+        }
+      }
+    };
 
-        return (
-          <div className="space-y-6">
-            {/* User Profile */}
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-              <h3 className="text-lg font-semibold tracking-tight mb-6">
-                Your Profile
-              </h3>
+    return (
+      <div className="space-y-6">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* User Avatar */}
-                <div className="flex flex-col items-center">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-                    Profile Photo
-                  </label>
-                  <div className="relative h-24 w-24 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 overflow-hidden">
-                    {userPhotoPreview ? (
-                      <img
-                        src={userPhotoPreview}
-                        alt="User profile"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs text-slate-400">No photo</span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleUserPhotoChange}
-                    className="mt-3 text-sm"
-                  />
-                </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-                <div className="space-y-4">
-                  {/* User Name */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                      Your Name
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.profile?.userName || ""}
-                      onChange={(e) =>
-                        updateNestedSetting("profile", "userName", e.target.value)
-                      }
-                      placeholder="Enter your name"
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {/* User Profile */}
+          <Panel title="Your Profile">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:gap-5">
+              <div className="flex shrink-0 flex-col items-center">
+                <div className="relative h-24 w-24 overflow-hidden rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--surface-raised)]">
+                  {userPhotoPreview ? (
+                    <img
+                      src={userPhotoPreview}
+                      alt="User profile"
+                      className="h-full w-full object-cover"
                     />
-                  </div>
-
-                  {/* User About */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                      About You
-                    </label>
-                    <textarea
-                      value={settings.profile?.userAbout || ""}
-                      onChange={(e) =>
-                        updateNestedSetting("profile", "userAbout", e.target.value)
-                      }
-                      placeholder="Brief description about yourself"
-                      rows="3"
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <User className="h-8 w-8 text-[var(--text-secondary)]" />
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-
-            {/* AI Identity */}
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-              <h3 className="text-lg font-semibold tracking-tight mb-6">
-                AI Identity
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* AI Avatar */}
-                <div className="flex flex-col items-center">
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
-                    AI Photo
-                  </label>
-                  <div className="relative h-24 w-24 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center bg-slate-50 dark:bg-slate-900/50 overflow-hidden">
-                    {aiPhotoPreview ? (
-                      <img
-                        src={aiPhotoPreview}
-                        alt="AI profile"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs text-slate-400">No photo</span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAiPhotoChange}
-                    className="mt-3 text-sm"
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  {/* AI Name */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                      AI Name
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.profile?.aiName || ""}
-                      onChange={(e) =>
-                        updateNestedSetting("profile", "aiName", e.target.value)
-                      }
-                      placeholder="AI name (e.g., OffyAI)"
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* AI About */}
-                  <div>
-                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-                      About AI
-                    </label>
-                    <textarea
-                      value={settings.profile?.aiAbout || ""}
-                      onChange={(e) =>
-                        updateNestedSetting("profile", "aiAbout", e.target.value)
-                      }
-                      placeholder="Brief description of the AI"
-                      rows="3"
-                      className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* User Context Injection */}
-            <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-              <h3 className="text-lg font-semibold tracking-tight mb-4">
-                Chat Context
-              </h3>
-
-              <label className="flex items-start cursor-pointer">
                 <input
-                  type="checkbox"
-                  checked={settings.profile?.includeUserContext || false}
-                  onChange={(e) =>
-                    updateNestedSetting("profile", "includeUserContext", e.target.checked)
-                  }
-                  className="mt-1 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleUserPhotoChange}
+                  className="mt-2 w-24 text-xs text-[var(--text-secondary)] file:mr-2 file:rounded-md file:border-0 file:bg-[var(--surface-raised)] file:px-2 file:py-1 file:text-xs file:text-[var(--text-primary)]"
                 />
-                <div className="ml-3">
-                  <span className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                    Include my profile in system prompt
-                  </span>
-                  <span className="block text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Your name and about text will be prepended to the AI&apos;s system prompt, providing context about you.
-                  </span>
+              </div>
+
+              <div className="w-full min-w-0 space-y-4">
+                <div>
+                  <FieldLabel>Your Name</FieldLabel>
+                  <input
+                    type="text"
+                    value={settings.profile?.userName || ""}
+                    onChange={(e) =>
+                      updateNestedSetting("profile", "userName", e.target.value)
+                    }
+                    placeholder="Enter your name"
+                    className={inputClass}
+                  />
                 </div>
-              </label>
+
+                <div>
+                  <FieldLabel>About You</FieldLabel>
+                  <textarea
+                    value={settings.profile?.userAbout || ""}
+                    onChange={(e) =>
+                      updateNestedSetting("profile", "userAbout", e.target.value)
+                    }
+                    placeholder="Brief description about yourself"
+                    rows="3"
+                    className={`${inputClass} resize-y`}
+                  />
+                </div>
+              </div>
             </div>
+          </Panel>
 
-            <SaveButtons label="Save Profile Settings" />
-          </div>
-        );
-  };
+          {/* AI Identity */}
+          <Panel title="AI Identity">
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:gap-5">
+              <div className="flex shrink-0 flex-col items-center">
+                <div className="relative h-24 w-24 overflow-hidden rounded-xl border-2 border-dashed border-[var(--border)] bg-[var(--surface-raised)]">
+                  {aiPhotoPreview ? (
+                    <img
+                      src={aiPhotoPreview}
+                      alt="AI profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center">
+                      <Cpu className="h-8 w-8 text-[var(--text-secondary)]" />
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAiPhotoChange}
+                  className="mt-2 w-24 text-xs text-[var(--text-secondary)] file:mr-2 file:rounded-md file:border-0 file:bg-[var(--surface-raised)] file:px-2 file:py-1 file:text-xs file:text-[var(--text-primary)]"
+                />
+              </div>
 
-  const renderUISettings = () => (
-    <div className="space-y-6">
+              <div className="w-full min-w-0 space-y-4">
+                <div>
+                  <FieldLabel>AI Name</FieldLabel>
+                  <input
+                    type="text"
+                    value={settings.profile?.aiName || ""}
+                    onChange={(e) =>
+                      updateNestedSetting("profile", "aiName", e.target.value)
+                    }
+                    placeholder="AI name (e.g., OffyAI)"
+                    className={inputClass}
+                  />
+                </div>
 
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-        <h3 className="text-lg font-semibold tracking-tight mb-6">
-          Interface
-        </h3>
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          {/* Font size */}
-
-          <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Font Size:{" "}
-              {settings.ui.fontSize}px
-            </label>
-
-            <input
-              type="range"
-              min="10"
-              max="24"
-              step="1"
-              value={
-                settings.ui.fontSize
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "ui",
-                  "fontSize",
-                  Number(event.target.value)
-                )
-              }
-              className="w-full accent-blue-600 cursor-pointer"
-            />
-
-          </div>
-
-
-          {/* Sidebar */}
-
-          <div>
-
-            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
-              Sidebar Width:{" "}
-              {settings.ui.sidebarWidth}px
-            </label>
-
-            <input
-              type="range"
-              min="180"
-              max="500"
-              step="10"
-              value={
-                settings.ui.sidebarWidth
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "ui",
-                  "sidebarWidth",
-                  Number(event.target.value)
-                )
-              }
-              className="w-full accent-blue-600 cursor-pointer"
-            />
-
-          </div>
+                <div>
+                  <FieldLabel>About AI</FieldLabel>
+                  <textarea
+                    value={settings.profile?.aiAbout || ""}
+                    onChange={(e) =>
+                      updateNestedSetting("profile", "aiAbout", e.target.value)
+                    }
+                    placeholder="Brief description of the AI"
+                    rows="3"
+                    className={`${inputClass} resize-y`}
+                  />
+                </div>
+              </div>
+            </div>
+          </Panel>
 
         </div>
 
+        {/* User Context Injection */}
+        <Panel title="Chat Context">
+          <Toggle
+            title="Include my profile in system prompt"
+            description="Your name and about text will be prepended to the AI's system prompt, providing context about you."
+            checked={settings.profile?.includeUserContext || false}
+            onChange={(e) =>
+              updateNestedSetting("profile", "includeUserContext", e.target.checked)
+            }
+          />
+        </Panel>
 
       </div>
+    );
+  };
 
+  const renderUISettings = () => (
+    <Panel
+      title="Interface"
+      description="Adjust density and text size to fit your screen."
+    >
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
 
-      <SaveButtons
-        label="Save Interface Settings"
-      />
+        <div>
+          <FieldLabel hint={`${settings.ui.fontSize}px`}>Font Size</FieldLabel>
+          <input
+            type="range"
+            min="10"
+            max="24"
+            step="1"
+            value={settings.ui.fontSize}
+            onChange={(event) =>
+              updateNestedSetting("ui", "fontSize", Number(event.target.value))
+            }
+            className={rangeClass}
+          />
+        </div>
 
-    </div>
+        <div>
+          <FieldLabel hint={`${settings.ui.sidebarWidth}px`}>
+            Sidebar Width
+          </FieldLabel>
+          <input
+            type="range"
+            min="180"
+            max="500"
+            step="10"
+            value={settings.ui.sidebarWidth}
+            onChange={(event) =>
+              updateNestedSetting("ui", "sidebarWidth", Number(event.target.value))
+            }
+            className={rangeClass}
+          />
+        </div>
+
+      </div>
+    </Panel>
   );
 
 
@@ -2850,140 +2184,48 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
 
   const renderSecuritySettings = () => (
     <div className="space-y-6">
-
-      <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/70 bg-white/90 dark:bg-slate-900/90 shadow-[0_12px_40px_-18px_rgba(15,23,42,0.35)] dark:shadow-black/20 backdrop-blur-sm p-6 sm:p-7 transition-all duration-200">
-
-        <h3 className="text-lg font-semibold tracking-tight mb-6">
-          Security
-        </h3>
-
-
-        <div className="space-y-6">
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.security.encryptLocalData
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "security",
-                  "encryptLocalData",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Encrypt Local Data
-            </span>
-
-          </label>
-
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.security.autoClearHistory
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "security",
-                  "autoClearHistory",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Auto-clear Chat History
-            </span>
-
-          </label>
-
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.security.clearOnExit
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "security",
-                  "clearOnExit",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Clear Data on Exit
-            </span>
-
-          </label>
-
-
-          <label className="flex items-center">
-
-            <input
-              type="checkbox"
-              checked={
-                settings.security.blockTracking
-              }
-              onChange={(event) =>
-                updateNestedSetting(
-                  "security",
-                  "blockTracking",
-                  event.target.checked
-                )
-              }
-              className="
-                rounded
-                border-gray-300
-                text-blue-600
-                focus:ring-blue-500
-              "
-            />
-
-            <span className="ml-2 text-sm">
-              Block Tracking
-            </span>
-
-          </label>
-
+      <Panel title="Security">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Toggle
+            title="Encrypt Local Data"
+            checked={settings.security.encryptLocalData}
+            onChange={(event) =>
+              updateNestedSetting("security", "encryptLocalData", event.target.checked)
+            }
+          />
+          <Toggle
+            title="Auto-clear Chat History"
+            checked={settings.security.autoClearHistory}
+            onChange={(event) =>
+              updateNestedSetting("security", "autoClearHistory", event.target.checked)
+            }
+          />
+          <Toggle
+            title="Clear Data on Exit"
+            checked={settings.security.clearOnExit}
+            onChange={(event) =>
+              updateNestedSetting("security", "clearOnExit", event.target.checked)
+            }
+          />
+          <Toggle
+            title="Block Tracking"
+            checked={settings.security.blockTracking}
+            onChange={(event) =>
+              updateNestedSetting("security", "blockTracking", event.target.checked)
+            }
+          />
         </div>
-
-      </div>
-
+      </Panel>
 
       <SaveButtons
         label="Save Security Settings"
+        saving={saving}
+        deletingModelId={deletingModelId}
+        onResetDefaults={handleResetDefaults}
+        onClose={onClose}
+        onApplyAndRestart={handleApplyAndRestart}
+        onSave={handleSave}
       />
-
     </div>
   );
 
@@ -3007,41 +2249,13 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
 
   if (loading || !settings) {
     return (
-      <div className="
-        fixed
-        inset-0
-        bg-slate-950/70 flex items-center justify-center z-50 p-4 sm:p-6 backdrop-blur-md
-      ">
-
-        <div className="
-          bg-white
-          dark:bg-gray-800
-          rounded-xl
-          p-8
-          shadow-xl
-          flex
-          flex-col
-          items-center
-          gap-3
-        ">
-
-          <RefreshCw
-            className="
-              w-6 h-6
-              text-blue-500
-              animate-spin
-            "
-          />
-
-          <span className="
-            text-gray-700
-            dark:text-gray-300
-          ">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-md sm:p-6">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-8 py-8 shadow-xl">
+          <RefreshCw className="h-6 w-6 animate-spin text-teal-500" />
+          <span className="text-sm font-medium text-[var(--text-secondary)]">
             Loading settings.json...
           </span>
-
         </div>
-
       </div>
     );
   }
@@ -3057,42 +2271,17 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   */
 
   const tabs = [
-    {
-      id: "general",
-      label: "General",
-      icon: SettingsIcon
-    },
-    {
-      id: "performance",
-      label: "Performance",
-      icon: Zap
-    },
-    {
-      id: "models",
-      label: "Models",
-      icon: Cpu
-    },
-    {
-      id: "profile",
-      label: "Profile",
-      icon: User
-    },
-    {
-      id: "theme",
-      label: "Appearance",
-      icon: Palette
-    },
-    {
-      id: "ui",
-      label: "Interface",
-      icon: Layout
-    },
-    {
-      id: "chat",
-      label: "Chat",
-      icon: MessageSquare
-    },
+    { id: "general", label: "General", icon: SettingsIcon },
+    { id: "performance", label: "Performance", icon: Zap },
+    { id: "models", label: "Models", icon: Cpu },
+    { id: "profile", label: "Profile", icon: User },
+    { id: "theme", label: "Appearance", icon: Palette },
+    { id: "ui", label: "Interface", icon: Layout },
+    { id: "chat", label: "Chat", icon: MessageSquare },
   ];
+
+  const activeMeta = TAB_META[activeTab] || {};
+  const footerButtons = FOOTER_CONFIG[activeTab];
 
 
   /*
@@ -3102,258 +2291,174 @@ const SettingsModal = ({ isOpen, onClose, initialTab = "general" }) => {
   */
 
   return (
-    <div className="
-      fixed
-      inset-0
-      bg-black
-      bg-opacity-50
-      flex
-      items-center
-      justify-center
-      z-50
-      p-4
-      backdrop-blur-sm
-    ">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-2 backdrop-blur-sm sm:p-5">
+      <div
+        className="
+          flex h-[96vh] w-full max-w-[1500px] overflow-hidden
+          rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl
+        "
+      >
 
-      <div className="
-        bg-white/95 dark:bg-slate-950/95 rounded-3xl border border-white/20 dark:border-slate-700/70 w-full max-w-6xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl shadow-slate-950/20 dark:shadow-black/40 backdrop-blur-xl
-      ">
+        {/* Sidebar */}
+        <aside
+          className="
+            flex w-16 shrink-0 flex-col border-r border-[var(--border)]
+            bg-[var(--surface-raised)]
+            sm:w-64
+          "
+        >
 
-
-        {/* Header */}
-
-        <div className="
-          flex
-          items-center
-          justify-between
-          p-5 sm:p-6
-          border-b border-slate-200 dark:border-slate-800
-        ">
-
-          <div className="
-            flex
-            items-center
-            gap-3
-          ">
-
-            <div className="
-              p-2
-              bg-blue-100
-              dark:bg-blue-900/30
-              rounded-lg
-            ">
-
-              <SettingsIcon
-                className="
-                  w-6 h-6
-                  text-blue-600
-                  dark:text-blue-400
-                "
-              />
-
+          {/* Brand */}
+          <div className="flex items-center gap-3 border-b border-[var(--border)] px-3 py-5 sm:px-5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-600">
+              <SettingsIcon className="h-5 w-5 text-white" />
             </div>
-
-
-            <div>
-
-              <h2 className="
-                text-xl
-                font-semibold
-                text-gray-900
-                dark:text-white
-              ">
+            <div className="hidden min-w-0 sm:block">
+              <h2 className="truncate text-sm font-semibold text-[var(--text-primary)]">
                 Settings
               </h2>
-
-              <p className="
-                text-sm
-                text-gray-500
-                dark:text-gray-400
-              ">
-                Loaded directly from settings.json
+              <p className="truncate text-xs text-[var(--text-secondary)]">
+                settings.json
               </p>
-
             </div>
-
           </div>
 
+          {/* Nav */}
+          <nav className="flex-1 overflow-y-auto px-2 py-4 sm:px-3">
+            <ul className="space-y-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
 
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={
-              saving ||
-              deletingModelId !== null
-            }
-            className="
-              p-2
-              hover:bg-gray-100
-              dark:hover:bg-gray-700
-              rounded-lg
-              transition-colors
-              disabled:opacity-50
-            "
-          >
+                return (
+                  <li key={tab.id}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      disabled={saving || deletingModelId !== null}
+                      title={tab.label}
+                      className={`
+                        flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium
+                        transition-colors disabled:opacity-50
+                        ${
+                          isActive
+                            ? "bg-teal-600 text-white"
+                            : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
+                        }
+                      `}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      <span className="hidden truncate sm:inline">{tab.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
 
-            <X className="
-              w-5 h-5
-              text-gray-500
-              dark:text-gray-400
-            " />
-
-          </button>
-
-        </div>
-
-
-        {/* Message */}
-
-        {message.text && (
-          <div className={`
-            mx-6
-            mt-4
-            p-3
-            rounded-lg
-            border
-            ${
-              message.type === "success"
-                ? `
-                  bg-green-50
-                  border-green-200
-                  text-green-800
-                  dark:bg-green-900/20
-                  dark:border-green-800
-                  dark:text-green-200
-                `
-                : `
-                  bg-red-50
-                  border-red-200
-                  text-red-800
-                  dark:bg-red-900/20
-                  dark:border-red-800
-                  dark:text-red-200
-                `
-            }
-          `}>
-
-            <div className="
-              flex
-              items-center
-              gap-2
-            ">
-
-              {message.type === "success" ? (
-                <CheckCircle className="w-4 h-4" />
-              ) : (
-                <AlertCircle className="w-4 h-4" />
-              )}
-
-              <span className="text-sm">
-                {message.text}
+          {/* Active model status */}
+          <div className="border-t border-[var(--border)] p-3 sm:p-4">
+            <div className="hidden text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] sm:block">
+              Active Model
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  settings.activeModel ? "bg-[var(--primary)]" : "bg-[var(--text-secondary)]"
+                }`}
+              />
+              <span className="hidden truncate text-xs font-medium text-[var(--text-primary)] sm:inline">
+                {settings.activeModel
+                  ? settings.activeModel.name || settings.activeModel.id
+                  : "None configured"}
               </span>
+            </div>
+          </div>
 
+        </aside>
+
+        {/* Main column */}
+        <div className="flex min-w-0 flex-1 flex-col">
+
+          {/* Top bar */}
+          <div className="flex items-center justify-between gap-4 border-b border-[var(--border)] px-5 py-4 sm:px-8">
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold text-[var(--text-primary)]">
+                {activeMeta.label}
+              </h1>
+              <p className="truncate text-sm text-[var(--text-secondary)]">
+                {activeMeta.blurb}
+              </p>
             </div>
 
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving || deletingModelId !== null}
+              className="
+                shrink-0 rounded-lg p-2 text-slate-400 transition-colors
+                hover:bg-slate-100 hover:text-slate-600
+                disabled:opacity-50
+                dark:hover:bg-slate-800 dark:hover:text-slate-200
+              "
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-        )}
 
-
-        {/* Tabs */}
-
-        <div className="
-          flex
-          border-b border-slate-200 dark:border-slate-800
-          overflow-x-auto
-        ">
-
-          {tabs.map((tab) => {
-
-            const Icon = tab.icon;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() =>
-                  setActiveTab(tab.id)
-                }
-                disabled={
-                  saving ||
-                  deletingModelId !== null
-                }
+          {/* Message */}
+          {message.text && (
+            <div className="px-5 pt-4 sm:px-8">
+              <div
                 className={`
-                  flex
-                  items-center
-                  gap-2
-                  px-4
-                  py-3
-                  font-medium
-                  border-b-2
-                  transition-colors
-                  whitespace-nowrap
-                  disabled:opacity-50
+                  flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm
                   ${
-                    activeTab === tab.id
-                      ? `
-                        border-blue-500
-                        text-blue-600
-                        dark:text-blue-400
-                      `
-                      : `
-                        border-transparent
-                        text-gray-500
-                        dark:text-gray-400
-                        hover:text-gray-700
-                        dark:hover:text-gray-300
-                      `
+                    message.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-200"
+                      : "border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200"
                   }
                 `}
               >
+                {message.type === "success" ? (
+                  <CheckCircle className="h-4 w-4 shrink-0" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                )}
+                <span>{message.text}</span>
+              </div>
+            </div>
+          )}
 
-                <Icon className="w-4 h-4" />
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-8">
+            {activeTab === "general" && renderGeneralSettings()}
+            {activeTab === "performance" && renderPerformanceSettings()}
+            {activeTab === "models" && renderModelSettings()}
+            {activeTab === "profile" && renderProfileSettings()}
+            {activeTab === "theme" && renderThemeSettings()}
+            {activeTab === "ui" && renderUISettings()}
+            {activeTab === "chat" && renderChatSettings()}
+          </div>
 
-                {tab.label}
-
-              </button>
-            );
-          })}
-
-        </div>
-
-
-        {/* Content */}
-
-        <div className="
-          flex-1
-          overflow-y-auto
-          p-6
-        ">
-
-          {activeTab === "general" &&
-            renderGeneralSettings()}
-
-          {activeTab === "performance" &&
-            renderPerformanceSettings()}
-
-          {activeTab === "models" &&
-            renderModelSettings()}
-          {activeTab === "profile" &&
-            renderProfileSettings()}
-
-
-          {activeTab === "theme" &&
-            renderThemeSettings()}
-
-          {activeTab === "ui" &&
-            renderUISettings()}
-
-          {activeTab === "chat" &&
-            renderChatSettings()}
+          {/* Sticky footer actions */}
+          {footerButtons && (
+            <div className="border-t border-[var(--border)] bg-[var(--surface-raised)] px-5 py-4 sm:px-8">
+              <SaveButtons
+                label={footerButtons.label}
+                showRestart={footerButtons.showRestart}
+                saving={saving}
+                deletingModelId={deletingModelId}
+                onResetDefaults={handleResetDefaults}
+                onClose={onClose}
+                onApplyAndRestart={handleApplyAndRestart}
+                onSave={handleSave}
+              />
+            </div>
+          )}
 
         </div>
 
       </div>
-
     </div>
   );
 };

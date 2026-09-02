@@ -21,6 +21,11 @@ const invoke = (
   );
 };
 
+const appIconCache = {
+  value: null,
+  promise: null,
+};
+
 /*
  * ============================================================================
  * ELECTRON API
@@ -367,10 +372,29 @@ const electronAPI = {
       "get-app-version"
     ),
 
-  getAppIcon: () =>
-    invoke(
-      "get-app-icon"
-    ),
+  getAppIcon: () => {
+    if (appIconCache.value) {
+      return Promise.resolve(appIconCache.value);
+    }
+
+    if (!appIconCache.promise) {
+      appIconCache.promise = invoke("get-app-icon")
+        .then((icon) => {
+          appIconCache.value = icon || null;
+          return appIconCache.value;
+        })
+        .catch((error) => {
+          console.warn("[Preload] Failed to load app icon:", error);
+          appIconCache.value = null;
+          return null;
+        })
+        .finally(() => {
+          appIconCache.promise = null;
+        });
+    }
+
+    return appIconCache.promise;
+  },
 
   /*
    * --------------------------------------------------------------------------
@@ -1029,58 +1053,44 @@ contextBridge.exposeInMainWorld(
       const style =
         root.style;
 
-      if (
-        isDark
-      ) {
-        style.setProperty(
-          "--bg-primary",
-          "#111827"
-        );
-
-        style.setProperty(
-          "--bg-secondary",
-          "#1f2937"
-        );
-
-        style.setProperty(
-          "--text-primary",
-          "#f9fafb"
-        );
-
-        style.setProperty(
-          "--text-secondary",
-          "#d1d5db"
-        );
-
-        style.setProperty(
-          "--border-color",
-          "#374151"
-        );
+      if (isDark) {
+        style.setProperty("--background", "#131311");
+        style.setProperty("--surface", "#1C1B19");
+        style.setProperty("--surface-raised", "#252420");
+        style.setProperty("--border", "#332F29");
+        style.setProperty("--text-primary", "#EDEBE6");
+        style.setProperty("--text-secondary", "#9C9890");
+        style.setProperty("--primary", "#2DD4BF");
+        style.setProperty("--primary-hover", "#5EEAD4");
+        style.setProperty("--primary-foreground", "#131311");
+        style.setProperty("--accent-subtle", "#12302D");
+        style.setProperty("--success", "#4ADE80");
+        style.setProperty("--warning", "#FBBF24");
+        style.setProperty("--danger", "#F87171");
+        style.setProperty("--bg-primary", "#131311");
+        style.setProperty("--bg-secondary", "#1C1B19");
+        style.setProperty("--text-primary-rgb", "237 235 230");
+        style.setProperty("--text-secondary-rgb", "156 152 144");
+        style.setProperty("--border-color", "#332F29");
       } else {
-        style.setProperty(
-          "--bg-primary",
-          "#ffffff"
-        );
-
-        style.setProperty(
-          "--bg-secondary",
-          "#f9fafb"
-        );
-
-        style.setProperty(
-          "--text-primary",
-          "#111827"
-        );
-
-        style.setProperty(
-          "--text-secondary",
-          "#6b7280"
-        );
-
-        style.setProperty(
-          "--border-color",
-          "#e5e7eb"
-        );
+        style.setProperty("--background", "#FAFAF8");
+        style.setProperty("--surface", "#FFFFFF");
+        style.setProperty("--surface-raised", "#F3F2EE");
+        style.setProperty("--border", "#E5E3DD");
+        style.setProperty("--text-primary", "#1F1E1C");
+        style.setProperty("--text-secondary", "#6B6963");
+        style.setProperty("--primary", "#0F9C8F");
+        style.setProperty("--primary-hover", "#0C8A7E");
+        style.setProperty("--primary-foreground", "#FFFFFF");
+        style.setProperty("--accent-subtle", "#E6F5F3");
+        style.setProperty("--success", "#15803D");
+        style.setProperty("--warning", "#B45309");
+        style.setProperty("--danger", "#DC2626");
+        style.setProperty("--bg-primary", "#FAFAF8");
+        style.setProperty("--bg-secondary", "#FFFFFF");
+        style.setProperty("--text-primary-rgb", "31 30 28");
+        style.setProperty("--text-secondary-rgb", "107 105 99");
+        style.setProperty("--border-color", "#E5E3DD");
       }
     },
 

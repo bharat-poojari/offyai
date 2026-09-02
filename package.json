@@ -1,6 +1,6 @@
 {
   "name": "offyai",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "OffyAI - Complete AI Web UI with llama.cpp",
   "author": "OffyAi Team",
   "main": "main.js",
@@ -53,7 +53,6 @@
       "src/**/*",
       "frontend/out/**/*",
       "LICENSE.txt",
-      "node_modules/**/*",
       "!**/.git/**",
       "!**/.gitignore",
       "!**/.env*",
@@ -89,44 +88,12 @@
         }
       ],
       "icon": "frontend/public/images/offyai.png",
-      "files": [
-        "package.json",
-        "main.js",
-        "preload.js",
-        "splash.html",
-        "settings.json",
-        "src/**/*",
-        "frontend/out/**/*",
-        "LICENSE.txt",
-        "node_modules/**/*",
-        "!**/.git/**",
-        "!**/.gitignore",
-        "!**/.env*",
-        "!**/.DS_Store",
-        "!**/*.md",
-        "!**/*.log",
-        "!**/*.map",
-        "!**/*.jsonl",
-        "!**/OFFYAI_TRAINING_CONTEXT.txt",
-        "!**/package-lock.json",
-        "!**/package.json.backup",
-        "!**/dist-electron/**",
-        "!**/frontend/public/**",
-        "!**/frontend/.next/**",
-        "!**/frontend/node_modules/**",
-        "!**/__pycache__/**",
-        "!**/.idea/**",
-        "!**/.vscode/**",
-        "!**/node_modules/**/{README,README.md,readme,readme.md,CHANGELOG,LICENSE,LICENSE*,.bin,.cache,*.md}",
-        "!**/node_modules/**/.bin",
-        "!**/node_modules/**/*.d.ts"
-      ],
       "extraResources": [
         {
           "from": "llama",
           "to": "llama",
           "filter": [
-            "**/*.exe",
+            "**/llama-server.exe",
             "**/*.dll"
           ]
         },
@@ -134,9 +101,7 @@
           "from": "models",
           "to": "models",
           "filter": [
-            "**/*.gguf",
-            "**/*.bin",
-            "**/*.ggml"
+            "offyai.gguf"
           ]
         }
       ],

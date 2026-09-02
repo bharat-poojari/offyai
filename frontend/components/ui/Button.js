@@ -21,29 +21,27 @@ const Button = forwardRef(
   ) => {
     const variants = {
       primary: `
-        bg-blue-600
-        text-white
-        shadow-sm shadow-blue-600/20
-        hover:bg-blue-700
-        hover:shadow-md hover:shadow-blue-600/20
-        active:bg-blue-800
-        focus-visible:ring-blue-500
-        dark:bg-blue-600
-        dark:hover:bg-blue-500
-        dark:active:bg-blue-700
+        bg-[var(--primary)]
+        text-[var(--primary-foreground)]
+        shadow-sm shadow-[color:rgba(15,156,143,0.18)]
+        hover:bg-[var(--primary-hover)]
+        hover:shadow-md hover:shadow-[color:rgba(15,156,143,0.22)]
+        active:bg-[var(--primary-hover)]
+        focus-visible:ring-[var(--primary)]
+        dark:bg-[var(--primary)]
+        dark:hover:bg-[var(--primary-hover)]
+        dark:active:bg-[var(--primary-hover)]
       `,
 
       secondary: `
-        bg-gray-600
-        text-white
-        shadow-sm shadow-gray-600/20
-        hover:bg-gray-700
-        hover:shadow-md hover:shadow-gray-600/20
-        active:bg-gray-800
-        focus-visible:ring-gray-500
-        dark:bg-gray-700
-        dark:hover:bg-gray-600
-        dark:active:bg-gray-800
+        bg-[var(--surface-raised)]
+        text-[var(--text-primary)]
+        shadow-sm shadow-[color:rgba(31,30,28,0.05)]
+        hover:bg-[var(--surface)]
+        hover:shadow-md hover:shadow-[color:rgba(31,30,28,0.08)]
+        active:bg-[var(--surface)]
+        focus-visible:ring-[var(--primary)]
+        dark:shadow-[color:rgba(0,0,0,0.12)]
       `,
 
       danger: `
@@ -61,49 +59,33 @@ const Button = forwardRef(
 
       ghost: `
         bg-transparent
-        text-gray-700
-        hover:bg-gray-100
-        hover:text-gray-900
-        active:bg-gray-200
-        focus-visible:ring-gray-400
-        dark:text-gray-300
-        dark:hover:bg-gray-800
-        dark:hover:text-white
-        dark:active:bg-gray-700
+        text-[var(--text-primary)]
+        hover:bg-[var(--surface-raised)]
+        hover:text-[var(--text-primary)]
+        active:bg-[var(--surface)]
+        focus-visible:ring-[var(--primary)]
       `,
 
       outline: `
         border
-        border-gray-200
-        bg-white
-        text-gray-700
+        border-[var(--border)]
+        bg-[var(--surface)]
+        text-[var(--text-primary)]
         shadow-sm
-        hover:border-gray-300
-        hover:bg-gray-50
-        hover:text-gray-900
-        active:bg-gray-100
-        focus-visible:ring-blue-500
-        dark:border-gray-700
-        dark:bg-gray-900
-        dark:text-gray-300
-        dark:hover:border-gray-600
-        dark:hover:bg-gray-800
-        dark:hover:text-white
-        dark:active:bg-gray-700
+        hover:border-[var(--border)]
+        hover:bg-[var(--surface-raised)]
+        hover:text-[var(--text-primary)]
+        active:bg-[var(--surface-raised)]
+        focus-visible:ring-[var(--primary)]
       `,
 
       subtle: `
-        bg-gray-100
-        text-gray-700
-        hover:bg-gray-200
-        hover:text-gray-900
-        active:bg-gray-300
-        focus-visible:ring-gray-400
-        dark:bg-gray-800
-        dark:text-gray-300
-        dark:hover:bg-gray-700
-        dark:hover:text-white
-        dark:active:bg-gray-600
+        bg-[var(--surface-raised)]
+        text-[var(--text-primary)]
+        hover:bg-[var(--surface)]
+        hover:text-[var(--text-primary)]
+        active:bg-[var(--surface)]
+        focus-visible:ring-[var(--primary)]
       `,
     };
 

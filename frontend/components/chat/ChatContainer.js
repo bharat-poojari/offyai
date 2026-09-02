@@ -118,7 +118,7 @@ const ChatContainer = () => {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#090b10] text-gray-100">
+    <div className="flex h-screen overflow-hidden bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200">
       {/* ------------------------------------------------------------------ */}
       {/* MOBILE OVERLAY                                                     */}
       {/* ------------------------------------------------------------------ */}
@@ -143,10 +143,8 @@ const ChatContainer = () => {
               : "relative w-72"
           }
           flex flex-col
-          border-r border-white/[0.06]
-          bg-[#0d1017]
-          shadow-[4px_0_24px_rgba(0,0,0,0.16)]
-          transform transition-transform duration-300 ease-out
+          border-r border-[var(--border)] bg-[var(--sidebar-bg)] shadow-[4px_0_24px_rgba(31,30,28,0.06)]
+          transition-colors duration-200 transform transition-transform duration-300 ease-out
           ${
             isMobile && !isSidebarOpen
               ? "-translate-x-full"
@@ -155,18 +153,18 @@ const ChatContainer = () => {
         `}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10 ring-1 ring-blue-400/10">
-              <MessageSquare className="h-[18px] w-[18px] text-blue-400" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-subtle)] ring-1 ring-[var(--border)]">
+              <MessageSquare className="h-[18px] w-[18px] text-[var(--primary)]" />
             </div>
 
             <div>
-              <h1 className="text-[15px] font-semibold tracking-tight text-gray-100">
+              <h1 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
                 Chat App
               </h1>
 
-              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-gray-500">
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-[var(--text-secondary)]">
                 Conversations
               </p>
             </div>
@@ -197,13 +195,13 @@ const ChatContainer = () => {
               group w-full
               flex items-center gap-2.5
               rounded-xl
-              bg-blue-600
+              bg-[var(--primary)]
               px-4 py-2.5
-              text-sm font-medium text-white
-              shadow-sm shadow-blue-950/30
+              text-sm font-medium text-[var(--primary-foreground)]
+              shadow-sm shadow-[color:rgba(15,156,143,0.18)]
               transition-all duration-200
-              hover:bg-blue-500
-              hover:shadow-md hover:shadow-blue-950/30
+              hover:bg-[var(--primary-hover)]
+              hover:shadow-md hover:shadow-[color:rgba(15,156,143,0.24)]
               active:scale-[0.99]
             "
           >
@@ -215,10 +213,10 @@ const ChatContainer = () => {
               className="
                 ml-auto flex items-center gap-1
                 rounded-md
-                border border-white/10
+                border border-white/15
                 bg-white/10
                 px-1.5 py-1
-                text-[10px] text-blue-100
+                text-[10px] text-[var(--primary-foreground)]
               "
               aria-label="Command K"
             >
@@ -247,13 +245,13 @@ const ChatContainer = () => {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="border-t border-white/[0.06] p-3">
-          <div className="flex items-center justify-between rounded-lg bg-white/[0.025] px-3 py-2">
-            <span className="text-[11px] text-gray-500">
+        <div className="border-t border-[var(--border)] p-3">
+          <div className="flex items-center justify-between rounded-lg bg-[var(--surface-raised)] px-3 py-2">
+            <span className="text-[11px] text-[var(--text-secondary)]">
               Chats
             </span>
 
-            <span className="text-[11px] font-medium text-gray-400">
+            <span className="text-[11px] font-medium text-[var(--text-primary)]">
               {chatSessions.length}
             </span>
           </div>
@@ -264,9 +262,9 @@ const ChatContainer = () => {
       {/* MAIN CHAT AREA                                                      */}
       {/* ------------------------------------------------------------------ */}
 
-      <div className="flex min-w-0 flex-1 flex-col bg-[#0a0d13]">
+      <div className="flex min-w-0 flex-1 flex-col bg-[var(--background)]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#0d1017]/80 px-4 py-3 backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--header-bg)] px-4 py-3 backdrop-blur-xl">
           <div className="flex min-w-0 items-center gap-3">
             {isMobile && (
               <button
@@ -286,11 +284,11 @@ const ChatContainer = () => {
 
             {currentChat && (
               <div className="flex min-w-0 flex-col">
-                <span className="max-w-[200px] truncate text-sm font-medium text-gray-200">
+                <span className="max-w-[200px] truncate text-sm font-medium text-[var(--text-primary)]">
                   {currentChat.title || "New Chat"}
                 </span>
 
-                <span className="mt-0.5 text-xs text-gray-500">
+                <span className="mt-0.5 text-xs text-[var(--text-secondary)]">
                   {messages.length} messages
                 </span>
               </div>
@@ -299,7 +297,7 @@ const ChatContainer = () => {
 
           <div className="flex items-center gap-2">
             {currentChat && (
-              <span className="rounded-lg border border-white/[0.06] bg-white/[0.035] px-2.5 py-1 text-[10px] font-medium text-gray-400">
+              <span className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
                 {currentChat.model || "Default"}
               </span>
             )}

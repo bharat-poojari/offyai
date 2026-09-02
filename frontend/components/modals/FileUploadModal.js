@@ -313,7 +313,7 @@ const FileUploadModal = ({
     const type = file?.type || "";
 
     if (type.startsWith("image/")) {
-      return <Image className="h-4 w-4" />;
+      return <Image alt="" aria-hidden="true" className="h-4 w-4" />;
     }
 
     if (type.startsWith("video/")) {
@@ -373,7 +373,7 @@ const FileUploadModal = ({
     }
 
     if (type.startsWith("audio/")) {
-      return "bg-blue-500/10 text-blue-500";
+      return "bg-[var(--accent-subtle)] text-[var(--primary)]";
     }
 
     if (type.includes("pdf")) {
@@ -399,7 +399,7 @@ const FileUploadModal = ({
       type.includes("word") ||
       /\.(doc|docx)$/i.test(name)
     ) {
-      return "bg-blue-500/10 text-blue-600";
+      return "bg-[var(--accent-subtle)] text-[var(--primary)]";
     }
 
     return "bg-gray-500/10 text-gray-500";
@@ -594,12 +594,9 @@ const FileUploadModal = ({
           overflow-hidden
           rounded-2xl
           border
-          border-gray-200/80
-          bg-white
-          shadow-2xl
-          shadow-black/20
-          dark:border-gray-700/80
-          dark:bg-gray-900
+          border-[var(--border)]
+          bg-[var(--surface)]
+          shadow-[0_28px_70px_rgba(15,23,42,0.18)]
           dark:shadow-black/50
         "
         onMouseDown={(event) =>
@@ -617,10 +614,10 @@ const FileUploadModal = ({
             items-center
             justify-between
             border-b
-            border-gray-200/80
+            border-[var(--border)]
+            bg-[var(--surface-raised)]
             px-4
             py-3.5
-            dark:border-gray-800
             sm:px-5
           "
         >
@@ -634,12 +631,10 @@ const FileUploadModal = ({
                 items-center
                 justify-center
                 rounded-xl
-                bg-blue-500/10
-                text-blue-600
+                bg-[var(--accent-subtle)]
+                text-[var(--primary)]
                 ring-1
-                ring-blue-500/10
-                dark:bg-blue-500/15
-                dark:text-blue-400
+                ring-[var(--ring)]/20
               "
             >
               <UploadCloud className="h-5 w-5" />
@@ -653,8 +648,7 @@ const FileUploadModal = ({
                   text-sm
                   font-semibold
                   tracking-tight
-                  text-gray-900
-                  dark:text-white
+                  text-[var(--text-primary)]
                 "
               >
                 Upload files
@@ -665,8 +659,7 @@ const FileUploadModal = ({
                   mt-0.5
                   truncate
                   text-[11px]
-                  text-gray-500
-                  dark:text-gray-400
+                  text-[var(--text-secondary)]
                 "
               >
                 Add documents and media to your conversation
@@ -688,19 +681,17 @@ const FileUploadModal = ({
               items-center
               justify-center
               rounded-lg
-              text-gray-400
+              text-[var(--text-secondary)]
               transition-all
               duration-150
-              hover:bg-gray-100
-              hover:text-gray-700
+              hover:bg-[var(--surface-raised)]
+              hover:text-[var(--text-primary)]
               active:scale-95
               disabled:pointer-events-none
               disabled:opacity-40
-              dark:hover:bg-gray-800
-              dark:hover:text-gray-200
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-blue-500
+              focus-visible:ring-[var(--ring)]
             "
           >
             <X className="h-4 w-4" />
@@ -742,23 +733,17 @@ const FileUploadModal = ({
               ${
                 dragActive
                   ? `
-                    border-blue-500
-                    bg-blue-50/80
+                    border-[var(--primary)]
+                    bg-[var(--accent-subtle)]
                     shadow-lg
-                    shadow-blue-500/10
-                    dark:border-blue-400
-                    dark:bg-blue-950/30
+                    shadow-[color:rgba(15,156,143,0.12)]
                   `
                   : `
                     border-dashed
-                    border-gray-300
-                    bg-gray-50/60
-                    hover:border-gray-400
-                    hover:bg-gray-50
-                    dark:border-gray-700
-                    dark:bg-gray-800/40
-                    dark:hover:border-gray-600
-                    dark:hover:bg-gray-800/70
+                    border-[var(--border)]
+                    bg-[var(--surface-raised)]
+                    hover:border-[var(--primary)]/50
+                    hover:bg-[var(--surface)]
                   `
               }
               ${
@@ -775,7 +760,7 @@ const FileUploadModal = ({
                   pointer-events-none
                   absolute
                   inset-0
-                  bg-blue-500/[0.04]
+                  bg-[var(--accent-subtle)]
                 "
               />
             )}
@@ -808,23 +793,19 @@ const FileUploadModal = ({
                     dragActive
                       ? `
                         scale-110
-                        bg-blue-500
-                        text-white
+                        bg-[var(--primary)]
+                        text-[var(--primary-foreground)]
                         shadow-lg
-                        shadow-blue-500/25
+                        shadow-[color:rgba(15,156,143,0.2)]
                       `
                       : `
-                        bg-white
-                        text-gray-400
+                        bg-[var(--surface)]
+                        text-[var(--text-secondary)]
                         shadow-sm
                         ring-1
-                        ring-gray-200
+                        ring-[var(--border)]
                         group-hover:-translate-y-0.5
-                        group-hover:text-blue-500
-                        dark:bg-gray-800
-                        dark:text-gray-500
-                        dark:ring-gray-700
-                        dark:group-hover:text-blue-400
+                        group-hover:text-[var(--primary)]
                       `
                   }
                 `}
@@ -840,8 +821,7 @@ const FileUploadModal = ({
                 className="
                   text-sm
                   font-semibold
-                  text-gray-800
-                  dark:text-gray-100
+                  text-[var(--text-primary)]
                 "
               >
                 {dragActive
@@ -853,8 +833,7 @@ const FileUploadModal = ({
                 className="
                   mt-1
                   text-[11px]
-                  text-gray-500
-                  dark:text-gray-400
+                  text-[var(--text-secondary)]
                 "
               >
                 or choose files from your computer
@@ -872,27 +851,27 @@ const FileUploadModal = ({
                   items-center
                   gap-1.5
                   rounded-lg
-                  bg-blue-600
+                  bg-[var(--primary)]
                   px-3.5
                   py-2
                   text-xs
                   font-medium
-                  text-white
+                  text-[var(--primary-foreground)]
                   shadow-sm
-                  shadow-blue-600/20
+                  shadow-[color:rgba(15,156,143,0.16)]
                   transition-all
                   duration-200
                   hover:-translate-y-px
-                  hover:bg-blue-700
+                  hover:bg-[var(--primary-hover)]
                   hover:shadow-md
                   active:translate-y-0
                   disabled:pointer-events-none
                   disabled:opacity-50
                   focus:outline-none
                   focus-visible:ring-2
-                  focus-visible:ring-blue-500
+                  focus-visible:ring-[var(--ring)]
                   focus-visible:ring-offset-2
-                  dark:focus-visible:ring-offset-gray-900
+                  focus-visible:ring-offset-[var(--surface)]
                 "
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -1237,10 +1216,8 @@ const FileUploadModal = ({
                 overflow-hidden
                 rounded-xl
                 border
-                border-blue-200
-                bg-blue-50/70
-                dark:border-blue-900/60
-                dark:bg-blue-950/20
+                border-[var(--primary)]/30
+                bg-[var(--accent-subtle)]
               "
             >
               <div className="flex items-center gap-3 px-3 py-2.5">
@@ -1253,10 +1230,8 @@ const FileUploadModal = ({
                     items-center
                     justify-center
                     rounded-lg
-                    bg-blue-500/10
-                    text-blue-500
-                    dark:bg-blue-500/15
-                    dark:text-blue-400
+                    bg-[var(--accent)]
+                    text-[var(--primary)]
                   "
                 >
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1267,8 +1242,7 @@ const FileUploadModal = ({
                     className="
                       text-[11px]
                       font-semibold
-                      text-blue-800
-                      dark:text-blue-200
+                      text-[var(--text-primary)]
                     "
                   >
                     Processing files
@@ -1279,8 +1253,7 @@ const FileUploadModal = ({
                       mt-0.5
                       truncate
                       text-[9px]
-                      text-blue-600
-                      dark:text-blue-400
+                      text-[var(--text-secondary)]
                     "
                   >
                     Preparing {selectedCount}{" "}
@@ -1292,13 +1265,13 @@ const FileUploadModal = ({
                 </div>
               </div>
 
-              <div className="h-0.5 w-full overflow-hidden bg-blue-100 dark:bg-blue-950">
+              <div className="h-0.5 w-full overflow-hidden bg-[var(--border)]">
                 <div
                   className="
                     h-full
                     w-1/3
                     animate-[fileUploadProgress_1.4s_ease-in-out_infinite]
-                    bg-blue-500
+                    bg-[var(--primary)]
                   "
                 />
               </div>
@@ -1381,11 +1354,9 @@ const FileUploadModal = ({
             flex-col-reverse
             gap-2
             border-t
-            border-gray-200/80
-            bg-gray-50/70
+            border-[var(--border)]
+            bg-[var(--surface-raised)]
             p-3
-            dark:border-gray-800
-            dark:bg-gray-900
             sm:flex-row
             sm:items-center
             sm:justify-end
@@ -1405,30 +1376,25 @@ const FileUploadModal = ({
               justify-center
               rounded-lg
               border
-              border-gray-200
-              bg-white
+              border-[var(--border)]
+              bg-[var(--surface)]
               px-3
               py-2
               text-xs
               font-medium
-              text-gray-600
+              text-[var(--text-secondary)]
               transition-all
               duration-150
-              hover:bg-gray-50
-              hover:text-gray-900
+              hover:bg-[var(--surface-raised)]
+              hover:text-[var(--text-primary)]
               active:scale-[0.99]
               disabled:pointer-events-none
               disabled:opacity-50
-              dark:border-gray-700
-              dark:bg-gray-800
-              dark:text-gray-300
-              dark:hover:bg-gray-750
-              dark:hover:text-white
               sm:flex-none
               sm:min-w-[100px]
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-blue-500
+              focus-visible:ring-[var(--ring)]
             "
           >
             Cancel
@@ -1449,18 +1415,18 @@ const FileUploadModal = ({
               justify-center
               gap-1.5
               rounded-lg
-              bg-blue-600
+              bg-[var(--primary)]
               px-3
               py-2
               text-xs
               font-medium
-              text-white
+              text-[var(--primary-foreground)]
               shadow-sm
-              shadow-blue-600/15
+              shadow-[color:rgba(15,156,143,0.16)]
               transition-all
               duration-200
               hover:-translate-y-px
-              hover:bg-blue-700
+              hover:bg-[var(--primary-hover)]
               hover:shadow-md
               active:translate-y-0
               disabled:pointer-events-none
@@ -1470,9 +1436,9 @@ const FileUploadModal = ({
               sm:min-w-[125px]
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-blue-500
+              focus-visible:ring-[var(--ring)]
               focus-visible:ring-offset-2
-              dark:focus-visible:ring-offset-gray-900
+              focus-visible:ring-offset-[var(--surface)]
             "
           >
             {uploading ? (

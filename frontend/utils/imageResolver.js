@@ -64,9 +64,11 @@ export const getDefaultAvatar = (type = "ai") => {
   return resolveImagePath("images/offyai.png");
 };
 
-export default {
+const imageResolver = {
   resolveImagePath,
   fileToDataURL,
   getDefaultAvatar,
   isElectron,
 };
+
+export default imageResolver;

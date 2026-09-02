@@ -1,9 +1,15 @@
+//sidebar.js
+/* The Electron-resolved app and profile images are dynamic URLs. */
+/* eslint-disable @next/next/no-img-element */
 import React, {
   useState,
   useEffect,
   useMemo,
   useRef,
+  useCallback,
+  memo,
 } from "react";
+import { createPortal } from "react-dom";
 
 import {
   MessageSquare,
@@ -30,7 +36,7 @@ import {
 import { useTheme } from "../../contexts/ThemeContext";
 import { useModel } from "../../contexts/ModelContext";
 
-const Sidebar = ({
+const Sidebar = memo(function Sidebar({ 
   currentView,
   onViewChange,
   isConnected,
@@ -46,7 +52,7 @@ const Sidebar = ({
   onSettingsOpen,
   onModelUploadOpen,
   onChangeModel,
-}) => {
+}) {
   /* ====================================================================== */
   /* STATE                                                                  */
   /* ====================================================================== */
@@ -54,6 +60,7 @@ const Sidebar = ({
   const [appIcon, setAppIcon] = useState(null);
 
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [openMenuPosition, setOpenMenuPosition] = useState(null);
 
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -142,6 +149,7 @@ const Sidebar = ({
   useEffect(() => {
     if (!isExpanded) {
       setOpenMenuId(null);
+      setOpenMenuPosition(null);
       setDeleteTarget(null);
       setRenameTargetId(null);
       setRenameValue("");
@@ -152,7 +160,7 @@ const Sidebar = ({
   /* MODEL                                                                  */
   /* ====================================================================== */
 
-  const formatModelName = (model) => {
+  const formatModelName = useCallback((model) => {
     if (!model) {
       return "No model";
     }
@@ -165,13 +173,13 @@ const Sidebar = ({
       .replace(/\s+/g, " ")
       .trim()
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  };
+  }, []);
 
   const modelName = useMemo(() => {
     return currentModel
       ? formatModelName(currentModel)
       : "No model";
-  }, [currentModel]);
+  }, [currentModel, formatModelName]);
 
   const hasModel =
     Boolean(currentModel) && modelName !== "No model";
@@ -200,18 +208,21 @@ const Sidebar = ({
   /* NAVIGATION                                                             */
   /* ====================================================================== */
 
-  const menuItems = [
-    {
-      id: "chat",
-      label: "Chat",
-      icon: MessageSquare,
-    },
-    {
-      id: "metrics",
-      label: "Analytics",
-      icon: BarChart3,
-    },
-  ];
+  const menuItems = useMemo(
+    () => [
+      {
+        id: "chat",
+        label: "Chat",
+        icon: MessageSquare,
+      },
+      {
+        id: "metrics",
+        label: "Analytics",
+        icon: BarChart3,
+      },
+    ],
+    []
+  );
 
   /* ====================================================================== */
   /* TIME                                                                   */
@@ -306,7 +317,7 @@ const Sidebar = ({
   /* THREE-DOT MENU                                                         */
   /* ====================================================================== */
 
-  const toggleChatMenu = (event, session) => {
+  const toggleChatMenu = useCallback((event, session) => {
     event.stopPropagation();
 
     setDeleteTarget(null);
@@ -316,16 +327,35 @@ const Sidebar = ({
       setRenameValue("");
     }
 
+    const buttonElement = event.currentTarget;
+    const buttonRect = buttonElement?.getBoundingClientRect();
+    const menuWidth = 176;
+    const menuHeight = 220;
+    const gap = 4;
+    const menuPosition = buttonRect
+      ? {
+          left: Math.min(
+            Math.max(8, buttonRect.right - menuWidth),
+            window.innerWidth - menuWidth - 8
+          ),
+          top:
+            buttonRect.bottom + menuHeight + gap <= window.innerHeight
+              ? buttonRect.bottom + gap
+              : Math.max(8, buttonRect.top - menuHeight - gap),
+        }
+      : null;
+
     setOpenMenuId((current) =>
       current === session.id ? null : session.id
     );
-  };
+    setOpenMenuPosition(menuPosition);
+  }, [renameTargetId]);
 
   /* ====================================================================== */
   /* SHARE                                                                  */
   /* ====================================================================== */
 
-  const handleShareChat = async (event, session) => {
+  const handleShareChat = useCallback(async (event, session) => {
     event.stopPropagation();
 
     setOpenMenuId(null);
@@ -412,13 +442,13 @@ const Sidebar = ({
         console.error("Failed to share chat:", error);
       }
     }
-  };
+  }, []);
 
   /* ====================================================================== */
   /* RENAME                                                                 */
   /* ====================================================================== */
 
-  const beginRename = (event, session) => {
+  const beginRename = useCallback((event, session) => {
     event.stopPropagation();
 
     setOpenMenuId(null);
@@ -426,16 +456,16 @@ const Sidebar = ({
 
     setRenameTargetId(session.id);
     setRenameValue(getSessionTitle(session));
-  };
+  }, []);
 
-  const cancelRename = (event) => {
+  const cancelRename = useCallback((event) => {
     event?.stopPropagation();
 
     setRenameTargetId(null);
     setRenameValue("");
-  };
+  }, []);
 
-  const confirmRename = (event, session) => {
+  const confirmRename = useCallback((event, session) => {
     event.stopPropagation();
 
     const nextTitle = renameValue.trim();
@@ -450,7 +480,7 @@ const Sidebar = ({
 
     setRenameTargetId(null);
     setRenameValue("");
-  };
+  }, [onRenameChat, renameValue]);
 
   useEffect(() => {
     if (renameTargetId !== null) {
@@ -465,7 +495,7 @@ const Sidebar = ({
   /* PIN                                                                    */
   /* ====================================================================== */
 
-  const togglePin = (event, session) => {
+  const togglePin = useCallback((event, session) => {
     event.stopPropagation();
 
     setOpenMenuId(null);
@@ -473,13 +503,13 @@ const Sidebar = ({
     if (typeof onTogglePinChat === "function") {
       onTogglePinChat(session.id);
     }
-  };
+  }, [onTogglePinChat]);
 
   /* ====================================================================== */
   /* DELETE                                                                 */
   /* ====================================================================== */
 
-  const requestDelete = (event, session) => {
+  const requestDelete = useCallback((event, session) => {
     event.stopPropagation();
 
     setOpenMenuId(null);
@@ -487,15 +517,15 @@ const Sidebar = ({
     setRenameValue("");
 
     setDeleteTarget(session);
-  };
+  }, []);
 
-  const cancelDelete = (event) => {
+  const cancelDelete = useCallback((event) => {
     event?.stopPropagation();
 
     setDeleteTarget(null);
-  };
+  }, []);
 
-  const confirmDelete = (event, session) => {
+  const confirmDelete = useCallback((event, session) => {
     event.stopPropagation();
 
     if (typeof onDeleteChat === "function") {
@@ -503,14 +533,16 @@ const Sidebar = ({
     }
 
     setDeleteTarget(null);
-  };
+  }, [onDeleteChat]);
 
   /* ====================================================================== */
   /* LOGO                                                                   */
   /* ====================================================================== */
 
-  const logoSrc =
-    appIcon || "images/offyai.png";
+  const logoSrc = useMemo(
+    () => appIcon || "images/offyai.png",
+    [appIcon]
+  );
 
   /* ====================================================================== */
   /* RENDER                                                                 */
@@ -529,11 +561,8 @@ const Sidebar = ({
         overflow-hidden
         border-r
         backdrop-blur-xl
-        ${
-          isDark
-            ? "border-gray-800/90 bg-gray-950"
-            : "border-gray-200/80 bg-white"
-        }
+        border-[var(--sidebar-border)]
+        bg-[var(--sidebar-bg)]
       `}
     >
       {/* ================================================================== */}
@@ -549,11 +578,7 @@ const Sidebar = ({
           py-2.5
           sm:px-3
           sm:py-3
-          ${
-            isDark
-              ? "border-gray-800/90"
-              : "border-gray-200/80"
-          }
+          border-[var(--sidebar-border)]
         `}
       >
         {isExpanded ? (
@@ -572,11 +597,8 @@ const Sidebar = ({
                   rounded-[9px]
                   shadow-sm
                   ring-1
-                  ${
-                    isDark
-                      ? "bg-gray-800 ring-white/[0.08]"
-                      : "bg-gray-50 ring-black/[0.06]"
-                  }
+                  bg-[var(--surface-raised)]
+                  ring-[var(--border)]
                 `}
               >
                 <img
@@ -595,8 +617,7 @@ const Sidebar = ({
                     text-sm
                     font-semibold
                     tracking-tight
-                    text-gray-900
-                    dark:text-white
+                    text-[var(--text-primary)]
                   "
                 >
                   OffyAI
@@ -668,18 +689,15 @@ const Sidebar = ({
                 items-center
                 justify-center
                 rounded-lg
-                text-gray-500
+                text-[var(--text-secondary)]
                 transition-all
                 duration-200
-                hover:bg-gray-100
-                hover:text-gray-900
+                hover:bg-[var(--sidebar-hover)]
+                hover:text-[var(--text-primary)]
                 active:scale-95
-                dark:text-gray-400
-                dark:hover:bg-gray-800
-                dark:hover:text-white
                 focus:outline-none
                 focus-visible:ring-2
-                focus-visible:ring-blue-500
+                focus-visible:ring-[var(--ring)]
               "
             >
               <ChevronLeft
@@ -710,7 +728,7 @@ const Sidebar = ({
               justify-center
               overflow-hidden
               rounded-[10px]
-              bg-gray-50
+              bg-[var(--surface-raised)]
               shadow-sm
               ring-1
               ring-black/[0.06]
@@ -719,12 +737,9 @@ const Sidebar = ({
               hover:scale-[1.04]
               hover:shadow-md
               active:scale-95
-              dark:bg-gray-800
-              dark:ring-white/[0.08]
-              dark:hover:bg-gray-750
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-blue-500
+              focus-visible:ring-[var(--ring)]
             "
           >
             <img
@@ -764,11 +779,7 @@ const Sidebar = ({
               py-2
               transition-all
               duration-200
-              ${
-                isDark
-                  ? "border-gray-800 bg-gray-900/70 hover:border-blue-900/60 hover:bg-blue-950/20"
-                  : "border-gray-200/80 bg-gray-50/80 hover:border-blue-200 hover:bg-blue-50/50"
-              }
+              border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/50 hover:bg-[var(--surface-raised)]
             `}
           >
             <div
@@ -780,9 +791,8 @@ const Sidebar = ({
                 items-center
                 justify-center
                 rounded-md
-                bg-blue-500/10
-                text-blue-500
-                dark:bg-blue-500/15
+                bg-[var(--accent-subtle)]
+                text-[var(--primary)]
               "
             >
               <Cpu
@@ -806,7 +816,7 @@ const Sidebar = ({
                     font-semibold
                     uppercase
                     tracking-wider
-                    text-blue-500/70
+                    text-[var(--text-secondary)]
                   "
                 >
                   Model
@@ -818,8 +828,7 @@ const Sidebar = ({
                     truncate
                     text-[11px]
                     font-medium
-                    text-gray-700
-                    dark:text-gray-200
+                    text-[var(--text-primary)]
                   "
                 >
                   {isLoading
@@ -837,7 +846,7 @@ const Sidebar = ({
                   shrink-0
                   animate-pulse
                   rounded-full
-                  bg-blue-500
+                  bg-[var(--primary)]
                 "
               />
             )}
@@ -865,25 +874,25 @@ const Sidebar = ({
             gap-2
             overflow-hidden
             rounded-lg
-            bg-blue-600
+            bg-[var(--primary)]
             px-2.5
             py-2
             text-sm
             font-medium
-            text-white
+            text-[var(--primary-foreground)]
             shadow-sm
-            shadow-blue-600/10
+            shadow-[color:rgba(15,156,143,0.16)]
             transition-all
             duration-200
             hover:-translate-y-px
-            hover:bg-blue-700
+            hover:bg-[var(--primary-hover)]
             hover:shadow-md
             active:translate-y-0
             focus:outline-none
             focus-visible:ring-2
-            focus-visible:ring-blue-500
+            focus-visible:ring-[var(--ring)]
             focus-visible:ring-offset-2
-            dark:focus-visible:ring-offset-gray-950
+            focus-visible:ring-offset-[var(--sidebar-bg)]
           "
         >
           <Plus
@@ -952,25 +961,20 @@ const Sidebar = ({
                 ${
                   isActive
                     ? `
-                      bg-blue-50
+                      bg-[var(--accent-subtle)]
                       font-medium
-                      text-blue-700
+                      text-[var(--primary)]
                       shadow-sm
-                      dark:bg-blue-900/30
-                      dark:text-blue-300
                     `
                     : `
-                      text-gray-600
-                      hover:bg-gray-100
-                      hover:text-gray-900
-                      dark:text-gray-400
-                      dark:hover:bg-gray-800
-                      dark:hover:text-gray-100
+                      text-[var(--text-secondary)]
+                      hover:bg-[var(--sidebar-hover)]
+                      hover:text-[var(--text-primary)]
                     `
                 }
                 focus:outline-none
                 focus-visible:ring-2
-                focus-visible:ring-blue-500
+                focus-visible:ring-[var(--ring)]
               `}
             >
               {isActive && (
@@ -983,7 +987,7 @@ const Sidebar = ({
                     w-0.5
                     -translate-y-1/2
                     rounded-r-full
-                    bg-blue-500
+                    bg-[var(--primary)]
                   "
                 />
               )}
@@ -997,7 +1001,7 @@ const Sidebar = ({
                   duration-200
                   ${
                     isActive
-                      ? "text-blue-600 dark:text-blue-400"
+                      ? "text-[var(--primary)]"
                       : "group-hover:scale-105"
                   }
                 `}
@@ -1231,11 +1235,9 @@ const Sidebar = ({
                           ${
                             isActive
                               ? `
-                                border-blue-200/60
-                                bg-blue-50
+                                border-[var(--primary)]/40
+                                bg-[var(--accent-subtle)]
                                 shadow-sm
-                                dark:border-blue-900/50
-                                dark:bg-blue-900/25
                               `
                               : `
                                 border-transparent
@@ -1247,7 +1249,7 @@ const Sidebar = ({
                           }
                           focus:outline-none
                           focus-visible:ring-2
-                          focus-visible:ring-blue-500
+                          focus-visible:ring-[var(--ring)]
                         `}
                       >
                         {/* Active indicator */}
@@ -1260,7 +1262,7 @@ const Sidebar = ({
                               h-5
                               w-0.5
                               rounded-r-full
-                              bg-blue-500
+                              bg-[var(--primary)]
                             "
                           />
                         )}
@@ -1279,10 +1281,8 @@ const Sidebar = ({
                               ${
                                 isActive
                                   ? `
-                                    bg-blue-100
-                                    text-blue-600
-                                    dark:bg-blue-900/50
-                                    dark:text-blue-400
+                                    bg-[var(--accent)]
+                                    text-[var(--primary)]
                                   `
                                   : `
                                     bg-gray-100
@@ -1322,7 +1322,7 @@ const Sidebar = ({
                                 font-medium
                                 ${
                                   isActive
-                                    ? "text-blue-700 dark:text-blue-300"
+                                    ? "text-[var(--primary)]"
                                     : "text-gray-700 dark:text-gray-200"
                                 }
                               `}
@@ -1341,7 +1341,7 @@ const Sidebar = ({
                                 text-[9px]
                                 ${
                                   isActive
-                                    ? "text-blue-500 dark:text-blue-400"
+                                    ? "text-[var(--primary)]"
                                     : "text-gray-400 dark:text-gray-500"
                                 }
                               `}
@@ -1397,25 +1397,21 @@ const Sidebar = ({
                               ${
                                 isMenuOpen
                                   ? `
-                                    bg-gray-200
-                                    text-gray-800
-                                    dark:bg-gray-700
-                                    dark:text-white
+                                    bg-[var(--accent-subtle)]
+                                    text-[var(--primary)]
                                   `
                                   : `
-                                    text-gray-400
+                                    text-[var(--text-secondary)]
                                     opacity-0
                                     group-hover:opacity-100
-                                    hover:bg-gray-200
-                                    hover:text-gray-700
-                                    dark:hover:bg-gray-700
-                                    dark:hover:text-gray-100
+                                    hover:bg-[var(--sidebar-hover)]
+                                    hover:text-[var(--text-primary)]
                                   `
                               }
                               focus:opacity-100
                               focus:outline-none
                               focus-visible:ring-2
-                              focus-visible:ring-blue-500
+                              focus-visible:ring-[var(--ring)]
                             `}
                           >
                             <MoreHorizontal className="h-4 w-4" />
@@ -1427,41 +1423,22 @@ const Sidebar = ({
                       {/* CONTEXT MENU                                        */}
                       {/* ================================================== */}
 
-                      {isMenuOpen && !isDeleting && (
+                      {isMenuOpen && !isDeleting && openMenuPosition && typeof document !== "undefined" && createPortal(
                         <div
-                          role="menu"
-                          className={`
-                            absolute
-                            right-1
-                            top-[calc(100%-2px)]
-                            z-50
-                            w-44
-                            overflow-hidden
-                            rounded-xl
-                            border
-                            p-1
-                            shadow-2xl
-                            ring-1
-                            backdrop-blur-xl
-                            ${
-                              isDark
-                                ? `
-                                  border-gray-700/80
-                                  bg-gray-900/95
-                                  shadow-black/40
-                                  ring-white/[0.04]
-                                `
-                                : `
-                                  border-gray-200
-                                  bg-white/95
-                                  shadow-black/10
-                                  ring-black/[0.03]
-                                `
+                          ref={(element) => {
+                            if (element) {
+                              menuRefs.current.openMenu = element;
+                            } else {
+                              delete menuRefs.current.openMenu;
                             }
-                          `}
-                          onClick={(event) =>
-                            event.stopPropagation()
-                          }
+                          }}
+                          role="menu"
+                          style={{
+                            top: `${openMenuPosition.top}px`,
+                            left: `${openMenuPosition.left}px`,
+                          }}
+                          className="fixed z-[60] w-44 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-2xl shadow-black/20 ring-1 ring-[var(--border)] backdrop-blur-xl"
+                          onClick={(event) => event.stopPropagation()}
                         >
                           {/* Menu heading */}
                           <div
@@ -1473,8 +1450,7 @@ const Sidebar = ({
                               font-semibold
                               uppercase
                               tracking-wider
-                              text-gray-400
-                              dark:text-gray-500
+                              text-[var(--text-secondary)]
                             "
                           >
                             Chat options
@@ -1502,10 +1478,9 @@ const Sidebar = ({
                               text-left
                               text-[11px]
                               font-medium
-                              text-gray-700
+                              text-[var(--text-primary)]
                               transition-colors
                               hover:bg-gray-100
-                              dark:text-gray-200
                               dark:hover:bg-gray-800
                             "
                           >
@@ -1518,8 +1493,8 @@ const Sidebar = ({
                                 items-center
                                 justify-center
                                 rounded-md
-                                bg-blue-500/10
-                                text-blue-500
+                                bg-[var(--accent-subtle)]
+                                text-[var(--primary)]
                               "
                             >
                               {shareStatuses[
@@ -1562,10 +1537,9 @@ const Sidebar = ({
                               text-left
                               text-[11px]
                               font-medium
-                              text-gray-700
+                              text-[var(--text-primary)]
                               transition-colors
                               hover:bg-gray-100
-                              dark:text-gray-200
                               dark:hover:bg-gray-800
                             "
                           >
@@ -1613,10 +1587,9 @@ const Sidebar = ({
                               text-left
                               text-[11px]
                               font-medium
-                              text-gray-700
+                              text-[var(--text-primary)]
                               transition-colors
                               hover:bg-gray-100
-                              dark:text-gray-200
                               dark:hover:bg-gray-800
                             "
                           >
@@ -1706,7 +1679,8 @@ const Sidebar = ({
                               Delete chat
                             </span>
                           </button>
-                        </div>
+                        </div>,
+                        document.body
                       )}
 
                       {/* ================================================== */}
@@ -1720,12 +1694,10 @@ const Sidebar = ({
                             overflow-hidden
                             rounded-xl
                             border
-                            border-blue-200/70
-                            bg-blue-50/70
+                            border-[var(--primary)]/30
+                            bg-[var(--accent-subtle)]
                             p-2
                             shadow-sm
-                            dark:border-blue-900/60
-                            dark:bg-blue-950/20
                           "
                           onClick={(event) =>
                             event.stopPropagation()
@@ -1738,7 +1710,7 @@ const Sidebar = ({
                               font-semibold
                               uppercase
                               tracking-wider
-                              text-blue-500
+                              text-[var(--primary)]
                             "
                           >
                             Rename chat
@@ -1777,22 +1749,18 @@ const Sidebar = ({
                               min-w-0
                               rounded-lg
                               border
-                              border-gray-200
-                              bg-white
+                              border-[var(--border)]
+                              bg-[var(--surface)]
                               px-2.5
                               py-2
                               text-[11px]
-                              text-gray-800
+                              text-[var(--text-primary)]
                               outline-none
                               transition
-                              placeholder:text-gray-400
-                              focus:border-blue-400
+                              placeholder:text-[var(--text-secondary)]
+                              focus:border-[var(--ring)]
                               focus:ring-2
-                              focus:ring-blue-500/10
-                              dark:border-gray-700
-                              dark:bg-gray-900
-                              dark:text-gray-100
-                              dark:placeholder:text-gray-500
+                              focus:ring-[var(--ring)]/20
                             "
                           />
 
@@ -1816,14 +1784,14 @@ const Sidebar = ({
                                 justify-center
                                 gap-1
                                 rounded-lg
-                                bg-blue-600
+                                bg-[var(--primary)]
                                 px-2
                                 py-1.5
                                 text-[10px]
                                 font-medium
-                                text-white
+                                text-[var(--primary-foreground)]
                                 transition-all
-                                hover:bg-blue-700
+                                hover:bg-[var(--primary-hover)]
                                 disabled:cursor-not-allowed
                                 disabled:opacity-40
                               "
@@ -1844,19 +1812,15 @@ const Sidebar = ({
                                 gap-1
                                 rounded-lg
                                 border
-                                border-gray-200
-                                bg-white
+                                border-[var(--border)]
+                                bg-[var(--surface)]
                                 px-2
                                 py-1.5
                                 text-[10px]
                                 font-medium
-                                text-gray-600
+                                text-[var(--text-secondary)]
                                 transition-colors
-                                hover:bg-gray-50
-                                dark:border-gray-700
-                                dark:bg-gray-900
-                                dark:text-gray-300
-                                dark:hover:bg-gray-800
+                                hover:bg-[var(--surface-raised)]
                               "
                             >
                               <X className="h-3 w-3" />
@@ -1870,7 +1834,7 @@ const Sidebar = ({
                       {/* DELETE CONFIRMATION                                 */}
                       {/* ================================================== */}
 
-                      {isDeleting && (
+                      {false && (
                         <div
                           className={`
                             relative
@@ -2089,7 +2053,7 @@ const Sidebar = ({
               }
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-blue-500
+              focus-visible:ring-[var(--ring)]
             `}
           >
             <Upload
@@ -2115,7 +2079,7 @@ const Sidebar = ({
             type="button"
             onClick={onChangeModel || onSettingsOpen}
             title={!isExpanded ? "Change model" : undefined}
-            className={`group flex min-w-0 w-full items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 text-sm text-blue-600 transition-all duration-200 hover:bg-blue-50 hover:text-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40 dark:hover:text-blue-300 ${!isExpanded ? "justify-center px-2" : ""} focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
+            className={`group flex min-w-0 w-full items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 text-sm text-[var(--text-secondary)] transition-all duration-200 hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)] ${!isExpanded ? "justify-center px-2" : ""} focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]`}
           >
             <Cpu className="h-3.5 w-3.5 shrink-0" />
             {isExpanded && (
@@ -2144,14 +2108,11 @@ const Sidebar = ({
               px-3
               py-2
               text-sm
-              text-gray-600
+              text-[var(--text-secondary)]
               transition-all
               duration-200
-              hover:bg-gray-100
-              hover:text-gray-900
-              dark:text-gray-400
-              dark:hover:bg-gray-800
-              dark:hover:text-gray-100
+              hover:bg-[var(--sidebar-hover)]
+              hover:text-[var(--text-primary)]
               ${
                 !isExpanded
                   ? "justify-center px-2"
@@ -2159,7 +2120,7 @@ const Sidebar = ({
               }
               focus:outline-none
               focus-visible:ring-2
-              focus-visible:ring-blue-500
+              focus-visible:ring-[var(--ring)]
             `}
           >
             <Settings
@@ -2190,9 +2151,9 @@ const Sidebar = ({
               group flex min-w-0 w-full items-center gap-2.5 overflow-hidden rounded-lg px-3 py-2 text-sm transition-all duration-200
               ${!isExpanded ? "justify-center px-2" : ""}
               ${currentView === "help"
-                ? "bg-blue-50 font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"}
-              focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
+                ? "bg-[var(--accent-subtle)] font-medium text-[var(--primary)]"
+                : "text-[var(--text-secondary)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--text-primary)]"}
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]
             `}
           >
             <HelpCircle className="h-3.5 w-3.5 shrink-0" />
@@ -2202,8 +2163,64 @@ const Sidebar = ({
           </button>
         </div>
       </footer>
+
+      {deleteTarget && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+          role="presentation"
+          onClick={cancelDelete}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-chat-title"
+            className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-500">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 id="delete-chat-title" className="text-sm font-semibold text-[var(--text-primary)]">
+                  Delete this chat?
+                </h2>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--text-secondary)]">
+                  This conversation will be permanently removed.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={cancelDelete}
+                aria-label="Close"
+                className="rounded-md p-1 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={cancelDelete}
+                className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={(event) => confirmDelete(event, deleteTarget)}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-500 px-3 py-2 text-xs font-medium text-white transition-all hover:bg-red-600 hover:shadow-md"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </aside>
   );
-};
+});
 
 export default Sidebar;

@@ -1,7 +1,9 @@
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 export const DEFAULT_MODEL = "offyai";
 export const DEFAULT_CONTEXT_LENGTH = 1024;
-export const METRICS_UPDATE_INTERVAL = 3000;
+// Keep the polling loop responsive but low-cost: this app already has a
+// status refresh at 5s, so a 5s metrics cadence avoids unnecessary CPU and IPC churn.
+export const METRICS_UPDATE_INTERVAL = 5000;
 export const CHAT_HISTORY_KEY = "offyai_chat_history";
 export const SETTINGS_KEY = "offyai_settings";
 export const WELCOME_SEEN_KEY = "offyai_welcome_seen_v1";

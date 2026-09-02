@@ -8,9 +8,8 @@ import {
 } from "recharts";
 
 const COLORS = [
-  "#0ea5e9",
+  "#0f9c8f",
   "#10b981",
-  "#8b5cf6",
   "#f59e0b",
   "#ef4444",
 ];
@@ -38,13 +37,13 @@ export const DonutChart = ({
     validData.length === 0
   ) {
     return (
-      <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-colors duration-200">
+        <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
           {title}
         </h3>
 
-        <div className="h-64 flex items-center justify-center">
-          <div className="text-gray-500 text-sm">
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-sm text-[var(--text-secondary)]">
             No data available
           </div>
         </div>
@@ -53,8 +52,8 @@ export const DonutChart = ({
   }
 
   return (
-    <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm transition-colors duration-200">
+      <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
         {title}
       </h3>
 
@@ -105,18 +104,19 @@ export const DonutChart = ({
                 name,
               ]}
               contentStyle={{
-                backgroundColor:
-                  "#1f2937",
-                border:
-                  "1px solid #374151",
+                backgroundColor: "var(--surface)",
+                border: "1px solid var(--border)",
                 borderRadius:
                   "8px",
-                color:
-                  "#f9fafb",
+                color: "var(--text-primary)",
               }}
             />
 
-            <Legend />
+            <Legend
+              wrapperStyle={{
+                color: "var(--text-secondary)",
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>

@@ -1,3 +1,5 @@
+/* Model preview URLs may be local Electron paths or data URLs. */
+/* eslint-disable @next/next/no-img-element */
 import React, {
   useCallback,
   useEffect,
@@ -11,7 +13,6 @@ import {
   Cpu,
   AlertCircle,
   CheckCircle2,
-  FileUp,
   HardDrive,
   Loader2,
   FileCode2,
@@ -23,6 +24,10 @@ import {
   MemoryStick,
   Gauge,
   Settings2,
+  Download,
+  ChevronRight,
+  Compass,
+  Layers,
 } from "lucide-react";
 
 import { useModel } from "../../contexts/ModelContext";
@@ -89,7 +94,7 @@ const RECOMMENDATION_GOALS = [
 ];
 
 /* ==========================================================================
-   Helpers
+   Helpers (unchanged logic)
    ========================================================================== */
 
 const formatFileSize = (bytes) => {
@@ -449,181 +454,101 @@ const normalizeRecommendationResults = (items, goalId) => {
 };
 
 /* ==========================================================================
-   Small UI Components
+   Small UI primitives
    ========================================================================== */
 
-const StatusMessage = ({
-  type,
-  title,
-  message,
-}) => {
+const StatusMessage = ({ type, title, message }) => {
   const isError = type === "error";
 
   return (
     <div
       className={[
-        "relative overflow-hidden rounded-2xl border p-4",
-        "animate-[fadeIn_180ms_ease-out]",
-        "backdrop-blur-xl",
+        "flex items-start gap-3 border-l-2 px-4 py-3",
         isError
-          ? "border-red-400/15 bg-red-500/[0.055]"
-          : "border-emerald-400/15 bg-emerald-500/[0.055]",
+          ? "border-l-red-400 bg-red-500/[0.07]"
+          : "border-l-emerald-400 bg-emerald-500/[0.07]",
       ].join(" ")}
       role={isError ? "alert" : "status"}
     >
-      <div
-        className={[
-          "absolute inset-y-0 left-0 w-[2px]",
-          isError
-            ? "bg-red-400/70"
-            : "bg-emerald-400/70",
-        ].join(" ")}
-      />
+      {isError ? (
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+      ) : (
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+      )}
 
-      <div className="flex items-start gap-3">
-        <div
+      <div className="min-w-0">
+        <p
           className={[
-            "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border",
-            isError
-              ? "border-red-400/10 bg-red-500/10"
-              : "border-emerald-400/10 bg-emerald-500/10",
+            "text-[12px] font-medium",
+            isError ? "text-red-200" : "text-emerald-200",
           ].join(" ")}
         >
-          {isError ? (
-            <AlertCircle className="h-4 w-4 text-red-400" />
-          ) : (
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-          )}
-        </div>
-
-        <div className="min-w-0 pt-0.5">
-          <p
-            className={[
-              "text-sm font-semibold tracking-tight",
-              isError
-                ? "text-red-200"
-                : "text-emerald-200",
-            ].join(" ")}
-          >
-            {title}
-          </p>
-
-          <p
-            className={[
-              "mt-1 text-xs leading-relaxed",
-              isError
-                ? "text-red-200/60"
-                : "text-emerald-200/60",
-            ].join(" ")}
-          >
-            {message}
-          </p>
-        </div>
+          {title}
+        </p>
+        <p
+          className={[
+            "mt-0.5 text-[11px] leading-relaxed",
+            isError ? "text-red-200/60" : "text-emerald-200/60",
+          ].join(" ")}
+        >
+          {message}
+        </p>
       </div>
     </div>
   );
 };
 
-const FeaturePill = ({
-  icon,
-  children,
-}) => {
-  return (
-    <div
-      className="
-        inline-flex
-        items-center
-        gap-1.5
-        rounded-full
-        border
-        border-white/[0.07]
-        bg-white/[0.025]
-        px-2.5
-        py-1.5
-        text-[10px]
-        font-medium
-        tracking-wide
-        text-gray-500
-        shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]
-        transition-all
-        duration-150
-        hover:border-white/[0.12]
-        hover:bg-white/[0.045]
-        hover:text-gray-300
-      "
-    >
+const StatChip = ({ icon, label, value, accent }) => (
+  <div className="rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-2.5">
+    <div className="flex items-center gap-1.5 text-[9px] font-medium text-[var(--text-secondary)]">
       {icon}
-      <span>{children}</span>
+      {label}
     </div>
-  );
-};
+    <p
+      className={[
+        "mt-1.5 truncate font-mono text-[12px] font-medium",
+        accent || "text-[var(--text-primary)]",
+      ].join(" ")}
+      title={typeof value === "string" ? value : undefined}
+    >
+      {value}
+    </p>
+  </div>
+);
+
+const DownloadPauseIcon = () => (
+  <div className="flex items-center gap-1">
+    <span className="h-3.5 w-1 rounded-sm bg-teal-300" />
+    <span className="h-3.5 w-1 rounded-sm bg-teal-300" />
+  </div>
+);
 
 /* ==========================================================================
    OFFYAI Logo
    ========================================================================== */
 
-const OffyaiLogo = ({
-  src = DEFAULT_LOGO_SRC,
-  size = "md",
-  className = "",
-}) => {
+const OffyaiLogo = ({ src = DEFAULT_LOGO_SRC, size = "md", className = "" }) => {
   const sizeClasses = {
     sm: "h-8 w-8",
-    md: "h-10 w-10",
+    md: "h-9 w-9",
     lg: "h-14 w-14",
-    xl: "h-16 w-16",
   };
 
-  const imageSize =
-    sizeClasses[size] || sizeClasses.md;
+  const imageSize = sizeClasses[size] || sizeClasses.md;
 
   return (
     <div
       className={[
-        "relative flex shrink-0 items-center justify-center overflow-hidden",
-        "rounded-[14px]",
-        "border border-white/[0.09]",
-        "bg-white/[0.045]",
-        "shadow-[0_8px_30px_rgba(0,0,0,0.18)]",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.04]",
         imageSize,
         className,
       ].join(" ")}
     >
-      <div
-        className="
-          pointer-events-none
-          absolute
-          inset-[-35%]
-          rounded-full
-          bg-blue-500/[0.10]
-          blur-2xl
-        "
-      />
-
-      <div
-        className="
-          pointer-events-none
-          absolute
-          inset-0
-          rounded-[14px]
-          bg-gradient-to-br
-          from-white/[0.07]
-          via-transparent
-          to-transparent
-        "
-      />
-
       <img
         src={src}
         alt="OFFYAI"
         draggable="false"
-        className="
-          relative
-          h-[68%]
-          w-[68%]
-          object-contain
-          select-none
-        "
+        className="relative h-[64%] w-[64%] select-none object-contain"
       />
     </div>
   );
@@ -662,7 +587,7 @@ const ModelUploadModal = ({
     useState(false);
 
   const [activeTab, setActiveTab] =
-    useState("local");
+    useState("browse");
 
   const [recommendationGoal, setRecommendationGoal] =
     useState("general");
@@ -1488,7 +1413,6 @@ const ModelUploadModal = ({
         downloadingRecommendation,
         refreshModels,
         onUploadSuccess,
-        setActiveModel,
         onOpenSettings,
       ]
     );
@@ -1739,7 +1663,6 @@ const ModelUploadModal = ({
       selectedFile,
       uploading,
       refreshModels,
-      setActiveModel,
       onOpenSettings,
       onUploadSuccess,
       onClose,
@@ -1835,2860 +1758,893 @@ const ModelUploadModal = ({
 
   const fitModel = fitRecommendation || selectedRecommendation;
   const fitFile = getModelFile(fitModel);
+  const isBusyDownload = downloadingRecommendation || downloadPaused;
+
+  const TABS = [
+    { id: "browse", label: "Browse open models", icon: Compass },
+    { id: "local", label: "Import local", icon: Upload },
+  ];
 
   return (
     <div
-      className="
-        fixed
-        inset-0
-        z-[100]
-        flex
-        items-center
-        justify-center
-        p-2
-        sm:p-4
-      "
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3"
       role="presentation"
       onMouseDown={(event) => {
-        if (
-          event.target ===
-          event.currentTarget
-        ) {
+        if (event.target === event.currentTarget) {
           handleClose();
         }
       }}
     >
-      {/* ====================================================================
-          Backdrop
-          ==================================================================== */}
+      {/* Backdrop */}
+      <div className="model-upload-backdrop absolute inset-0 bg-[#040507]/85 backdrop-blur-md" />
 
+      {/* Modal shell -- sized to use nearly the full viewport */}
       <div
-        className="
-          absolute
-          inset-0
-          bg-black/85
-          backdrop-blur-2xl
-        "
-      />
-
-      {/* ====================================================================
-          Modal
-          ==================================================================== */}
-
-      <div
-        className="
-          relative
-          flex
-          h-[min(94vh,940px)]
-          w-full
-          max-w-[calc(100vw-1rem)]
-          flex-col
-          overflow-hidden
-          rounded-[28px]
-          border
-          border-white/[0.085]
-          bg-[#090d12]/[0.98]
-          shadow-[0_35px_120px_rgba(0,0,0,0.78)]
-          ring-1
-          ring-white/[0.035]
-          animate-[modalIn_180ms_ease-out]
-          sm:max-w-[980px]
-        "
+        className="model-upload-modal relative flex h-[92vh] w-[96vw] max-w-[1360px] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--background)] shadow-[0_30px_100px_rgba(0,0,0,0.18)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="model-upload-title"
         aria-describedby="model-upload-description"
-        onMouseDown={(event) => {
-          event.stopPropagation();
-        }}
+        onMouseDown={(event) => event.stopPropagation()}
       >
         {/* ==================================================================
-            Top accent
+            Header — logo, tabs and close all in one compact row
             ================================================================== */}
-
-        <div
-          className="
-            pointer-events-none
-            absolute
-            inset-x-10
-            top-0
-            z-10
-            h-px
-            bg-gradient-to-r
-            from-transparent
-            via-blue-400/80
-            to-transparent
-          "
-        />
-
-        {/* ==================================================================
-            Ambient lighting
-            ================================================================== */}
-
-        <div
-          className="
-            pointer-events-none
-            absolute
-            -right-44
-            -top-44
-            h-[360px]
-            w-[360px]
-            rounded-full
-            bg-blue-500/[0.065]
-            blur-[110px]
-          "
-        />
-
-        <div
-          className="
-            pointer-events-none
-            absolute
-            -left-44
-            top-[45%]
-            h-[340px]
-            w-[340px]
-            rounded-full
-            bg-indigo-500/[0.035]
-            blur-[110px]
-          "
-        />
-
-        {/* ==================================================================
-            Header
-            ================================================================== */}
-
-        <header
-          className="
-            relative
-            flex
-            shrink-0
-            items-center
-            justify-between
-            border-b
-            border-white/[0.065]
-            bg-white/[0.012]
-            px-4
-            py-4
-            sm:px-6
-            sm:py-5
-          "
-        >
-          <div className="flex min-w-0 items-center gap-3.5">
-            <OffyaiLogo
-              src={logoSrc}
-              size="md"
-            />
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-3">
+            <OffyaiLogo src={logoSrc} size="sm" />
 
             <div className="min-w-0">
-              <div className="flex items-center gap-2.5">
-                <h2
-                  id="model-upload-title"
-                  className="
-                    truncate
-                    text-[15px]
-                    font-semibold
-                    tracking-[-0.015em]
-                    text-white
-                    sm:text-[16px]
-                  "
-                >
-                  {activeTab === "browse"
-                    ? "Model library"
-                    : "Add local model"}
-                </h2>
-
-                <span
-                  className="
-                    hidden
-                    items-center
-                    rounded-full
-                    border
-                    border-blue-400/10
-                    bg-blue-500/[0.055]
-                    px-2
-                    py-0.5
-                    text-[8px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.14em]
-                    text-blue-300/70
-                    sm:inline-flex
-                  "
-                >
-                  OFFYAI
-                </span>
-              </div>
-
+              <h2
+                id="model-upload-title"
+                className="truncate text-[14px] font-semibold tracking-[-0.01em] text-[var(--text-primary)]"
+              >
+                {activeTab === "browse" ? "Model library" : "Add local model"}
+              </h2>
               <p
                 id="model-upload-description"
-                className="
-                  mt-1.5
-                  max-w-[520px]
-                  truncate
-                  text-[10px]
-                  leading-none
-                  text-gray-500
-                  sm:text-[11px]
-                "
+                className="truncate text-[10.5px] text-[var(--text-secondary)]"
               >
                 {activeTab === "browse"
-                  ? "Browse open model hubs and install a model matched to your hardware"
-                  : "Import a local GGUF, BIN, or GGML model into OFFYAI"}
+                  ? "Search open model hubs and install what fits your hardware"
+                  : "Import a GGUF, BIN, or GGML file from your machine"}
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={
-              uploading ||
-              selecting
-            }
-            className="
-              ml-4
-              flex
-              h-9
-              w-9
-              shrink-0
-              items-center
-              justify-center
-              rounded-xl
-              border
-              border-transparent
-              text-gray-500
-              transition-all
-              duration-150
-              hover:border-white/[0.07]
-              hover:bg-white/[0.05]
-              hover:text-gray-100
-              focus:outline-none
-              focus:ring-2
-              focus:ring-blue-500/30
-              disabled:cursor-not-allowed
-              disabled:opacity-40
-            "
-            aria-label="Close upload dialog"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-
-        {/* ==================================================================
-            Body
-            ================================================================== */}
-
-        <main
-          className="
-            relative
-            min-h-0
-            flex-1
-            overflow-y-auto
-            custom-scrollbar
-            overscroll-contain
-            p-3
-            sm:p-4
-          "
-        >
-          <div className="mx-auto w-full max-w-[920px] space-y-4">
-            {/* ================================================================
-                Tabs
-                ================================================================ */}
-
-            <div
-              className="
-                relative
-                grid
-                grid-cols-2
-                gap-1
-                rounded-2xl
-                border
-                border-white/[0.065]
-                bg-[#0e141b]/90
-                p-1.5
-                shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_12px_35px_rgba(0,0,0,0.12)]
-              "
-            >
-              {[
-                {
-                  id: "local",
-                  label: "Import local",
-                  icon: Upload,
-                },
-                {
-                  id: "browse",
-                  label: "Browse open models",
-                  icon: Sparkles,
-                },
-              ].map((tab) => {
+          <div className="flex shrink-0 items-center gap-2">
+            <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-0.5">
+              {TABS.map((tab) => {
                 const TabIcon = tab.icon;
+                const active = activeTab === tab.id;
 
                 return (
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() =>
-                      setActiveTab(
-                        tab.id
-                      )
-                    }
+                    onClick={() => setActiveTab(tab.id)}
                     className={[
-                      "group flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[10px] font-semibold transition-all duration-200 sm:text-[11px]",
-                      activeTab ===
-                      tab.id
-                        ? "bg-gradient-to-r from-blue-600 via-blue-600 to-indigo-600 text-white shadow-[0_8px_28px_rgba(59,130,246,0.22)]"
-                        : "text-gray-500 hover:bg-white/[0.035] hover:text-gray-200",
+                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-medium transition-colors",
+                      active
+                        ? "bg-[var(--accent-subtle)] text-[var(--primary)]"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]",
                     ].join(" ")}
                   >
-                    <TabIcon
-                      className={[
-                        "h-3.5 w-3.5 transition-colors",
-                        activeTab ===
-                        tab.id
-                          ? "text-blue-100"
-                          : "text-gray-600 group-hover:text-gray-300",
-                      ].join(" ")}
-                    />
-
-                    {tab.label}
+                    <TabIcon className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* ================================================================
-                Status messages
-                ================================================================ */}
-
-            {error && (
-              <StatusMessage
-                type="error"
-                title="Unable to continue"
-                message={error}
-              />
-            )}
-
-            {success && (
-              <StatusMessage
-                type="success"
-                title="Model imported"
-                message={success}
-              />
-            )}
-
-            {/* ================================================================
-                Download progress
-                ================================================================ */}
-
-            {(downloadingRecommendation ||
-              downloadPaused) &&
-              downloadProgress && (
-                <section
-                  className="
-                    relative
-                    overflow-hidden
-                    rounded-[20px]
-                    border
-                    border-blue-400/15
-                    bg-gradient-to-br
-                    from-blue-500/[0.075]
-                    via-blue-500/[0.035]
-                    to-indigo-500/[0.025]
-                    p-4
-                    shadow-[0_16px_50px_rgba(37,99,235,0.08)]
-                  "
-                  role="status"
-                  aria-live="polite"
-                >
-                  <div
-                    className="
-                      pointer-events-none
-                      absolute
-                      -right-16
-                      -top-16
-                      h-32
-                      w-32
-                      rounded-full
-                      bg-blue-500/[0.08]
-                      blur-3xl
-                    "
-                  />
-
-                  <div className="relative">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div
-                          className="
-                            flex
-                            h-9
-                            w-9
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-xl
-                            border
-                            border-blue-400/15
-                            bg-blue-500/[0.10]
-                          "
-                        >
-                          {downloadPaused ? (
-                            <DownloadPauseIcon />
-                          ) : (
-                            <Loader2 className="h-4 w-4 animate-spin text-blue-300" />
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-semibold text-blue-50">
-                            {downloadPaused
-                              ? "Download paused"
-                              : downloadProgress.percent ===
-                                100
-                              ? "Finalizing installation..."
-                              : "Downloading model..."}
-                          </p>
-
-                          <p
-                            className="
-                              mt-1
-                              truncate
-                              text-[10px]
-                              text-blue-200/50
-                            "
-                            title={
-                              downloadProgress.fileName
-                            }
-                          >
-                            {downloadProgress.fileName ||
-                              "Preparing model file"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <span
-                        className="
-                          shrink-0
-                          rounded-full
-                          border
-                          border-blue-300/10
-                          bg-blue-400/[0.06]
-                          px-2.5
-                          py-1
-                          text-[10px]
-                          font-semibold
-                          tabular-nums
-                          text-blue-100
-                        "
-                      >
-                        {Number.isFinite(
-                          downloadProgress.percent
-                        )
-                          ? `${downloadProgress.percent}%`
-                          : "Starting"}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-blue-950/70 ring-1 ring-white/[0.025]">
-                      <div
-                        className="
-                          h-full
-                          rounded-full
-                          bg-gradient-to-r
-                          from-blue-600
-                          via-blue-400
-                          to-indigo-400
-                          shadow-[0_0_18px_rgba(59,130,246,0.45)]
-                          transition-[width]
-                          duration-300
-                        "
-                        style={{
-                          width: `${
-                            Number.isFinite(
-                              downloadProgress.percent
-                            )
-                              ? downloadProgress.percent
-                              : 3
-                          }%`,
-                        }}
-                      />
-                    </div>
-
-                    <div
-                      className="
-                        mt-2.5
-                        flex
-                        flex-wrap
-                        justify-between
-                        gap-x-3
-                        gap-y-1
-                        text-[9px]
-                        text-blue-200/50
-                      "
-                    >
-                      <span>
-                        {formatFileSize(
-                          downloadProgress.receivedBytes ||
-                            0
-                        )}
-                        {Number.isFinite(
-                          downloadProgress.totalBytes
-                        )
-                          ? ` of ${formatFileSize(
-                              downloadProgress.totalBytes
-                            )}`
-                          : " received"}
-                      </span>
-
-                      <span>
-                        {formatTransferRate(
-                          downloadProgress.bytesPerSecond
-                        )}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {downloadPaused ? (
-                        <button
-                          type="button"
-                          onClick={
-                            resumeModelDownload
-                          }
-                          className="
-                            rounded-lg
-                            bg-blue-500
-                            px-3
-                            py-2
-                            text-[10px]
-                            font-semibold
-                            text-white
-                            shadow-[0_6px_18px_rgba(59,130,246,0.2)]
-                            transition
-                            hover:bg-blue-400
-                          "
-                        >
-                          Resume download
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={
-                            pauseModelDownload
-                          }
-                          disabled={
-                            !downloadingRecommendation
-                          }
-                          className="
-                            rounded-lg
-                            border
-                            border-blue-300/15
-                            bg-white/[0.045]
-                            px-3
-                            py-2
-                            text-[10px]
-                            font-semibold
-                            text-blue-100
-                            transition
-                            hover:bg-white/[0.08]
-                            disabled:opacity-50
-                          "
-                        >
-                          Pause
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={
-                          cancelModelDownload
-                        }
-                        className="
-                          rounded-lg
-                          border
-                          border-red-300/15
-                          bg-red-500/[0.07]
-                          px-3
-                          py-2
-                          text-[10px]
-                          font-semibold
-                          text-red-200
-                          transition
-                          hover:bg-red-500/[0.14]
-                        "
-                      >
-                        Cancel and remove
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-            {/* =================================================================
-                Browse models
-                ================================================================= */}
-
-            {activeTab === "browse" && (
-              <div className="min-h-0 w-full">
-                <div className="space-y-4">
-                  {/* Search panel */}
-
-                  <section
-                    className="
-                      relative
-                      overflow-hidden
-                      rounded-[22px]
-                      border
-                      border-white/[0.075]
-                      bg-[#0e151d]/95
-                      p-3.5
-                      shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_50px_rgba(0,0,0,0.12)]
-                      sm:p-4
-                    "
-                  >
-                    <div
-                      className="
-                        pointer-events-none
-                        absolute
-                        -right-24
-                        -top-24
-                        h-48
-                        w-48
-                        rounded-full
-                        bg-blue-500/[0.045]
-                        blur-3xl
-                      "
-                    />
-
-                    <div className="relative">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-semibold text-gray-200">
-                            Find your next model
-                          </p>
-
-                          <p className="mt-1 text-[9px] text-gray-600">
-                            Recommendations are ranked for your selected use case.
-                          </p>
-                        </div>
-
-                        <div
-                          className="
-                            hidden
-                            h-8
-                            w-8
-                            items-center
-                            justify-center
-                            rounded-xl
-                            border
-                            border-blue-400/10
-                            bg-blue-500/[0.06]
-                            sm:flex
-                          "
-                        >
-                          <Search className="h-3.5 w-3.5 text-blue-300" />
-                        </div>
-                      </div>
-
-                      <div className="mb-3 flex flex-wrap gap-1.5">
-                        {RECOMMENDATION_GOALS.map(
-                          (goal) => (
-                            <button
-                              key={goal.id}
-                              type="button"
-                              onClick={() => {
-                                setRecommendationGoal(
-                                  goal.id
-                                );
-
-                                setRecommendationQuery(
-                                  ""
-                                );
-
-                                void populateRecommendations(
-                                  goal.id,
-                                  ""
-                                );
-                              }}
-                              className={[
-                                "rounded-full border px-2.5 py-1.5 text-[9px] font-medium tracking-wide transition-all",
-                                recommendationGoal ===
-                                goal.id
-                                  ? "border-blue-400/25 bg-blue-500/[0.11] text-blue-200 shadow-[0_4px_14px_rgba(59,130,246,0.08)]"
-                                  : "border-white/[0.07] bg-white/[0.015] text-gray-500 hover:border-white/[0.11] hover:bg-white/[0.035] hover:text-gray-200",
-                              ].join(" ")}
-                            >
-                              {goal.label}
-                            </button>
-                          )
-                        )}
-                      </div>
-
-                      <div className="flex gap-2">
-                        <div className="relative min-w-0 flex-1">
-                          <Search
-                            className="
-                              pointer-events-none
-                              absolute
-                              left-3
-                              top-1/2
-                              h-3.5
-                              w-3.5
-                              -translate-y-1/2
-                              text-gray-600
-                            "
-                          />
-
-                          <input
-                            type="text"
-                            value={
-                              recommendationQuery
-                            }
-                            onChange={(
-                              event
-                            ) =>
-                              setRecommendationQuery(
-                                event.target.value
-                              )
-                            }
-                            onKeyDown={(
-                              event
-                            ) => {
-                              if (
-                                event.key ===
-                                "Enter"
-                              ) {
-                                void populateRecommendations(
-                                  recommendationGoal,
-                                  recommendationQuery
-                                );
-                              }
-                            }}
-                            placeholder="Search models, families, or quantization"
-                            className="
-                              h-10
-                              w-full
-                              rounded-xl
-                              border
-                              border-white/[0.075]
-                              bg-[#090e14]
-                              pl-9
-                              pr-3
-                              text-[10px]
-                              text-white
-                              placeholder:text-gray-600
-                              outline-none
-                              transition
-                              focus:border-blue-500/40
-                              focus:bg-[#0b1118]
-                              focus:ring-2
-                              focus:ring-blue-500/[0.07]
-                            "
-                          />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            void populateRecommendations(
-                              recommendationGoal,
-                              recommendationQuery
-                            )
-                          }
-                          disabled={
-                            recommendationsLoading
-                          }
-                          className="
-                            flex
-                            h-10
-                            shrink-0
-                            items-center
-                            gap-1.5
-                            rounded-xl
-                            border
-                            border-blue-400/15
-                            bg-blue-600
-                            px-3.5
-                            text-[10px]
-                            font-semibold
-                            text-white
-                            shadow-[0_8px_22px_rgba(37,99,235,0.18)]
-                            transition-all
-                            hover:bg-blue-500
-                            hover:shadow-[0_10px_28px_rgba(37,99,235,0.24)]
-                            disabled:cursor-not-allowed
-                            disabled:opacity-50
-                          "
-                        >
-                          {recommendationsLoading ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Search className="h-3.5 w-3.5" />
-                          )}
-
-                          <span className="hidden sm:inline">
-                            {recommendationsLoading
-                              ? "Searching..."
-                              : "Find model"}
-                          </span>
-                        </button>
-                      </div>
-
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                        <label className="min-w-0">
-                          <span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-gray-600">
-                            Quantization
-                          </span>
-                          <select
-                            value={quantizationFilter}
-                            onChange={(event) =>
-                              setQuantizationFilter(event.target.value)
-                            }
-                            className="h-9 w-full rounded-xl border border-white/[0.075] bg-[#090e14] px-2.5 text-[10px] text-gray-300 outline-none focus:border-blue-500/40 focus:ring-2 focus:ring-blue-500/[0.07]"
-                          >
-                            <option value="all">All available</option>
-                            {availableQuantizations.map((label) => (
-                              <option key={label} value={label}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-
-                        <label className="min-w-0">
-                          <span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.12em] text-gray-600">
-                            Parameters
-                          </span>
-                          <select
-                            value={parameterFilter}
-                            onChange={(event) =>
-                              setParameterFilter(event.target.value)
-                            }
-                            className="h-9 w-full rounded-xl border border-white/[0.075] bg-[#090e14] px-2.5 text-[10px] text-gray-300 outline-none focus:border-blue-500/40 focus:ring-2 focus:ring-blue-500/[0.07]"
-                          >
-                            <option value="all">All sizes</option>
-                            {availableParameters.map((label) => (
-                              <option key={label} value={label}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </div>
-
-                      <p className="mt-2 text-[9px] text-gray-600">
-                        Showing {filteredRecommendations.length} of {recommendations.length} model repositories. Default selection favors the highest-quality available file.
-                      </p>
-                    </div>
-                  </section>
-
-                  {recommendationError && (
-                    <StatusMessage
-                      type="error"
-                      title="Recommendation search failed"
-                      message={
-                        recommendationError
-                      }
-                    />
-                  )}
-
-                  {recommendationsLoading ? (
-                    <div
-                      className="
-                        rounded-[22px]
-                        border
-                        border-white/[0.065]
-                        bg-[#0e141b]/90
-                        p-8
-                        text-center
-                      "
-                    >
-                      <div
-                        className="
-                          mx-auto
-                          flex
-                          h-12
-                          w-12
-                          items-center
-                          justify-center
-                          rounded-2xl
-                          border
-                          border-blue-400/10
-                          bg-blue-500/[0.06]
-                        "
-                      >
-                        <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
-                      </div>
-
-                      <p className="mt-4 text-[12px] font-medium text-gray-300">
-                        Finding compatible models
-                      </p>
-
-                      <p className="mx-auto mt-1.5 max-w-sm text-[10px] leading-relaxed text-gray-600">
-                        Loading model recommendations from open model sources...
-                      </p>
-                    </div>
-                  ) : filteredRecommendations.length ===
-                    0 ? (
-                    <div
-                      className="
-                        rounded-[22px]
-                        border
-                        border-dashed
-                        border-white/[0.075]
-                        bg-[#0c1218]/80
-                        p-8
-                        text-center
-                      "
-                    >
-                      <div
-                        className="
-                          mx-auto
-                          flex
-                          h-12
-                          w-12
-                          items-center
-                          justify-center
-                          rounded-2xl
-                          border
-                          border-white/[0.06]
-                          bg-white/[0.02]
-                        "
-                      >
-                        <Search className="h-5 w-5 text-gray-600" />
-                      </div>
-
-                      <p className="mt-4 text-[12px] font-medium text-gray-300">
-                        No matching models
-                      </p>
-
-                      <p className="mx-auto mt-1.5 max-w-sm text-[10px] leading-relaxed text-gray-600">
-                        Try a broader search or select another use case.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="custom-scrollbar max-h-[48vh] space-y-3 overflow-y-auto pr-1">
-                      {filteredRecommendations.map(
-                        (model, index) => (
-                          <div
-                            key={`${model.source || "source"}-${model.id}-${model.recommendedFile}`}
-                            className={[
-                              "group relative overflow-hidden rounded-[20px] border p-3.5 transition-all duration-200 sm:p-4",
-                              selectedRecommendation?.id ===
-                              model.id
-                                ? "border-blue-400/25 bg-gradient-to-br from-blue-500/[0.055] to-indigo-500/[0.02] shadow-[0_14px_45px_rgba(37,99,235,0.07)]"
-                                : "border-white/[0.065] bg-[#0d141b]/90 hover:border-white/[0.105] hover:bg-[#101821]",
-                            ].join(" ")}
-                          >
-                            <div
-                              className="
-                                pointer-events-none
-                                absolute
-                                -right-20
-                                -top-20
-                                h-40
-                                w-40
-                                rounded-full
-                                bg-blue-500/[0.025]
-                                blur-3xl
-                                transition
-                                group-hover:bg-blue-500/[0.045]
-                              "
-                            />
-
-                            <div className="relative">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex min-w-0 flex-1 items-start gap-3">
-                                  <div
-                                    className="
-                                      flex
-                                      h-9
-                                      w-9
-                                      shrink-0
-                                      items-center
-                                      justify-center
-                                      rounded-xl
-                                      border
-                                      border-blue-400/10
-                                      bg-blue-500/[0.07]
-                                      shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
-                                    "
-                                  >
-                                    <Sparkles className="h-3.5 w-3.5 text-blue-400" />
-                                  </div>
-
-                                  <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                      {index ===
-                                        0 && (
-                                        <span
-                                          className="
-                                            rounded-full
-                                            border
-                                            border-emerald-400/10
-                                            bg-emerald-500/[0.055]
-                                            px-1.5
-                                            py-0.5
-                                            text-[7px]
-                                            font-semibold
-                                            uppercase
-                                            tracking-[0.12em]
-                                            text-emerald-300/80
-                                          "
-                                        >
-                                          Best match
-                                        </span>
-                                      )}
-
-                                      <p className="min-w-0 truncate text-[12px] font-semibold text-gray-100">
-                                        {model.name}
-                                      </p>
-                                    </div>
-
-                                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[9px] text-gray-500">
-                                      <span
-                                        className="
-                                          rounded-full
-                                          border
-                                          border-white/[0.05]
-                                          bg-white/[0.025]
-                                          px-1.5
-                                          py-0.5
-                                          uppercase
-                                          tracking-[0.12em]
-                                          text-gray-400
-                                        "
-                                      >
-                                        {String(
-                                          model.source ||
-                                            "hub"
-                                        )}
-                                      </span>
-
-                                      <span className="truncate">
-                                        {model.id}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex shrink-0 items-center gap-1.5">
-                                  {getInstalledModel(
-                                    model,
-                                    availableModels
-                                  ) && (
-                                    <span
-                                      className="
-                                        rounded-full
-                                        border
-                                        border-emerald-400/15
-                                        bg-emerald-500/[0.055]
-                                        px-2
-                                        py-1
-                                        text-[8px]
-                                        font-semibold
-                                        uppercase
-                                        tracking-[0.08em]
-                                        text-emerald-300
-                                      "
-                                    >
-                                      Installed
-                                    </span>
-                                  )}
-
-                                  <div
-                                    className="
-                                      rounded-full
-                                      border
-                                      border-blue-400/15
-                                      bg-blue-500/[0.055]
-                                      px-2
-                                      py-1
-                                      text-[9px]
-                                      font-semibold
-                                      text-blue-200
-                                    "
-                                  >
-                                    {model.score}%
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.055]">
-                                <div
-                                  className="
-                                    h-full
-                                    rounded-full
-                                    bg-gradient-to-r
-                                    from-emerald-500
-                                    via-blue-500
-                                    to-indigo-500
-                                  "
-                                  style={{
-                                    width: `${model.score}%`,
-                                  }}
-                                />
-                              </div>
-
-                              <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-                                <div
-                                  className="
-                                    rounded-lg
-                                    border
-                                    border-white/[0.05]
-                                    bg-white/[0.018]
-                                    px-2
-                                    py-1.5
-                                  "
-                                >
-                                  <p className="truncate text-[8px] text-gray-600">
-                                    FILE
-                                  </p>
-                                  <p
-                                    className="mt-0.5 truncate text-[9px] font-medium text-gray-400"
-                                    title={
-                                      model.fileLabel ||
-                                      model.recommendedFile
-                                    }
-                                  >
-                                    {model.fileLabel ||
-                                      model.recommendedFile ||
-                                      "GGUF file"}
-                                  </p>
-                                </div>
-
-                                <div
-                                  className="
-                                    rounded-lg
-                                    border
-                                    border-white/[0.05]
-                                    bg-white/[0.018]
-                                    px-2
-                                    py-1.5
-                                  "
-                                >
-                                  <p className="text-[8px] text-gray-600">
-                                    SIZE
-                                  </p>
-                                  <p className="mt-0.5 text-[9px] font-medium text-gray-400">
-                                    {getModelFile(
-                                      model
-                                    )?.sizeBytes
-                                      ? formatFileSize(
-                                          getModelFile(
-                                            model
-                                          ).sizeBytes
-                                        )
-                                      : "Pending"}
-                                  </p>
-                                </div>
-
-                                <div
-                                  className="
-                                    rounded-lg
-                                    border
-                                    border-emerald-400/10
-                                    bg-emerald-500/[0.025]
-                                    px-2
-                                    py-1.5
-                                  "
-                                >
-                                  <p className="text-[8px] text-emerald-400/50">
-                                    QUANT
-                                  </p>
-                                  <p className="mt-0.5 text-[9px] font-medium text-emerald-300">
-                                    {getQuantizationLabel(
-                                      model.recommendedFile
-                                    )}
-                                  </p>
-                                </div>
-
-                                <div
-                                  className="
-                                    rounded-lg
-                                    border
-                                    border-white/[0.05]
-                                    bg-white/[0.018]
-                                    px-2
-                                    py-1.5
-                                  "
-                                >
-                                  <p className="text-[8px] text-gray-600">
-                                    DOWNLOADS
-                                  </p>
-                                  <p className="mt-0.5 text-[9px] font-medium text-gray-400">
-                                    {model.downloads?.toLocaleString?.() ||
-                                      0}
-                                  </p>
-                                </div>
-
-                                <div
-                                  className="
-                                    rounded-lg
-                                    border
-                                    border-white/[0.05]
-                                    bg-white/[0.018]
-                                    px-2
-                                    py-1.5
-                                  "
-                                >
-                                  <p className="text-[8px] text-gray-600">
-                                    LIKES
-                                  </p>
-                                  <p className="mt-0.5 text-[9px] font-medium text-gray-400">
-                                    {model.likes?.toLocaleString?.() ||
-                                      0}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div className="mt-3 flex items-center justify-between gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    void selectRecommendationVariant(
-                                      model,
-                                      model.recommendedFile
-                                    );
-
-                                    setShowAdvancedFiles(
-                                      false
-                                    );
-                                  }}
-                                  className="
-                                    rounded-lg
-                                    border
-                                    border-white/[0.075]
-                                    bg-white/[0.02]
-                                    px-3
-                                    py-2
-                                    text-[10px]
-                                    font-medium
-                                    text-gray-400
-                                    transition
-                                    hover:border-white/[0.11]
-                                    hover:bg-white/[0.045]
-                                    hover:text-gray-200
-                                  "
-                                >
-                                  View details
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    void handleBrowseModelDownload(
-                                      model
-                                    )
-                                  }
-                                  disabled={
-                                    downloadingRecommendation
-                                  }
-                                  className="
-                                    inline-flex
-                                    items-center
-                                    gap-1.5
-                                    rounded-lg
-                                    border
-                                    border-blue-400/15
-                                    bg-blue-600
-                                    px-3.5
-                                    py-2
-                                    text-[10px]
-                                    font-semibold
-                                    text-white
-                                    shadow-[0_7px_20px_rgba(37,99,235,0.16)]
-                                    transition
-                                    hover:bg-blue-500
-                                    hover:shadow-[0_9px_24px_rgba(37,99,235,0.22)]
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-50
-                                  "
-                                >
-                                  {downloadingRecommendation &&
-                                  selectedRecommendation?.id ===
-                                    model.id ? (
-                                    <>
-                                      <Loader2 className="h-3 w-3 animate-spin" />
-                                      Downloading...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-3 w-3" />
-                                      Download
-                                    </>
-                                  )}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* =============================================================
-                    Model fit modal
-                    ============================================================= */}
-
-                {fitRecommendation && (
-                  <div
-                    className="
-                      fixed
-                      inset-0
-                      z-[120]
-                      flex
-                      items-center
-                      justify-center
-                      bg-black/75
-                      p-2
-                      backdrop-blur-xl
-                      sm:p-5
-                    "
-                    role="presentation"
-                    onMouseDown={(event) => {
-                      if (
-                        event.target ===
-                        event.currentTarget
-                      ) {
-                        setFitRecommendation(
-                          null
-                        );
-                      }
-                    }}
-                  >
-                    <aside
-                      className="
-                        relative
-                        max-h-[calc(100vh-1rem)]
-                        w-full
-                        max-w-[960px]
-                        overflow-y-auto
-                        rounded-[24px]
-                        border
-                        border-white/[0.10]
-                        bg-[#0d1219]
-                        shadow-[0_35px_120px_rgba(0,0,0,0.78)]
-                        custom-scrollbar
-                        sm:max-h-[calc(100vh-2.5rem)]
-                      "
-                    >
-                      <div
-                        className="
-                          pointer-events-none
-                          absolute
-                          inset-x-8
-                          top-0
-                          h-px
-                          bg-gradient-to-r
-                          from-transparent
-                          via-blue-400/70
-                          to-transparent
-                        "
-                      />
-
-                      <div
-                        className="
-                          pointer-events-none
-                          absolute
-                          -right-32
-                          -top-32
-                          h-64
-                          w-64
-                          rounded-full
-                          bg-blue-500/[0.045]
-                          blur-[90px]
-                        "
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setFitRecommendation(
-                            null
-                          )
-                        }
-                        className="
-                          absolute
-                          right-3
-                          top-3
-                          z-10
-                          flex
-                          h-8
-                          w-8
-                          items-center
-                          justify-center
-                          rounded-lg
-                          border
-                          border-transparent
-                          text-gray-600
-                          transition
-                          hover:border-white/[0.06]
-                          hover:bg-white/[0.05]
-                          hover:text-white
-                        "
-                        aria-label="Close model fit"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-
-                      {fitModel ? (
-                        <div className="relative p-4 sm:p-6">
-                          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)]">
-                            {/* =================================================
-                                Left
-                                ================================================= */}
-
-                            <div className="min-w-0">
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className="
-                                        inline-flex
-                                        h-7
-                                        w-7
-                                        items-center
-                                        justify-center
-                                        rounded-lg
-                                        border
-                                        border-blue-400/10
-                                        bg-blue-500/[0.07]
-                                      "
-                                    >
-                                      <Sparkles className="h-3.5 w-3.5 text-blue-300" />
-                                    </span>
-
-                                    <p
-                                      className="
-                                        text-[9px]
-                                        font-semibold
-                                        uppercase
-                                        tracking-[0.18em]
-                                        text-blue-300/65
-                                      "
-                                    >
-                                      Model fit
-                                    </p>
-                                  </div>
-
-                                  <h3
-                                    className="
-                                      mt-3
-                                      break-words
-                                      text-[17px]
-                                      font-semibold
-                                      tracking-[-0.015em]
-                                      text-white
-                                    "
-                                  >
-                                    {
-                                      fitModel.name
-                                    }
-                                  </h3>
-
-                                  <p className="mt-1 break-all text-[10px] text-gray-600">
-                                    {
-                                      fitModel.id
-                                    }
-                                  </p>
-
-                                  <p
-                                    className="mt-2 truncate text-[10px] font-medium text-blue-200/80"
-                                    title={fitModel.fileLabel || fitModel.recommendedFile}
-                                  >
-                                    {fitModel.fileLabel || fitModel.recommendedFile || "Model file unavailable"}
-                                  </p>
-                                </div>
-
-                                <span
-                                  className="
-                                    shrink-0
-                                    rounded-full
-                                    border
-                                    border-emerald-400/15
-                                    bg-emerald-500/[0.06]
-                                    px-2.5
-                                    py-1.5
-                                    text-[10px]
-                                    font-semibold
-                                    text-emerald-300
-                                  "
-                                >
-                                  {
-                                    fitModel.score
-                                  }
-                                  % match
-                                </span>
-                              </div>
-
-                              <p className="mt-5 max-w-xl text-[11px] leading-[1.75] text-gray-500">
-                                Recommended for{" "}
-                                {getGoalConfig(
-                                  recommendationGoal
-                                ).label.toLowerCase()}{" "}
-                                on this device. The selected quantization provides a practical balance between model quality, memory usage, and local performance.
-                              </p>
-
-                              {/* Stats */}
-
-                              <div className="mt-5 grid grid-cols-2 gap-2">
-                                <div
-                                  className="
-                                    rounded-2xl
-                                    border
-                                    border-white/[0.06]
-                                    bg-white/[0.022]
-                                    p-3.5
-                                  "
-                                >
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-blue-400/10 bg-blue-500/[0.07]">
-                                    <HardDrive className="h-4 w-4 text-blue-300" />
-                                  </div>
-
-                                  <p className="mt-3 text-[8px] font-semibold uppercase tracking-[0.14em] text-gray-600">
-                                    Download
-                                  </p>
-
-                                  <p className="mt-1 text-[12px] font-semibold text-gray-100">
-                                    {resolvingFileMetadata
-                                      ? "Checking..."
-                                      : fitFile?.sizeBytes
-                                      ? formatFileSize(
-                                          fitFile.sizeBytes
-                                        )
-                                      : "Unavailable"}
-                                  </p>
-                                </div>
-
-                                <div
-                                  className="
-                                    rounded-2xl
-                                    border
-                                    border-white/[0.06]
-                                    bg-white/[0.022]
-                                    p-3.5
-                                  "
-                                >
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-emerald-400/10 bg-emerald-500/[0.07]">
-                                    <MemoryStick className="h-4 w-4 text-emerald-300" />
-                                  </div>
-
-                                  <p className="mt-3 text-[8px] font-semibold uppercase tracking-[0.14em] text-gray-600">
-                                    Memory
-                                  </p>
-
-                                  <p className="mt-1 text-[12px] font-semibold text-gray-100">
-                                    {resolvingFileMetadata
-                                      ? "Calculating..."
-                                      : getMemoryRequirement(
-                                          fitFile?.sizeBytes
-                                        )}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Performance */}
-
-                              <div
-                                className="
-                                  mt-3
-                                  rounded-2xl
-                                  border
-                                  border-white/[0.06]
-                                  bg-white/[0.018]
-                                  p-3.5
-                                "
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-400/10 bg-amber-400/[0.05]">
-                                    <Gauge className="h-4 w-4 text-amber-300" />
-                                  </div>
-
-                                  <div>
-                                    <p className="text-[10px] font-semibold text-gray-200">
-                                      Performance
-                                    </p>
-
-                                    <p className="mt-0.5 text-[8px] text-gray-600">
-                                      Device-specific benchmark
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="mt-3 rounded-xl border border-white/[0.05] bg-black/[0.12] px-3 py-2.5">
-                                  <p className="text-[10px] text-gray-500">
-                                    No benchmark recorded for {fitModel.fileLabel || "this model"} on this device.
-                                  </p>
-
-                                  <p className="mt-1 text-[9px] text-gray-700">
-                                    Install first, then run a real benchmark.
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Device */}
-
-                              <div
-                                className="
-                                  mt-3
-                                  rounded-2xl
-                                  border
-                                  border-white/[0.06]
-                                  bg-white/[0.018]
-                                  p-3.5
-                                "
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-blue-400/10 bg-blue-500/[0.05]">
-                                    <Cpu className="h-4 w-4 text-blue-300" />
-                                  </div>
-
-                                  <div>
-                                    <p className="text-[10px] font-semibold text-gray-200">
-                                      Your device
-                                    </p>
-
-                                    <p className="mt-0.5 text-[8px] text-gray-600">
-                                      Current hardware information
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                  <div className="rounded-xl border border-white/[0.05] bg-black/[0.12] p-2.5">
-                                    <p className="text-[8px] uppercase tracking-wide text-gray-700">
-                                      GPU
-                                    </p>
-
-                                    <p
-                                      className="mt-1 truncate text-[10px] text-gray-300"
-                                      title={
-                                        hardwareMetrics?.gpuModel ||
-                                        "GPU information unavailable"
-                                      }
-                                    >
-                                      {hardwareMetrics?.gpuModel ||
-                                        "GPU information unavailable"}
-                                    </p>
-
-                                    <p className="mt-1 text-[8px] text-gray-600">
-                                      {hardwareMetrics?.gpuAvailable
-                                        ? "GPU detected"
-                                        : "GPU details unavailable"}
-                                    </p>
-                                  </div>
-
-                                  <div className="rounded-xl border border-white/[0.05] bg-black/[0.12] p-2.5">
-                                    <p className="text-[8px] uppercase tracking-wide text-gray-700">
-                                      Memory
-                                    </p>
-
-                                    <p className="mt-1 text-[10px] text-gray-300">
-                                      {hardwareMetrics?.system?.hardware
-                                        ?.memoryTotalBytes
-                                        ? `${formatFileSize(
-                                            hardwareMetrics
-                                              .system
-                                              .hardware
-                                              .memoryTotalBytes
-                                          )} RAM`
-                                        : "RAM capacity unavailable"}
-                                    </p>
-
-                                    <p className="mt-1 text-[8px] text-gray-600">
-                                      {typeof hardwareMetrics?.memory ===
-                                      "number"
-                                        ? `${hardwareMetrics.memory.toFixed(
-                                            0
-                                          )}% memory in use`
-                                        : "Usage unavailable"}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                <div className="mt-2 rounded-xl border border-white/[0.05] bg-black/[0.12] px-2.5 py-2">
-                                  <p
-                                    className="truncate text-[9px] text-gray-500"
-                                    title={
-                                      hardwareMetrics?.system?.hardware
-                                        ?.cpu ||
-                                      "CPU information unavailable"
-                                    }
-                                  >
-                                    {hardwareMetrics?.system?.hardware
-                                      ?.cpu ||
-                                      "CPU information unavailable"}
-                                  </p>
-
-                                  <p className="mt-1 text-[8px] text-gray-700">
-                                    {hardwareMetrics?.system?.hardware
-                                      ?.os ||
-                                      "Operating system unavailable"}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* =================================================
-                                Right
-                                ================================================= */}
-
-                            <div
-                              className="
-                                min-w-0
-                                lg:border-l
-                                lg:border-white/[0.065]
-                                lg:pl-6
-                              "
-                            >
-                              <div className="mb-4">
-                                <div className="flex items-center gap-2">
-                                  <FileCode2 className="h-3.5 w-3.5 text-blue-300" />
-
-                                  <p className="text-[9px] font-semibold uppercase tracking-[0.17em] text-gray-500">
-                                    Model files
-                                  </p>
-                                </div>
-
-                                <p className="mt-1.5 text-[10px] leading-relaxed text-gray-600">
-                                  Choose the file variant you want to install.
-                                </p>
-                              </div>
-
-                              <div
-                                className="
-                                  rounded-2xl
-                                  border
-                                  border-white/[0.06]
-                                  bg-white/[0.018]
-                                  p-3
-                                "
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="text-[8px] uppercase tracking-[0.13em] text-gray-700">
-                                      Selected
-                                    </p>
-
-                                    <p
-                                      className="mt-1 truncate text-[10px] font-medium text-gray-300"
-                                      title={
-                                        fitModel.recommendedFile
-                                      }
-                                    >
-                                      {
-                                        fitModel.fileLabel
-                                      }
-                                    </p>
-                                  </div>
-
-                                  <span className="shrink-0 rounded-full border border-emerald-400/10 bg-emerald-500/[0.04] px-2 py-1 text-[8px] font-semibold text-emerald-300">
-                                    {getQuantizationLabel(
-                                      fitModel.recommendedFile
-                                    )}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setShowAdvancedFiles(
-                                    (value) =>
-                                      !value
-                                  )
-                                }
-                                className="
-                                  mt-2
-                                  flex
-                                  w-full
-                                  items-center
-                                  justify-center
-                                  gap-2
-                                  rounded-xl
-                                  border
-                                  border-white/[0.07]
-                                  bg-white/[0.015]
-                                  px-3
-                                  py-2.5
-                                  text-[10px]
-                                  font-medium
-                                  text-gray-500
-                                  transition
-                                  hover:bg-white/[0.04]
-                                  hover:text-gray-200
-                                "
-                              >
-                                <Settings2 className="h-3.5 w-3.5" />
-
-                                {showAdvancedFiles
-                                  ? "Hide file options"
-                                  : "Show file options"}
-                              </button>
-
-                              {showAdvancedFiles && (
-                                <div
-                                  className="
-                                    custom-scrollbar
-                                    mt-2
-                                    max-h-60
-                                    space-y-1
-                                    overflow-y-auto
-                                    rounded-xl
-                                    border
-                                    border-white/[0.06]
-                                    bg-black/20
-                                    p-2
-                                  "
-                                >
-                                  {(
-                                    fitModel.ggufFiles ||
-                                    []
-                                  ).map(
-                                    (
-                                      fileName
-                                    ) => (
-                                      <button
-                                        key={
-                                          fileName
-                                        }
-                                        type="button"
-                                        onClick={() => {
-                                          void selectRecommendationVariant(
-                                            fitModel,
-                                            fileName
-                                          );
-                                        }}
-                                        className={[
-                                          "flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[9px] transition",
-                                          fitModel.recommendedFile ===
-                                          fileName
-                                            ? "bg-blue-500/[0.13] text-blue-200"
-                                            : "text-gray-600 hover:bg-white/[0.04] hover:text-gray-300",
-                                        ].join(" ")}
-                                      >
-                                        <span className="truncate">
-                                          {
-                                            fileName
-                                          }
-                                        </span>
-
-                                        {fitModel.recommendedFile ===
-                                          fileName && (
-                                          <CheckCircle2 className="h-3 w-3 shrink-0 text-blue-300" />
-                                        )}
-                                      </button>
-                                    )
-                                  )}
-                                </div>
-                              )}
-
-                              <div className="mt-4 rounded-2xl border border-blue-400/10 bg-blue-500/[0.025] p-3.5">
-                                <div className="flex items-start gap-2.5">
-                                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400/70" />
-
-                                  <div>
-                                    <p className="text-[10px] font-semibold text-gray-300">
-                                      Local installation
-                                    </p>
-
-                                    <p className="mt-1 text-[9px] leading-relaxed text-gray-600">
-                                      The selected model will be installed into your local model storage.
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="mt-4 flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    void handleBrowseModelDownload(
-                                      fitModel
-                                    )
-                                  }
-                                  disabled={
-                                    downloadingRecommendation ||
-                                    !fitModel.recommendedFile
-                                  }
-                                  className="
-                                    flex
-                                    h-10
-                                    flex-1
-                                    items-center
-                                    justify-center
-                                    gap-2
-                                    rounded-xl
-                                    border
-                                    border-blue-400/15
-                                    bg-blue-600
-                                    px-3
-                                    text-[10px]
-                                    font-semibold
-                                    text-white
-                                    shadow-[0_8px_24px_rgba(37,99,235,0.18)]
-                                    transition
-                                    hover:bg-blue-500
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-50
-                                  "
-                                >
-                                  {downloadingRecommendation ? (
-                                    <>
-                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                      Installing...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-3.5 w-3.5" />
-                                      Install model
-                                    </>
-                                  )}
-                                </button>
-
-                                <a
-                                  href={
-                                    fitModel.repoUrl
-                                  }
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="
-                                    flex
-                                    h-10
-                                    w-10
-                                    shrink-0
-                                    items-center
-                                    justify-center
-                                    rounded-xl
-                                    border
-                                    border-white/[0.08]
-                                    bg-white/[0.02]
-                                    text-gray-500
-                                    transition
-                                    hover:border-white/[0.12]
-                                    hover:bg-white/[0.05]
-                                    hover:text-white
-                                  "
-                                  title="Open model on Hugging Face"
-                                  aria-label="Open model on Hugging Face"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="py-10 text-center">
-                          <Search className="mx-auto h-6 w-6 text-gray-600" />
-
-                          <p className="mt-3 text-xs font-medium text-gray-300">
-                            Select a model
-                          </p>
-
-                          <p className="mx-auto mt-1 max-w-sm text-[10px] leading-relaxed text-gray-600">
-                            Review its size, quantization, requirements, and installation details here.
-                          </p>
-                        </div>
-                      )}
-                    </aside>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* =================================================================
-                Local empty state
-                ================================================================= */}
-
-            {activeTab === "local" &&
-              !selectedFile && (
-                <div
-                  className={[
-                    "group relative overflow-hidden rounded-[24px] border transition-all duration-300",
-                    dragActive
-                      ? [
-                          "border-blue-400/55",
-                          "bg-blue-500/[0.065]",
-                          "shadow-[0_0_0_1px_rgba(96,165,250,0.10),0_28px_90px_rgba(37,99,235,0.12)]",
-                        ].join(" ")
-                      : [
-                          "border-white/[0.075]",
-                          "bg-gradient-to-b from-white/[0.022] to-white/[0.012]",
-                          "hover:border-white/[0.105]",
-                          "hover:bg-white/[0.025]",
-                        ].join(" "),
-                    uploading ||
-                    selecting
-                      ? "pointer-events-none opacity-60"
-                      : "",
-                  ].join(" ")}
-                  onDragEnter={
-                    handleDragEnter
-                  }
-                  onDragOver={
-                    handleDragOver
-                  }
-                  onDragLeave={
-                    handleDragLeave
-                  }
-                  onDrop={
-                    handleDrop
-                  }
-                >
-                  {/* Grid */}
-
-                  <div
-                    className="
-                      pointer-events-none
-                      absolute
-                      inset-0
-                      opacity-[0.025]
-                      [background-image:linear-gradient(rgba(255,255,255,1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,1)_1px,transparent_1px)]
-                      [background-size:30px_30px]
-                    "
-                  />
-
-                  {/* Glow */}
-
-                  <div
-                    className="
-                      pointer-events-none
-                      absolute
-                      -right-28
-                      -top-28
-                      h-64
-                      w-64
-                      rounded-full
-                      bg-blue-500/[0.06]
-                      blur-3xl
-                      transition-all
-                      duration-500
-                      group-hover:bg-blue-500/[0.10]
-                    "
-                  />
-
-                  <div
-                    className="
-                      pointer-events-none
-                      absolute
-                      -bottom-32
-                      -left-24
-                      h-56
-                      w-56
-                      rounded-full
-                      bg-indigo-500/[0.035]
-                      blur-3xl
-                    "
-                  />
-
-                  <div
-                    className="
-                      relative
-                      flex
-                      flex-col
-                      items-center
-                      px-5
-                      py-10
-                      text-center
-                      sm:px-8
-                      sm:py-14
-                    "
-                  >
-                    {/* Logo */}
-
-                    <div
-                      className={[
-                        "relative mb-7 flex h-[88px] w-[88px] items-center justify-center rounded-[26px] border transition-all duration-300",
-                        dragActive
-                          ? [
-                              "scale-105",
-                              "border-blue-400/25",
-                              "bg-blue-500/[0.10]",
-                              "shadow-[0_16px_50px_rgba(37,99,235,0.18)]",
-                            ].join(" ")
-                          : [
-                              "border-white/[0.075]",
-                              "bg-white/[0.028]",
-                              "shadow-[0_14px_45px_rgba(0,0,0,0.18)]",
-                              "group-hover:border-white/[0.11]",
-                              "group-hover:bg-white/[0.04]",
-                              "group-hover:shadow-[0_18px_55px_rgba(0,0,0,0.24)]",
-                            ].join(" "),
-                      ].join(" ")}
-                    >
-                      <div className="pointer-events-none absolute inset-2 rounded-[21px] border border-white/[0.035]" />
-
-                      {selecting ? (
-                        <div
-                          className="
-                            flex
-                            h-12
-                            w-12
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            border
-                            border-blue-400/10
-                            bg-blue-500/[0.07]
-                          "
-                        >
-                          <Loader2
-                            className="
-                              h-6
-                              w-6
-                              animate-spin
-                              text-blue-400
-                            "
-                          />
-                        </div>
-                      ) : (
-                        <OffyaiLogo
-                          src={logoSrc}
-                          size="lg"
-                          className="
-                            border-0
-                            bg-transparent
-                            shadow-none
-                          "
-                        />
-                      )}
-                    </div>
-
-                    {/* Heading */}
-
-                    <div className="flex items-center gap-2">
-                      {dragActive && (
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
-                      )}
-
-                      <h3
-                        className="
-                          text-[16px]
-                          font-semibold
-                          tracking-[-0.015em]
-                          text-gray-100
-                        "
-                      >
-                        {selecting
-                          ? "Opening file picker..."
-                          : dragActive
-                          ? "Drop your model here"
-                          : "Import a local model"}
-                      </h3>
-
-                      {dragActive && (
-                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
-                      )}
-                    </div>
-
-                    {/* Description */}
-
-                    <p
-                      className="
-                        mx-auto
-                        mt-2.5
-                        max-w-[410px]
-                        text-[10px]
-                        leading-[1.75]
-                        text-gray-600
-                      "
-                    >
-                      {selecting
-                        ? "Please wait while the system opens the model picker."
-                        : "Drag and drop your model here, or browse your computer to select a compatible local model."}
-                    </p>
-
-                    {/* Browse */}
-
-                    {!selecting && (
-                      <button
-                        type="button"
-                        onClick={
-                          handleSelectFile
-                        }
-                        disabled={
-                          uploading ||
-                          selecting
-                        }
-                        className="
-                          mt-7
-                          inline-flex
-                          h-10
-                          items-center
-                          gap-2
-                          rounded-xl
-                          border
-                          border-blue-400/15
-                          bg-blue-600
-                          px-4
-                          text-[10px]
-                          font-semibold
-                          text-white
-                          shadow-[0_9px_28px_rgba(37,99,235,0.20)]
-                          transition-all
-                          duration-150
-                          hover:border-blue-300/20
-                          hover:bg-blue-500
-                          hover:shadow-[0_12px_34px_rgba(37,99,235,0.27)]
-                          focus:outline-none
-                          focus:ring-2
-                          focus:ring-blue-500/35
-                          active:scale-[0.98]
-                          disabled:cursor-not-allowed
-                          disabled:opacity-50
-                        "
-                      >
-                        <FolderOpen className="h-3.5 w-3.5" />
-                        Browse files
-                      </button>
-                    )}
-
-                    {/* Hidden input */}
-
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      hidden
-                      accept=".gguf,.bin,.ggml"
-                      onChange={
-                        handleNativeFileInput
-                      }
-                      disabled={
-                        uploading ||
-                        selecting
-                      }
-                    />
-
-                    {/* Feature pills */}
-
-                    <div
-                      className="
-                        mt-8
-                        flex
-                        flex-wrap
-                        items-center
-                        justify-center
-                        gap-1.5
-                      "
-                    >
-                      <FeaturePill
-                        icon={
-                          <FileCode2 className="h-3 w-3 text-blue-400/80" />
-                        }
-                      >
-                        GGUF / BIN / GGML
-                      </FeaturePill>
-
-                      <FeaturePill
-                        icon={
-                          <HardDrive className="h-3 w-3 text-gray-500" />
-                        }
-                      >
-                        Up to 10 GB
-                      </FeaturePill>
-
-                      <FeaturePill
-                        icon={
-                          <ShieldCheck className="h-3 w-3 text-emerald-400/80" />
-                        }
-                      >
-                        Local only
-                      </FeaturePill>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            {/* =================================================================
-                Selected Model
-                ================================================================= */}
-
-            {activeTab === "local" &&
-              selectedFile && (
-                <section className="space-y-3.5">
-                  {/* Selected model */}
-
-                  <div
-                    className="
-                      relative
-                      overflow-hidden
-                      rounded-[22px]
-                      border
-                      border-white/[0.075]
-                      bg-gradient-to-br
-                      from-white/[0.025]
-                      to-white/[0.012]
-                      shadow-[0_14px_45px_rgba(0,0,0,0.14)]
-                    "
-                  >
-                    <div
-                      className="
-                        absolute
-                        inset-x-0
-                        top-0
-                        h-px
-                        bg-gradient-to-r
-                        from-transparent
-                        via-emerald-400/55
-                        to-transparent
-                      "
-                    />
-
-                    <div
-                      className="
-                        pointer-events-none
-                        absolute
-                        -right-24
-                        -top-24
-                        h-48
-                        w-48
-                        rounded-full
-                        bg-blue-500/[0.04]
-                        blur-3xl
-                      "
-                    />
-
-                    <div
-                      className="
-                        relative
-                        flex
-                        items-center
-                        gap-3.5
-                        p-4
-                        sm:p-5
-                      "
-                    >
-                      <div
-                        className="
-                          flex
-                          h-12
-                          w-12
-                          shrink-0
-                          items-center
-                          justify-center
-                          rounded-[15px]
-                          border
-                          border-blue-400/10
-                          bg-blue-500/[0.07]
-                          shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]
-                        "
-                      >
-                        <Cpu className="h-5 w-5 text-blue-400" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="
-                              flex
-                              h-4
-                              w-4
-                              items-center
-                              justify-center
-                              rounded-full
-                              bg-emerald-400/10
-                            "
-                          >
-                            <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                          </div>
-
-                          <span
-                            className="
-                              text-[8px]
-                              font-semibold
-                              uppercase
-                              tracking-[0.15em]
-                              text-emerald-400
-                            "
-                          >
-                            Ready to import
-                          </span>
-                        </div>
-
-                        <p
-                          className="
-                            mt-1.5
-                            truncate
-                            text-[13px]
-                            font-semibold
-                            tracking-[-0.005em]
-                            text-gray-100
-                          "
-                          title={
-                            selectedFile.name
-                          }
-                        >
-                          {
-                            selectedFile.name
-                          }
-                        </p>
-
-                        <div
-                          className="
-                            mt-1.5
-                            flex
-                            flex-wrap
-                            items-center
-                            gap-x-3
-                            gap-y-1
-                            text-[9px]
-                            text-gray-600
-                          "
-                        >
-                          <span className="inline-flex items-center gap-1">
-                            <HardDrive className="h-3 w-3" />
-
-                            {selectedFile.sizeFormatted ||
-                              formatFileSize(
-                                selectedFile.size
-                              )}
-                          </span>
-
-                          {selectedFile.extension && (
-                            <>
-                              <span className="h-0.5 w-0.5 rounded-full bg-gray-700" />
-
-                              <span className="font-medium uppercase tracking-wider">
-                                {selectedFile.extension.replace(
-                                  ".",
-                                  ""
-                                )}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={
-                          handleRemoveFile
-                        }
-                        disabled={
-                          uploading
-                        }
-                        className="
-                          flex
-                          h-8
-                          w-8
-                          shrink-0
-                          items-center
-                          justify-center
-                          rounded-xl
-                          border
-                          border-transparent
-                          text-gray-600
-                          transition-all
-                          hover:border-white/[0.06]
-                          hover:bg-white/[0.05]
-                          hover:text-gray-300
-                          disabled:cursor-not-allowed
-                          disabled:opacity-40
-                        "
-                        aria-label="Choose another model"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Progress */}
-
-                  {uploading && (
-                    <div
-                      className="
-                        relative
-                        overflow-hidden
-                        rounded-[22px]
-                        border
-                        border-blue-400/10
-                        bg-blue-500/[0.045]
-                        p-4
-                      "
-                    >
-                      <div
-                        className="
-                          pointer-events-none
-                          absolute
-                          -right-20
-                          -top-20
-                          h-40
-                          w-40
-                          rounded-full
-                          bg-blue-500/[0.07]
-                          blur-3xl
-                        "
-                      />
-
-                      <div
-                        className="
-                          relative
-                          mb-3
-                          flex
-                          items-center
-                          justify-between
-                        "
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="
-                              flex
-                              h-9
-                              w-9
-                              items-center
-                              justify-center
-                              rounded-xl
-                              border
-                              border-blue-400/10
-                              bg-blue-500/[0.08]
-                            "
-                          >
-                            <Loader2
-                              className="
-                                h-3.5
-                                w-3.5
-                                animate-spin
-                                text-blue-400
-                              "
-                            />
-                          </div>
-
-                          <div>
-                            <p className="text-[11px] font-semibold text-blue-100">
-                              Importing model
-                            </p>
-
-                            <p className="mt-0.5 text-[9px] text-gray-600">
-                              Copying into local model storage
-                            </p>
-                          </div>
-                        </div>
-
-                        <span
-                          className="
-                            rounded-full
-                            border
-                            border-blue-400/10
-                            bg-blue-500/[0.06]
-                            px-2
-                            py-1
-                            text-[10px]
-                            font-semibold
-                            tabular-nums
-                            text-blue-300
-                          "
-                        >
-                          {uploadProgress}%
-                        </span>
-                      </div>
-
-                      <div
-                        className="
-                          relative
-                          h-1.5
-                          overflow-hidden
-                          rounded-full
-                          bg-white/[0.06]
-                        "
-                      >
-                        <div
-                          className="
-                            h-full
-                            rounded-full
-                            bg-gradient-to-r
-                            from-blue-600
-                            via-blue-500
-                            to-blue-400
-                            shadow-[0_0_12px_rgba(59,130,246,0.35)]
-                            transition-[width]
-                            duration-300
-                          "
-                          style={{
-                            width: `${uploadProgress}%`,
-                          }}
-                        />
-                      </div>
-
-                      <p
-                        className="
-                          relative
-                          mt-2.5
-                          text-[9px]
-                          text-gray-600
-                        "
-                      >
-                        Large models may take several minutes to copy.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Information */}
-
-                  {!uploading &&
-                    !success && (
-                      <div
-                        className="
-                          relative
-                          flex
-                          items-start
-                          gap-3
-                          overflow-hidden
-                          rounded-[20px]
-                          border
-                          border-amber-400/10
-                          bg-amber-400/[0.025]
-                          p-4
-                        "
-                      >
-                        <div
-                          className="
-                            mt-0.5
-                            flex
-                            h-8
-                            w-8
-                            shrink-0
-                            items-center
-                            justify-center
-                            rounded-xl
-                            border
-                            border-amber-400/10
-                            bg-amber-400/[0.055]
-                          "
-                        >
-                          <AlertCircle className="h-3.5 w-3.5 text-amber-400" />
-                        </div>
-
-                        <div>
-                          <p className="text-[10px] font-semibold text-amber-200">
-                            Before importing
-                          </p>
-
-                          <p
-                            className="
-                              mt-1
-                              text-[9px]
-                              leading-[1.7]
-                              text-amber-200/50
-                            "
-                          >
-                            The model will be copied into the application&apos;s local models directory. Importing it does not automatically activate the model.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                </section>
-              )}
-
-            {/* =================================================================
-                Footer information
-                ================================================================= */}
-
-            <div
-              className="
-                flex
-                items-center
-                justify-center
-                gap-1.5
-                pt-1
-                text-[8px]
-                font-medium
-                tracking-wide
-                text-gray-700
-              "
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={uploading || selecting}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-transparent text-[var(--text-secondary)] transition-colors hover:border-[var(--border)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Close upload dialog"
             >
-              <ShieldCheck className="h-3 w-3" />
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
 
-              <span>
-                Models remain on your local machine
-              </span>
+        {/* ==================================================================
+            Status banners
+            ================================================================== */}
+        {error && <StatusMessage type="error" title="Unable to continue" message={error} />}
+        {success && <StatusMessage type="success" title="Model imported" message={success} />}
+
+        {/* ==================================================================
+            Download progress — slim full-width bar
+            ================================================================== */}
+        {isBusyDownload && downloadProgress && (
+          <div className="shrink-0 border-b border-[var(--border)] bg-[var(--accent-subtle)] px-4 py-2.5 sm:px-5" role="status" aria-live="polite">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                {downloadPaused ? (
+                  <DownloadPauseIcon />
+                ) : (
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-teal-300" />
+                )}
+                <p className="truncate text-[11px] font-medium text-[var(--text-primary)]">
+                  {downloadPaused
+                    ? "Paused"
+                    : downloadProgress.percent === 100
+                    ? "Finalizing installation"
+                    : "Downloading"}
+                </p>
+                <span className="truncate font-mono text-[10.5px] text-[var(--text-secondary)]">
+                  {downloadProgress.fileName || "Preparing model file"}
+                </span>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2.5">
+                <span className="font-mono text-[10.5px] text-[var(--text-secondary)]">
+                  {formatFileSize(downloadProgress.receivedBytes || 0)}
+                  {Number.isFinite(downloadProgress.totalBytes)
+                    ? ` / ${formatFileSize(downloadProgress.totalBytes)}`
+                    : ""}
+                </span>
+                <span className="font-mono text-[10.5px] text-[var(--text-secondary)]">
+                  {formatTransferRate(downloadProgress.bytesPerSecond)}
+                </span>
+                <span className="rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 font-mono text-[10.5px] font-medium text-[var(--text-primary)]">
+                  {Number.isFinite(downloadProgress.percent) ? `${downloadProgress.percent}%` : "--"}
+                </span>
+
+                {downloadPaused ? (
+                  <button
+                    type="button"
+                    onClick={resumeModelDownload}
+                    className="rounded-md bg-[var(--primary)] px-2.5 py-1 text-[10.5px] font-semibold text-[var(--primary-foreground)] transition hover:bg-[var(--primary-hover)]"
+                  >
+                    Resume
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={pauseModelDownload}
+                    disabled={!downloadingRecommendation}
+                    className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[10.5px] font-medium text-[var(--text-primary)] transition hover:bg-[var(--surface-raised)] disabled:opacity-50"
+                  >
+                    Pause
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={cancelModelDownload}
+                  className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[10.5px] font-medium text-[var(--danger)] transition hover:bg-[var(--surface-raised)]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/40">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-teal-500 to-teal-300 transition-[width] duration-300"
+                style={{
+                  width: `${Number.isFinite(downloadProgress.percent) ? downloadProgress.percent : 3}%`,
+                }}
+              />
             </div>
           </div>
+        )}
+
+        {/* ==================================================================
+            Body
+            ================================================================== */}
+        <main className="relative min-h-0 flex-1 overflow-hidden">
+          {activeTab === "local" ? (
+            <LocalImportPane
+              selectedFile={selectedFile}
+              uploading={uploading}
+              selecting={selecting}
+              dragActive={dragActive}
+              uploadProgress={uploadProgress}
+              handleDragEnter={handleDragEnter}
+              handleDragOver={handleDragOver}
+              handleDragLeave={handleDragLeave}
+              handleDrop={handleDrop}
+              handleSelectFile={handleSelectFile}
+              handleRemoveFile={handleRemoveFile}
+              handleNativeFileInput={handleNativeFileInput}
+              fileInputRef={fileInputRef}
+              success={success}
+            />
+          ) : (
+            <BrowsePane
+              recommendationGoal={recommendationGoal}
+              setRecommendationGoal={setRecommendationGoal}
+              recommendationQuery={recommendationQuery}
+              setRecommendationQuery={setRecommendationQuery}
+              populateRecommendations={populateRecommendations}
+              recommendationsLoading={recommendationsLoading}
+              recommendationError={recommendationError}
+              filteredRecommendations={filteredRecommendations}
+              recommendations={recommendations}
+              quantizationFilter={quantizationFilter}
+              setQuantizationFilter={setQuantizationFilter}
+              parameterFilter={parameterFilter}
+              setParameterFilter={setParameterFilter}
+              availableQuantizations={availableQuantizations}
+              availableParameters={availableParameters}
+              selectedRecommendation={selectedRecommendation}
+              selectRecommendationVariant={selectRecommendationVariant}
+              availableModels={availableModels}
+              handleBrowseModelDownload={handleBrowseModelDownload}
+              downloadingRecommendation={downloadingRecommendation}
+              fitModel={fitModel}
+              fitFile={fitFile}
+              resolvingFileMetadata={resolvingFileMetadata}
+              hardwareMetrics={hardwareMetrics}
+              showAdvancedFiles={showAdvancedFiles}
+              setShowAdvancedFiles={setShowAdvancedFiles}
+            />
+          )}
         </main>
 
         {/* ==================================================================
-            Footer
+            Footer — only meaningful for the local-import flow
             ================================================================== */}
-
-        <footer
-          className="
-            relative
-            flex
-            shrink-0
-            gap-2.5
-            border-t
-            border-white/[0.065]
-            bg-white/[0.012]
-            px-4
-            py-3.5
-            sm:px-6
-            sm:py-4
-          "
-        >
-          <button
-            type="button"
-            onClick={
-              selectedFile &&
-              !uploading
-                ? handleRemoveFile
-                : handleClose
-            }
-            disabled={
-              uploading ||
-              selecting
-            }
-            className="
-              flex
-              h-10
-              flex-1
-              items-center
-              justify-center
-              rounded-xl
-              border
-              border-white/[0.075]
-              bg-white/[0.022]
-              px-4
-              text-[10px]
-              font-semibold
-              text-gray-500
-              transition-all
-              duration-150
-              hover:border-white/[0.11]
-              hover:bg-white/[0.05]
-              hover:text-gray-200
-              focus:outline-none
-              focus:ring-2
-              focus:ring-white/10
-              disabled:cursor-not-allowed
-              disabled:opacity-40
-            "
-          >
-            {selectedFile
-              ? "Choose another"
-              : "Cancel"}
-          </button>
-
-          {selectedFile && (
+        {activeTab === "local" && (
+          <footer className="flex shrink-0 items-center justify-end gap-2.5 border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:px-5">
             <button
               type="button"
-              onClick={
-                handleUpload
-              }
-              disabled={
-                uploading ||
-                selecting
-              }
-              className="
-                flex
-                h-10
-                flex-1
-                items-center
-                justify-center
-                gap-2
-                rounded-xl
-                border
-                border-blue-400/10
-                bg-blue-600
-                px-4
-                text-[10px]
-                font-semibold
-                text-white
-                shadow-[0_8px_24px_rgba(37,99,235,0.18)]
-                transition-all
-                duration-150
-                hover:border-blue-300/15
-                hover:bg-blue-500
-                hover:shadow-[0_10px_30px_rgba(37,99,235,0.25)]
-                focus:outline-none
-                focus:ring-2
-                focus:ring-blue-500/35
-                active:scale-[0.99]
-                disabled:cursor-not-allowed
-                disabled:border-transparent
-                disabled:bg-gray-800
-                disabled:text-gray-600
-                disabled:shadow-none
-              "
+              onClick={selectedFile && !uploading ? handleRemoveFile : handleClose}
+              disabled={uploading || selecting}
+              className="flex h-9 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {uploading ? (
-                <>
-                  <Loader2
-                    className="
-                      h-3.5
-                      w-3.5
-                      animate-spin
-                    "
-                  />
-
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-3.5 w-3.5" />
-
-                  Import model
-                </>
-              )}
+              {selectedFile ? "Choose another" : "Cancel"}
             </button>
-          )}
-        </footer>
+
+            {selectedFile && (
+              <button
+                type="button"
+                onClick={handleUpload}
+                disabled={uploading || selecting}
+                className="flex h-9 items-center justify-center gap-2 rounded-lg bg-[var(--primary)] px-4 text-[11px] font-semibold text-[var(--primary-foreground)] shadow-[0_8px_20px_rgba(15,156,143,0.18)] transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--surface-raised)] disabled:text-[var(--text-secondary)] disabled:shadow-none"
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-3.5 w-3.5" />
+                    Import model
+                  </>
+                )}
+              </button>
+            )}
+          </footer>
+        )}
       </div>
-
-      {/* ====================================================================
-          Local animations
-          ==================================================================== */}
-
-      <style>
-        {`
-          @keyframes modalIn {
-            from {
-              opacity: 0;
-              transform: translateY(10px) scale(0.985);
-            }
-
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(-4px);
-            }
-
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-
-          @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-              animation-duration: 0.01ms !important;
-              animation-iteration-count: 1 !important;
-              transition-duration: 0.01ms !important;
-              scroll-behavior: auto !important;
-            }
-          }
-        `}
-      </style>
     </div>
   );
 };
 
 /* ==========================================================================
-   Small inline pause icon
+   Local import pane
    ========================================================================== */
 
-const DownloadPauseIcon = () => (
-  <div className="flex items-center gap-1">
-    <span className="h-3.5 w-1 rounded-full bg-blue-300" />
-    <span className="h-3.5 w-1 rounded-full bg-blue-300" />
-  </div>
-);
+const LocalImportPane = ({
+  selectedFile,
+  uploading,
+  selecting,
+  dragActive,
+  uploadProgress,
+  handleDragEnter,
+  handleDragOver,
+  handleDragLeave,
+  handleDrop,
+  handleSelectFile,
+  handleRemoveFile,
+  handleNativeFileInput,
+  fileInputRef,
+  success,
+}) => {
+  if (!selectedFile) {
+    return (
+      <div
+        className={[
+          "model-upload-pane flex h-full flex-col items-center justify-center gap-6 border-2 border-dashed px-6 text-center transition-colors",
+          dragActive
+            ? "border-[var(--primary)]/50 bg-[var(--accent-subtle)]"
+            : "border-[var(--border)] bg-transparent",
+          uploading || selecting ? "pointer-events-none opacity-60" : "",
+        ].join(" ")}
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div
+          className={[
+            "flex h-16 w-16 items-center justify-center rounded-xl border border-[var(--border)] transition-colors",
+            dragActive
+              ? "bg-[var(--accent-subtle)]"
+              : "bg-[var(--surface-raised)]",
+          ].join(" ")}
+        >
+          {selecting ? (
+            <Loader2 className="h-6 w-6 animate-spin text-teal-300" />
+          ) : (
+            <FolderOpen className={dragActive ? "h-7 w-7 text-[var(--primary)]" : "h-7 w-7 text-[var(--text-secondary)]"} />
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-[16px] font-semibold tracking-[-0.01em] text-[var(--text-primary)]">
+            {selecting
+              ? "Opening file picker..."
+              : dragActive
+              ? "Drop your model here"
+              : "Drag a model file into this window"}
+          </h3>
+          <p className="mx-auto mt-2 max-w-sm text-[11.5px] leading-relaxed text-[var(--text-secondary)]">
+            {selecting
+              ? "Please wait while the system opens the model picker."
+              : "Or browse your computer for a compatible GGUF, BIN, or GGML file."}
+          </p>
+        </div>
+
+        {!selecting && (
+          <button
+            type="button"
+            onClick={handleSelectFile}
+            disabled={uploading || selecting}
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-[var(--primary)] px-5 text-[11.5px] font-semibold text-[var(--primary-foreground)] shadow-[0_10px_30px_rgba(15,156,143,0.18)] transition-all hover:bg-[var(--primary-hover)] hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FolderOpen className="h-4 w-4" />
+            Browse files
+          </button>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          hidden
+          accept=".gguf,.bin,.ggml"
+          onChange={handleNativeFileInput}
+          disabled={uploading || selecting}
+        />
+
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          {[
+            { icon: <FileCode2 className="h-3 w-3 text-[var(--primary)]" />, label: "GGUF · BIN · GGML" },
+            { icon: <HardDrive className="h-3 w-3 text-[var(--text-secondary)]" />, label: "Up to 10 GB" },
+            { icon: <ShieldCheck className="h-3 w-3 text-[var(--success)]" />, label: "Stored locally only" },
+          ].map((pill) => (
+            <span
+              key={pill.label}
+              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--text-secondary)]"
+            >
+              {pill.icon}
+              {pill.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid h-full grid-cols-1 gap-px overflow-y-auto bg-[var(--border)] lg:grid-cols-[1.1fr_0.9fr]">
+      {/* Left: file summary */}
+      <div className="flex flex-col gap-4 bg-[var(--surface)] p-5 sm:p-6">
+        <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--success)]">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Ready to import
+        </div>
+
+        <div className="flex items-start gap-3.5 rounded-xl border border-[var(--border)] bg-[var(--surface-raised)] p-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-[var(--primary)]/20 bg-[var(--accent-subtle)]">
+            <Cpu className="h-5 w-5 text-[var(--primary)]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold text-[var(--text-primary)]" title={selectedFile.name}>
+              {selectedFile.name}
+            </p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10.5px] text-[var(--text-secondary)]">
+              <span className="inline-flex items-center gap-1">
+                <HardDrive className="h-3 w-3" />
+                {selectedFile.sizeFormatted || formatFileSize(selectedFile.size)}
+              </span>
+              {selectedFile.extension && (
+                <span className="rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 uppercase text-[var(--text-secondary)]">
+                  {selectedFile.extension.replace(".", "")}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRemoveFile}
+            disabled={uploading}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Choose another model"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {uploading && (
+          <div className="rounded-xl border border-teal-400/15 bg-teal-500/[0.05] p-4">
+            <div className="mb-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-teal-300" />
+                <p className="text-[11.5px] font-medium text-teal-100">Copying into local storage</p>
+              </div>
+              <span className="font-mono text-[11px] font-semibold text-teal-200">{uploadProgress}%</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-black/40">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-teal-500 to-teal-300 transition-[width] duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-[10.5px] text-gray-600">Large models may take several minutes to copy.</p>
+          </div>
+        )}
+
+        {!uploading && !success && (
+          <div className="flex items-start gap-2.5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3.5">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+            <p className="text-[10.5px] leading-relaxed text-amber-200/70">
+              This copies the file into OFFYAI&apos;s local models directory. Importing does not automatically activate it — switch to it from Settings afterward.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Right: what happens next */}
+      <div className="flex flex-col justify-between bg-[var(--surface)] p-5 sm:p-6">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">What happens next</p>
+          <ol className="mt-3 space-y-3">
+            {[
+              ["Copy", "The file is copied byte-for-byte into your local models folder."],
+              ["Register", "OFFYAI reads the file and adds it to your model list."],
+              ["Activate", "You choose when to switch to it from Settings."],
+            ].map(([title, body], idx) => (
+              <li key={title} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] font-mono text-[9.5px] text-gray-400">
+                  {idx + 1}
+                </span>
+                <div>
+                  <p className="text-[11.5px] font-medium text-gray-200">{title}</p>
+                  <p className="mt-0.5 text-[10.5px] leading-relaxed text-gray-600">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="mt-6 flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.015] px-3.5 py-3 text-[10.5px] text-gray-500">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-400/70" />
+          Nothing leaves your machine — models are read and stored locally only.
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ==========================================================================
+   Browse pane — dense list on the left, persistent detail panel on the right
+   ========================================================================== */
+
+const BrowsePane = ({
+  recommendationGoal,
+  setRecommendationGoal,
+  recommendationQuery,
+  setRecommendationQuery,
+  populateRecommendations,
+  recommendationsLoading,
+  recommendationError,
+  filteredRecommendations,
+  recommendations,
+  quantizationFilter,
+  setQuantizationFilter,
+  parameterFilter,
+  setParameterFilter,
+  availableQuantizations,
+  availableParameters,
+  selectedRecommendation,
+  selectRecommendationVariant,
+  availableModels,
+  handleBrowseModelDownload,
+  downloadingRecommendation,
+  fitModel,
+  fitFile,
+  resolvingFileMetadata,
+  hardwareMetrics,
+  showAdvancedFiles,
+  setShowAdvancedFiles,
+}) => {
+  return (
+    <div className="flex h-full min-h-0">
+      {/* ==================================================================
+          Left: search, filters, results
+          ================================================================== */}
+      <div className="flex w-[340px] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]">
+        <div className="shrink-0 space-y-3 border-b border-[var(--border)] p-3.5">
+          <div className="flex min-w-0 flex-nowrap gap-1.5 overflow-x-auto pb-0.5">
+            {RECOMMENDATION_GOALS.map((goal) => (
+              <button
+                key={goal.id}
+                type="button"
+                onClick={() => {
+                  setRecommendationGoal(goal.id);
+                  setRecommendationQuery("");
+                  void populateRecommendations(goal.id, "");
+                }}
+                className={[
+                  "shrink-0 whitespace-nowrap rounded-md border px-2 py-1 text-[10px] font-medium transition-colors",
+                  recommendationGoal === goal.id
+                    ? "border-[var(--primary)]/50 bg-[var(--accent-subtle)] text-[var(--primary)]"
+                    : "border-[var(--border)] bg-[var(--surface-raised)] text-[var(--text-secondary)] hover:border-[var(--primary)]/50 hover:text-[var(--text-primary)]",
+                ].join(" ")}
+              >
+                {goal.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-1.5">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
+              <input
+                type="text"
+                value={recommendationQuery}
+                onChange={(event) => setRecommendationQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    void populateRecommendations(recommendationGoal, recommendationQuery);
+                  }
+                }}
+                placeholder="Search models or families"
+                className="h-9 w-full rounded-md border border-[var(--border)] bg-[var(--surface-raised)] pl-8 pr-2.5 text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] outline-none transition-colors focus:border-[var(--ring)]"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => void populateRecommendations(recommendationGoal, recommendationQuery)}
+              disabled={recommendationsLoading}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--primary)]/30 bg-[var(--accent-subtle)] text-[var(--primary)] transition-colors hover:bg-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Search models"
+            >
+              {recommendationsLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Search className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-1.5">
+            <select
+              value={quantizationFilter}
+              onChange={(event) => setQuantizationFilter(event.target.value)}
+              className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-[10px] text-[var(--text-primary)] outline-none focus:border-[var(--ring)]"
+            >
+              <option value="all">All quantizations</option>
+              {availableQuantizations.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={parameterFilter}
+              onChange={(event) => setParameterFilter(event.target.value)}
+              className="h-8 w-full rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-2 text-[10px] text-[var(--text-primary)] outline-none focus:border-[var(--ring)]"
+            >
+              <option value="all">All sizes</option>
+              {availableParameters.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="text-[10px] text-[var(--text-secondary)]">
+            {filteredRecommendations.length} of {recommendations.length} repositories
+          </p>
+        </div>
+
+        {recommendationError && (
+          <div className="shrink-0 border-b border-white/[0.08]">
+            <StatusMessage type="error" title="Search failed" message={recommendationError} />
+          </div>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+          {recommendationsLoading ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+              <Loader2 className="h-5 w-5 animate-spin text-teal-400" />
+              <p className="text-[11px] text-[var(--text-secondary)]">Finding compatible models...</p>
+            </div>
+          ) : filteredRecommendations.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+              <Search className="h-5 w-5 text-[var(--text-secondary)]" />
+              <p className="text-[11px] font-medium text-[var(--text-primary)]">No matching models</p>
+              <p className="text-[10px] text-[var(--text-secondary)]">Try a broader search or another use case.</p>
+            </div>
+          ) : (
+            filteredRecommendations.map((model, index) => {
+              const isSelected =
+                selectedRecommendation?.id === model.id &&
+                selectedRecommendation?.source === model.source;
+              const installed = getInstalledModel(model, availableModels);
+              const isThisDownloading = downloadingRecommendation && isSelected;
+
+              return (
+                <button
+                  key={`${model.source || "source"}-${model.id}-${model.recommendedFile}`}
+                  type="button"
+                  onClick={() => {
+                    void selectRecommendationVariant(model, model.recommendedFile);
+                    setShowAdvancedFiles(false);
+                  }}
+                  className={[
+                    "group flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-3.5 py-3.5 text-left transition-all hover:border-[var(--primary)]/50 hover:bg-[var(--surface)]",
+                    isSelected
+                      ? "border-[var(--primary)] bg-[var(--accent-subtle)] shadow-sm"
+                      : "border-l-[var(--border)]",
+                  ].join(" ")}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--primary)]/30 bg-[var(--accent-subtle)]">
+                    <Sparkles className="h-4 w-4 text-[var(--primary)]" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      {index === 0 && (
+                        <span className="rounded-md border border-[var(--primary)]/40 bg-[var(--accent)] px-1.5 py-0.5 text-[8.5px] font-bold text-[var(--primary)]">
+                          Best
+                        </span>
+                      )}
+                      <p className="truncate text-[11.5px] font-medium text-[var(--text-primary)]">{model.name}</p>
+                      {installed && <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-400" />}
+                    </div>
+                    <p className="mt-0.5 truncate font-mono text-[9.5px] text-[var(--text-secondary)]">
+                      {model.fileLabel} · {getQuantizationLabel(model.recommendedFile)}
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className="rounded-md border border-[var(--primary)]/30 bg-[var(--accent-subtle)] px-1.5 py-1 font-mono text-[10px] font-bold text-[var(--primary)]">{model.score}%</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleBrowseModelDownload(model);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.stopPropagation();
+                          void handleBrowseModelDownload(model);
+                        }
+                      }}
+                      className="flex h-5 w-5 items-center justify-center rounded text-[var(--text-secondary)] opacity-0 transition-opacity hover:bg-[var(--surface-raised)] hover:text-[var(--primary)] group-hover:opacity-100"
+                      aria-label={`Download ${model.name}`}
+                    >
+                      {isThisDownloading ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Download className="h-3 w-3" />
+                      )}
+                    </span>
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* ==================================================================
+          Right: persistent detail panel
+          ================================================================== */}
+      <div className="min-w-0 flex-1 overflow-y-auto bg-[var(--surface)] text-[var(--text-primary)] custom-scrollbar">
+        {!fitModel ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center">
+            <Search className="h-6 w-6 text-[var(--text-secondary)]" />
+            <p className="text-[12px] font-medium text-[var(--text-primary)]">Select a model</p>
+            <p className="max-w-sm text-[10.5px] leading-relaxed text-[var(--text-secondary)]">
+              Its size, quantization, memory needs, and install action will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="p-5 sm:p-6">
+            {/* Title row */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[10px] font-medium text-[var(--primary)]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Recommended for {getGoalConfig(recommendationGoal).label.toLowerCase()}
+                </div>
+                <h3 className="mt-2 break-words text-[19px] font-semibold tracking-[-0.015em] text-[var(--text-primary)]">
+                  {fitModel.name}
+                </h3>
+                <p className="mt-1 break-all font-mono text-[10.5px] text-[var(--text-secondary)]">{fitModel.id}</p>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-md border border-[var(--primary)]/30 bg-[var(--accent-subtle)] px-2.5 py-1.5 font-mono text-[11px] font-semibold text-[var(--primary)]">
+                  {fitModel.score}%
+                </span>
+                {fitModel.repoUrl && (
+                  <a
+                    href={fitModel.repoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)] transition-colors hover:border-[var(--primary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
+                    title="Open on Hugging Face"
+                    aria-label="Open model source"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Quick stats */}
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <StatChip
+                icon={<HardDrive className="h-3 w-3" />}
+                label="Download"
+                value={
+                  resolvingFileMetadata
+                    ? "Checking..."
+                    : fitFile?.sizeBytes
+                    ? formatFileSize(fitFile.sizeBytes)
+                    : "Unavailable"
+                }
+              />
+              <StatChip
+                icon={<MemoryStick className="h-3 w-3" />}
+                label="Memory"
+                value={resolvingFileMetadata ? "Calculating..." : getMemoryRequirement(fitFile?.sizeBytes)}
+                accent="text-[var(--primary)]"
+              />
+              <StatChip
+                icon={<Layers className="h-3 w-3" />}
+                label="Quantization"
+                value={getQuantizationLabel(fitModel.recommendedFile)}
+                accent="text-[var(--primary)]"
+              />
+              <StatChip
+                icon={<Gauge className="h-3 w-3" />}
+                label="Downloads"
+                value={(fitModel.downloads || 0).toLocaleString()}
+              />
+            </div>
+
+            {/* File variant selector */}
+            <div className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[9.5px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Selected file</p>
+                  <p
+                    className="mt-1 truncate font-mono text-[11px] text-[var(--text-primary)]"
+                    title={fitModel.recommendedFile}
+                  >
+                    {fitModel.fileLabel}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedFiles((value) => !value)}
+                  className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-[10px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
+                >
+                  <Settings2 className="h-3 w-3" />
+                  {showAdvancedFiles ? "Hide" : "Other files"}
+                </button>
+              </div>
+
+              {showAdvancedFiles && (
+                <div className="mt-3 max-h-44 space-y-1 overflow-y-auto custom-scrollbar border-t border-white/[0.06] pt-3">
+                  {(fitModel.ggufFiles || []).map((fileName) => (
+                    <button
+                      key={fileName}
+                      type="button"
+                      onClick={() => void selectRecommendationVariant(fitModel, fileName)}
+                      className={[
+                        "flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left font-mono text-[10px] transition-colors",
+                        fitModel.recommendedFile === fileName
+                          ? "bg-[var(--accent-subtle)] text-[var(--primary)]"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--surface)] hover:text-[var(--text-primary)]",
+                      ].join(" ")}
+                    >
+                      <span className="truncate">{fileName}</span>
+                      {fitModel.recommendedFile === fileName && (
+                        <CheckCircle2 className="h-3 w-3 shrink-0 text-[var(--primary)]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Two-column: performance + device */}
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-3.5">
+                <div className="flex items-center gap-2">
+                  <Gauge className="h-3.5 w-3.5 text-amber-300" />
+                  <p className="text-[11px] font-medium text-[var(--text-primary)]">Performance</p>
+                </div>
+                <div className="mt-2.5 rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5">
+                  <p className="text-[10.5px] text-[var(--text-secondary)]">
+                    No benchmark recorded for {fitModel.fileLabel || "this model"} on this device.
+                  </p>
+                  <p className="mt-1 text-[9.5px] text-[var(--text-secondary)]">Install first, then run a benchmark.</p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] p-3.5">
+                <div className="flex items-center gap-2">
+                  <Cpu className="h-3.5 w-3.5 text-[var(--primary)]" />
+                  <p className="text-[11px] font-medium text-[var(--text-primary)]">Your device</p>
+                </div>
+                <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+                  <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-2">
+                    <p className="text-[9px] text-[var(--text-secondary)]">GPU</p>
+                    <p className="mt-0.5 truncate text-[10px] text-[var(--text-primary)]" title={hardwareMetrics?.gpuModel}>
+                      {hardwareMetrics?.gpuModel || "Unavailable"}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-[var(--border)] bg-[var(--surface)] p-2">
+                    <p className="text-[9px] text-[var(--text-secondary)]">Memory</p>
+                    <p className="mt-0.5 text-[10px] text-[var(--text-primary)]">
+                      {hardwareMetrics?.system?.hardware?.memoryTotalBytes
+                        ? formatFileSize(hardwareMetrics.system.hardware.memoryTotalBytes)
+                        : "Unavailable"}
+                    </p>
+                  </div>
+                </div>
+                <p
+                  className="mt-1.5 truncate text-[9.5px] text-[var(--text-secondary)]"
+                  title={hardwareMetrics?.system?.hardware?.cpu}
+                >
+                  {hardwareMetrics?.system?.hardware?.cpu || "CPU information unavailable"}
+                </p>
+              </div>
+            </div>
+
+            {/* Install action */}
+            <div className="mt-5 flex items-center gap-2.5 border-t border-[var(--border)] pt-4">
+              <button
+                type="button"
+                onClick={() => void handleBrowseModelDownload(fitModel)}
+                disabled={downloadingRecommendation || !fitModel.recommendedFile}
+                className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-[var(--primary)] text-[11.5px] font-semibold text-[var(--primary-foreground)] shadow-[0_10px_28px_rgba(15,156,143,0.18)] transition-colors hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:bg-[var(--surface-raised)] disabled:text-[var(--text-secondary)] disabled:shadow-none"
+              >
+                {downloadingRecommendation ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Installing...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Install model
+                  </>
+                )}
+              </button>
+              <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-secondary)]" />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default ModelUploadModal;

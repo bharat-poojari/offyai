@@ -13,10 +13,10 @@
 
   z-index: 9999;
 
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid #e5e7eb;
+  background: color-mix(in srgb, var(--header-bg) 96%, transparent);
+  border-bottom: 1px solid var(--header-border);
 
-  color: #111827;
+  color: var(--header-text);
 
   -webkit-app-region: drag;
   user-select: none;
@@ -26,12 +26,6 @@
   transition:
     background-color 150ms ease,
     border-color 150ms ease;
-}
-
-.dark .title-bar {
-  background: rgba(17, 24, 39, 0.96);
-  border-bottom-color: #374151;
-  color: #f9fafb;
 }
 
 
@@ -140,13 +134,9 @@
 
   letter-spacing: -0.01em;
 
-  color: #374151;
+  color: var(--header-text);
 
   white-space: nowrap;
-}
-
-.dark .title-bar-app-name {
-  color: #e5e7eb;
 }
 
 
@@ -190,7 +180,7 @@
 
   background: transparent;
 
-  color: #4b5563;
+  color: var(--text-secondary);
 
   cursor: pointer;
 
@@ -203,21 +193,14 @@
     color 100ms ease;
 }
 
-.dark .title-bar-button {
-  color: #d1d5db;
-}
-
 
 /* ==========================================================================
    NORMAL HOVER
    ========================================================================== */
 
 .title-bar-button:hover {
-  background: rgba(0, 0, 0, 0.055);
-}
-
-.dark .title-bar-button:hover {
-  background: rgba(255, 255, 255, 0.075);
+  background: var(--sidebar-hover);
+  color: var(--text-primary);
 }
 
 
@@ -226,11 +209,7 @@
    ========================================================================== */
 
 .title-bar-button:active {
-  background: rgba(0, 0, 0, 0.10);
-}
-
-.dark .title-bar-button:active {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--secondary-hover);
 }
 
 
@@ -296,7 +275,7 @@
    ========================================================================== */
 
 .title-bar-button:focus-visible {
-  outline: 1px solid #3b82f6;
+  outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
 

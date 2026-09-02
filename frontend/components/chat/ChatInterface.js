@@ -98,10 +98,7 @@ const ChatInterface = ({
     ) {
       inputRef.current.focus();
     }
-  }, [
-    currentChat?.id,
-    isLoading,
-  ]);
+  }, [currentChat, isLoading]);
 
   /*
    * --------------------------------------------------------------------------
@@ -302,7 +299,7 @@ const ChatInterface = ({
           )
         ) {
           return (
-            <Image className="w-3.5 h-3.5 text-emerald-400" />
+            <Image alt="" aria-hidden="true" className="w-3.5 h-3.5 text-emerald-400" />
           );
         }
 
@@ -328,7 +325,7 @@ const ChatInterface = ({
           fileType?.includes("audio")
         ) {
           return (
-            <Mic className="w-3.5 h-3.5 text-blue-400" />
+            <Mic className="w-3.5 h-3.5 text-[var(--primary)]" />
           );
         }
 
@@ -386,9 +383,7 @@ const ChatInterface = ({
   return (
     <div
       className={`relative flex h-full flex-col ${
-        resolvedTheme === "dark"
-          ? "bg-[#0a0d13]"
-          : "bg-gray-50"
+          "bg-[var(--background)]"
       }`}
     >
       <FileUploadModal
@@ -442,14 +437,12 @@ const ChatInterface = ({
                   flex h-14 w-14
                   items-center justify-center
                   rounded-2xl
-                  border border-blue-400/10
-                  bg-gradient-to-br
-                  from-blue-500/15
-                  to-violet-500/15
-                  shadow-lg shadow-blue-950/10
+                      border border-[var(--primary)]/20
+                      bg-[var(--accent-subtle)]
+                      shadow-lg shadow-[color:rgba(15,156,143,0.12)]
                 "
               >
-                <Bot className="h-7 w-7 text-blue-400" />
+                <Bot className="h-7 w-7 text-[var(--primary)]" />
               </motion.div>
 
               <motion.h3
@@ -506,7 +499,7 @@ const ChatInterface = ({
                     icon: FileText,
                     text: "File uploads",
                     color:
-                      "text-blue-400",
+                      "text-[var(--primary)]",
                   },
                   {
                     icon: Image,
@@ -665,9 +658,7 @@ const ChatInterface = ({
             border
             px-3 py-2
             ${
-              resolvedTheme === "dark"
-                ? "border-white/[0.06] bg-white/[0.025]"
-                : "border-blue-100 bg-blue-50"
+                "border-[var(--border)] bg-[var(--accent-subtle)]"
             }
           `}
         >
@@ -676,9 +667,7 @@ const ChatInterface = ({
               className={`
                 text-xs font-medium
                 ${
-                  resolvedTheme === "dark"
-                    ? "text-gray-300"
-                    : "text-blue-700"
+                  "text-[var(--text-primary)]"
                 }
               `}
             >
@@ -695,9 +684,7 @@ const ChatInterface = ({
                 text-[10px] font-medium
                 transition-colors
                 ${
-                  resolvedTheme === "dark"
-                    ? "text-gray-500 hover:bg-white/[0.05] hover:text-gray-300"
-                    : "text-blue-600 hover:bg-blue-100 hover:text-blue-800"
+                  "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
                 }
               `}
             >
@@ -728,9 +715,7 @@ const ChatInterface = ({
                     px-2 py-1.5
                     text-xs
                     ${
-                      resolvedTheme === "dark"
-                        ? "border-white/[0.06] bg-[#11151d]"
-                        : "border-gray-200 bg-white"
+                      "border-[var(--border)] bg-[var(--surface)]"
                     }
                   `}
                 >
@@ -746,9 +731,7 @@ const ChatInterface = ({
                         text-[11px]
                         font-medium
                         ${
-                          resolvedTheme === "dark"
-                            ? "text-gray-300"
-                            : "text-gray-800"
+                          "text-[var(--text-primary)]"
                         }
                       `}
                     >
@@ -759,9 +742,7 @@ const ChatInterface = ({
                       className={`
                         mt-0.5 text-[9px]
                         ${
-                          resolvedTheme === "dark"
-                            ? "text-gray-600"
-                            : "text-gray-500"
+                          "text-[var(--text-secondary)]"
                         }
                       `}
                     >
@@ -807,9 +788,7 @@ const ChatInterface = ({
           p-3
           sm:px-4
           ${
-            resolvedTheme === "dark"
-              ? "border-white/[0.06] bg-[#0d1017]/90"
-              : "border-gray-200 bg-white/90"
+              "border-[var(--border)] bg-[var(--chat-input-bg)]/95"
           }
           backdrop-blur-xl
         `}
@@ -849,9 +828,7 @@ const ChatInterface = ({
               disabled:cursor-not-allowed
               disabled:opacity-30
               ${
-                resolvedTheme === "dark"
-                  ? "border-white/[0.07] bg-white/[0.025] text-gray-500 hover:bg-white/[0.06] hover:text-gray-200"
-                  : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
               }
             `}
             title="Attach files"
@@ -903,9 +880,7 @@ const ChatInterface = ({
                 disabled:cursor-not-allowed
                 disabled:opacity-50
                 ${
-                  resolvedTheme === "dark"
-                    ? "border-white/[0.07] bg-white/[0.025] text-gray-100 placeholder-gray-600 focus:border-blue-500/40 focus:bg-white/[0.035] focus:ring-2 focus:ring-blue-500/10"
-                    : "border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
+                  "border-[var(--chat-input-border)] bg-[var(--chat-input-bg)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20"
                 }
               `}
             />
@@ -965,7 +940,7 @@ const ChatInterface = ({
               ${
                 isLoading
                   ? "bg-red-600 hover:bg-red-500"
-                  : "bg-blue-600 hover:bg-blue-500"
+                  : "bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-[var(--primary-foreground)]"
               }
             `}
           >

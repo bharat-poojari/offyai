@@ -45,7 +45,44 @@ let deferredStartupScheduled = false;
 
 const serverProcesses = new Set();
 const isDev = !app.isPackaged;
+const appIconCache = {
+  value: null,
+  timestamp: 0,
+};
 let shutdownPromise = null;
+
+function getCachedAppIconData() {
+  const now = Date.now();
+
+  if (appIconCache.value && now - appIconCache.timestamp < 60000) {
+    return appIconCache.value;
+  }
+
+  try {
+    const iconPaths = [
+      resolveAppPath("frontend", "public", "images", "offyai.png"),
+      resolveAppPath("frontend", "out", "images", "offyai.png"),
+      resolveAppPath("offyai.png")
+    ];
+
+    const iconPath = iconPaths.find((candidate) => fs.existsSync(candidate));
+
+    if (!iconPath) {
+      appIconCache.value = null;
+      appIconCache.timestamp = now;
+      return null;
+    }
+
+    const iconData = nativeImage.createFromPath(iconPath).toDataURL();
+    appIconCache.value = iconData;
+    appIconCache.timestamp = now;
+    return iconData;
+  } catch (error) {
+    appIconCache.value = null;
+    appIconCache.timestamp = now;
+    return null;
+  }
+}
 
 function resolveAppPath(...parts) {
   const appPath = isDev ? __dirname : app.getAppPath();
@@ -891,7 +928,7 @@ class ResourceManager {
 
     this.monitorTimer = setInterval(() => {
       void this.getRealSystemMetrics();
-    }, 5000);
+    }, 15000);
   }
 
   stopMonitoring() {
@@ -1238,10 +1275,12 @@ function createSplashWindow() {
       skipTaskbar: true,
       show: true,
       backgroundColor: "#00000000",
+      backgroundThrottling: true,
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
-        sandbox: true
+        sandbox: true,
+        backgroundThrottling: true
       }
     });
 
@@ -1649,6 +1688,7 @@ function createMainWindow() {
         appIcon || undefined,
       titleBarStyle: "hidden",
       autoHideMenuBar: true,
+      backgroundThrottling: true,
       webPreferences: {
         preload:
           resolveAppPath(
@@ -1659,9 +1699,12 @@ function createMainWindow() {
         webSecurity: true,
         spellcheck: true,
         sandbox: false,
+        backgroundThrottling: true,
         devTools: isDev
       }
     });
+
+  mainWindow.webContents.setBackgroundThrottling(true);
 
   mainWindow.setMenuBarVisibility(
     false
@@ -3113,37 +3156,7 @@ function setupApplicationIPC() {
 
   ipcMain.handle(
     "get-app-icon",
-    () => {
-      try {
-        const iconPaths = [
-          resolveAppPath(
-            "frontend",
-            "public",
-            "images",
-            "offyai.png"
-          ),
-          resolveAppPath(
-            "frontend",
-            "out",
-            "images",
-            "offyai.png"
-          )
-        ];
-
-        const iconPath =
-          iconPaths.find((candidate) =>
-            fs.existsSync(candidate)
-          );
-
-        return iconPath
-          ? nativeImage
-              .createFromPath(iconPath)
-              .toDataURL()
-          : null;
-      } catch {
-        return null;
-      }
-    }
+    () => getCachedAppIconData()
   );
 
   ipcMain.handle(

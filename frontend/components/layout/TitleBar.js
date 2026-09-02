@@ -1,17 +1,11 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-} from "react";
+//TitleBar.js
+import React, { useState, useEffect, useCallback, memo } from "react";
+import { Minus, Square, X, Maximize2 } from "lucide-react";
 
-import {
-  Minus,
-  Square,
-  X,
-  Maximize2,
-} from "lucide-react";
+/* The Electron-resolved app icon is a dynamic URL. */
+/* eslint-disable @next/next/no-img-element */
 
-const TitleBar = () => {
+const TitleBar = memo(() => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [platform, setPlatform] = useState("");
   const [appIcon, setAppIcon] = useState(null);
@@ -39,39 +33,28 @@ const TitleBar = () => {
       }
 
       try {
-        const iconData =
-          await window.electronAPI.getAppIcon();
+        const iconData = await window.electronAPI.getAppIcon();
 
         if (mounted && iconData) {
           setAppIcon(iconData);
         }
       } catch (error) {
-        console.error(
-          "Failed to load app icon:",
-          error
-        );
+        console.error("Failed to load app icon:", error);
       }
     };
 
     loadAppIcon();
 
     /* ------------------------------------------------------------------ */
-    /* Window State                                                        */
+    /* Window State                                                       */
     /* ------------------------------------------------------------------ */
 
-    if (
-      window.electronAPI?.onWindowStateChange
-    ) {
-      const unsubscribe =
-        window.electronAPI.onWindowStateChange(
-          (state) => {
-            if (mounted) {
-              setIsMaximized(
-                state === "maximized"
-              );
-            }
-          }
-        );
+    if (window.electronAPI?.onWindowStateChange) {
+      const unsubscribe = window.electronAPI.onWindowStateChange((state) => {
+        if (mounted) {
+          setIsMaximized(state === "maximized");
+        }
+      });
 
       return () => {
         mounted = false;
@@ -91,19 +74,22 @@ const TitleBar = () => {
   /* Window Actions                                                         */
   /* ---------------------------------------------------------------------- */
 
-  const handleMinimize = useCallback(() => {
+  const handleMinimize = useCallback((e) => {
+    e.stopPropagation();
     if (window.electronAPI?.minimizeWindow) {
       window.electronAPI.minimizeWindow();
     }
   }, []);
 
-  const handleMaximize = useCallback(() => {
+  const handleMaximize = useCallback((e) => {
+    e.stopPropagation();
     if (window.electronAPI?.maximizeWindow) {
       window.electronAPI.maximizeWindow();
     }
   }, []);
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback((e) => {
+    e.stopPropagation();
     if (window.electronAPI?.closeWindow) {
       window.electronAPI.closeWindow();
     }
@@ -111,9 +97,11 @@ const TitleBar = () => {
 
   const handleDoubleClick = useCallback(() => {
     if (platform === "windows") {
-      handleMaximize();
+      if (window.electronAPI?.maximizeWindow) {
+        window.electronAPI.maximizeWindow();
+      }
     }
-  }, [platform, handleMaximize]);
+  }, [platform]);
 
   /* ---------------------------------------------------------------------- */
   /* macOS uses native title bar                                            */
@@ -128,13 +116,13 @@ const TitleBar = () => {
   /* ---------------------------------------------------------------------- */
 
   return (
-    <div className="title-bar">
+    <div className="title-bar" style={{ WebkitAppRegion: "drag" }}>
       <div
         className="title-bar-drag-region"
         onDoubleClick={handleDoubleClick}
       >
         {/* ================================================================ */}
-        {/* Left: Application Identity                                        */}
+        {/* Left: Application Identity                                       */}
         {/* ================================================================ */}
 
         <div className="title-bar-content">
@@ -159,7 +147,10 @@ const TitleBar = () => {
           {/* Right: Window Controls                                         */}
           {/* ============================================================ */}
 
-          <div className="title-bar-controls">
+          <div 
+            className="title-bar-controls"
+            style={{ WebkitAppRegion: "no-drag" }}
+          >
             <button
               type="button"
               onClick={handleMinimize}
@@ -218,6 +209,8 @@ const TitleBar = () => {
       </div>
     </div>
   );
-};
+});
+
+TitleBar.displayName = "TitleBar";
 
 export default TitleBar;

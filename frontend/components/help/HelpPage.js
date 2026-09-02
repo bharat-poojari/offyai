@@ -199,17 +199,9 @@ const HelpPage = () => {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
 
-  const surface = isDark
-    ? "border-white/[0.06] bg-white/[0.025]"
-    : "border-gray-200 bg-white";
-
-  const muted = isDark
-    ? "text-gray-400"
-    : "text-gray-600";
-
-  const heading = isDark
-    ? "text-white"
-    : "text-gray-900";
+  const surface = "border-[var(--border)] bg-[var(--surface)]";
+  const muted = "text-[var(--text-secondary)]";
+  const heading = "text-[var(--text-primary)]";
 
   return (
     <div
@@ -218,9 +210,7 @@ const HelpPage = () => {
         h-full
         overflow-y-auto
         ${
-          isDark
-            ? "bg-[#090b10]"
-            : "bg-gray-50"
+          "bg-[var(--background)]"
         }
       `}
     >

@@ -1,3 +1,5 @@
+/* Dynamic user-provided and Electron-resolved image URLs cannot use next/image. */
+/* eslint-disable @next/next/no-img-element */
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
@@ -24,32 +26,24 @@ const Message = ({ message }) => {
 
   const getBackgroundColor = () => {
     if (isUser) {
-      return resolvedTheme === "dark"
-        ? "bg-blue-900/20"
-        : "bg-blue-50/70";
+      return "bg-[var(--primary)]";
     }
 
     return resolvedTheme === "dark"
-      ? "bg-gray-800/30"
-      : "bg-white/80";
+      ? "bg-[var(--surface)]"
+      : "bg-[var(--surface)]";
   };
 
   const getTextColor = () => {
-    return resolvedTheme === "dark"
-      ? "text-gray-100"
-      : "text-gray-900";
+    return "text-[var(--text-primary)]";
   };
 
   const getMutedTextColor = () => {
-    return resolvedTheme === "dark"
-      ? "text-gray-500"
-      : "text-gray-500";
+    return "text-[var(--text-secondary)]";
   };
 
   const getBorderColor = () => {
-    return resolvedTheme === "dark"
-      ? "border-white/[0.06]"
-      : "border-gray-200";
+    return "border-[var(--border)]";
   };
 
   const handleCopy = async () => {
@@ -115,11 +109,7 @@ const Message = ({ message }) => {
               rounded-xl
               border
               ${getBorderColor()}
-              ${
-                resolvedTheme === "dark"
-                  ? "bg-[#0b0e14]"
-                  : "bg-gray-50"
-              }
+              bg-[var(--surface-raised)]
               shadow-sm
             `}
           >
@@ -130,11 +120,7 @@ const Message = ({ message }) => {
                   border-b
                   px-3 py-2
                   ${getBorderColor()}
-                  ${
-                    resolvedTheme === "dark"
-                      ? "bg-white/[0.025]"
-                      : "bg-gray-100"
-                  }
+                  bg-[var(--surface)]
                 `}
               >
                 <div className="flex items-center gap-2">
@@ -143,10 +129,10 @@ const Message = ({ message }) => {
                       flex h-6 w-6
                       items-center justify-center
                       rounded-md
-                      bg-blue-500/10
+                      bg-[var(--accent-subtle)]
                     "
                   >
-                    <Code className="h-3.5 w-3.5 text-blue-400" />
+                    <Code className="h-3.5 w-3.5 text-[var(--primary)]" />
                   </div>
 
                   <span
@@ -178,8 +164,8 @@ const Message = ({ message }) => {
                     ${getMutedTextColor()}
                     ${
                       resolvedTheme === "dark"
-                        ? "hover:bg-white/[0.06] hover:text-gray-200"
-                        : "hover:bg-gray-200 hover:text-gray-800"
+                        ? "hover:bg-slate-800 hover:text-slate-100"
+                        : "hover:bg-slate-200 hover:text-slate-800"
                     }
                   `}
                   aria-label="Copy code"
@@ -196,8 +182,8 @@ const Message = ({ message }) => {
                   font-mono
                   ${
                     resolvedTheme === "dark"
-                      ? "text-gray-200"
-                      : "text-gray-800"
+                      ? "text-slate-200"
+                      : "text-slate-800"
                   }
                 `}
               >
@@ -223,8 +209,8 @@ const Message = ({ message }) => {
               text-xs
               ${
                 resolvedTheme === "dark"
-                  ? "border-white/[0.06] bg-white/[0.06] text-gray-200"
-                  : "border-gray-200 bg-gray-100 text-gray-800"
+                  ? "border-slate-700 bg-slate-800 text-slate-200"
+                  : "border-slate-200 bg-slate-100 text-slate-800"
               }
             `}
           >
@@ -270,7 +256,7 @@ const Message = ({ message }) => {
       fileType?.startsWith("image/")
     ) {
       return (
-        <Image className="h-3.5 w-3.5 text-emerald-400" />
+        <Image alt="" aria-hidden="true" className="h-3.5 w-3.5 text-emerald-400" />
       );
     }
 
@@ -278,7 +264,7 @@ const Message = ({ message }) => {
       fileType?.startsWith("video/")
     ) {
       return (
-        <Video className="h-3.5 w-3.5 text-violet-400" />
+        <Video className="h-3.5 w-3.5 text-[var(--primary)]" />
       );
     }
 
@@ -290,7 +276,7 @@ const Message = ({ message }) => {
 
     if (fileType?.includes("audio")) {
       return (
-        <Mic className="h-3.5 w-3.5 text-blue-400" />
+        <Mic className="h-3.5 w-3.5 text-[var(--primary)]" />
       );
     }
 
@@ -346,11 +332,7 @@ const Message = ({ message }) => {
                 rounded-xl
                 border
                 p-2
-                ${
-                  resolvedTheme === "dark"
-                    ? "border-blue-400/10 bg-blue-500/[0.05]"
-                    : "border-blue-100 bg-blue-50/70"
-                }
+                "border-[var(--border)] bg-[var(--accent-subtle)]"
               `}
             >
               {file.type === "image" ? (
@@ -378,11 +360,7 @@ const Message = ({ message }) => {
                     flex-shrink-0
                     items-center justify-center
                     rounded-lg
-                    ${
-                      resolvedTheme === "dark"
-                        ? "bg-blue-500/10"
-                        : "bg-blue-100"
-                    }
+                    "bg-[var(--accent)]"
                   `}
                 >
                   {getFileIcon(
@@ -397,11 +375,7 @@ const Message = ({ message }) => {
                     truncate
                     text-xs
                     font-medium
-                    ${
-                      resolvedTheme === "dark"
-                        ? "text-blue-200"
-                        : "text-blue-700"
-                    }
+                    "text-[var(--text-primary)]"
                   `}
                 >
                   {file.originalName ||
@@ -412,11 +386,7 @@ const Message = ({ message }) => {
                   className={`
                     mt-0.5
                     text-[10px]
-                    ${
-                      resolvedTheme === "dark"
-                        ? "text-blue-400/70"
-                        : "text-blue-600"
-                    }
+                    "text-[var(--text-secondary)]"
                   `}
                 >
                   {formatFileSize(
@@ -440,11 +410,7 @@ const Message = ({ message }) => {
                   rounded-lg
                   p-1.5
                   transition-colors
-                  ${
-                    resolvedTheme === "dark"
-                      ? "text-blue-400 hover:bg-blue-500/10 hover:text-blue-300"
-                      : "text-blue-500 hover:bg-blue-100 hover:text-blue-700"
-                  }
+                  "text-[var(--primary)] hover:bg-[var(--accent-subtle)] hover:text-[var(--primary-hover)]"
                 `}
                 aria-label={`Open ${file.originalName || file.name}`}
               >
@@ -491,12 +457,9 @@ const Message = ({ message }) => {
                         flex-shrink-0
                         overflow-hidden
                         rounded-xl
-                        border border-blue-400/10
-                        bg-gradient-to-br
-                        from-blue-500
-                        to-violet-600
+                        border border-[var(--border)]
+                        bg-[var(--surface-raised)]
                         shadow-sm
-                        shadow-blue-950/20
                       "
                     >
                       {profile?.aiPhoto ? (
@@ -510,7 +473,7 @@ const Message = ({ message }) => {
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                          <Bot className="h-4 w-4 text-white" />
+                          <Bot className="h-4 w-4 text-[var(--text-secondary)]" />
                         </div>
                       )}
           </div>
@@ -593,12 +556,8 @@ const Message = ({ message }) => {
             p-3
             ${
               isUser
-                ? resolvedTheme === "dark"
-                  ? "rounded-tr-md border-blue-400/10 bg-blue-600/10"
-                  : "rounded-tr-md border-blue-100 bg-blue-50"
-                : resolvedTheme === "dark"
-                ? "rounded-tl-md border-white/[0.06] bg-white/[0.025]"
-                : "rounded-tl-md border-gray-200 bg-white"
+                ? "rounded-tr-md border-[var(--border)] bg-[var(--chat-assistant-bg)]"
+                : "rounded-tl-md border-[var(--border)] bg-[var(--chat-assistant-bg)]"
             }
             shadow-sm
           `}
@@ -608,9 +567,7 @@ const Message = ({ message }) => {
               text-sm
               ${
                 isUser
-                  ? resolvedTheme === "dark"
-                    ? "text-gray-100"
-                    : "text-gray-800"
+                  ? "text-[var(--chat-assistant-text)]"
                   : getTextColor()
               }
             `}
@@ -675,10 +632,9 @@ const Message = ({ message }) => {
                         flex-shrink-0
                         overflow-hidden
                         rounded-xl
-                        border border-blue-400/10
-                        bg-blue-600
+                        border border-[var(--border)]
+                        bg-[var(--surface-raised)]
                         shadow-sm
-                        shadow-blue-950/20
                       "
                     >
                       {profile?.userPhoto ? (
@@ -692,7 +648,7 @@ const Message = ({ message }) => {
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center">
-                          <User className="h-4 w-4 text-white" />
+                          <User className="h-4 w-4 text-[var(--text-secondary)]" />
                         </div>
                       )}
           </div>

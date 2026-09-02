@@ -74,13 +74,12 @@ const ChatHistory = ({
           mx-2 mt-1 mb-3
           px-3.5 py-2.5
           rounded-xl
-          border border-white/[0.06]
-          bg-white/[0.025]
-          text-gray-300
+          border border-[var(--border)]
+          bg-[var(--surface-raised)]
+          text-[var(--text-primary)]
           transition-all duration-200
-          hover:bg-white/[0.055]
-          hover:border-white/[0.09]
-          hover:text-white
+          hover:bg-[var(--surface)]
+          hover:border-[var(--border)]
           active:scale-[0.99]
         "
       >
@@ -89,10 +88,9 @@ const ChatHistory = ({
             flex h-8 w-8 shrink-0
             items-center justify-center
             rounded-lg
-            bg-blue-500/10
-            text-blue-400
+            bg-[var(--accent-subtle)]
+            text-[var(--primary)]
             transition-colors duration-200
-            group-hover:bg-blue-500/15
           "
         >
           <Plus className="h-4 w-4" />
@@ -111,19 +109,19 @@ const ChatHistory = ({
                 flex h-12 w-12
                 items-center justify-center
                 rounded-2xl
-                border border-white/[0.06]
-                bg-white/[0.025]
+                border border-[var(--border)]
+                bg-[var(--surface-raised)]
                 mb-4
               "
             >
-              <MessageSquare className="h-5 w-5 text-gray-500" />
+              <MessageSquare className="h-5 w-5 text-[var(--text-secondary)]" />
             </div>
 
-            <p className="text-sm font-medium text-gray-400">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
               No chats yet
             </p>
 
-            <p className="mt-1 max-w-[190px] text-xs leading-5 text-gray-600">
+            <p className="mt-1 max-w-[190px] text-xs leading-5 text-[var(--text-secondary)]">
               Start a conversation to see it here
             </p>
           </div>
@@ -141,8 +139,8 @@ const ChatHistory = ({
                   transition-all duration-150
                   ${
                     currentSessionId === session.id
-                      ? "border-blue-500/15 bg-blue-500/[0.10] text-white shadow-sm"
-                      : "border-transparent text-gray-400 hover:border-white/[0.045] hover:bg-white/[0.035] hover:text-gray-200"
+                      ? "border-[var(--primary)]/20 bg-[var(--accent-subtle)] text-[var(--text-primary)] shadow-sm"
+                      : "border-transparent text-[var(--text-secondary)] hover:border-[var(--border)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"
                   }
                 `}
               >
@@ -156,8 +154,8 @@ const ChatHistory = ({
                       transition-colors duration-150
                       ${
                         currentSessionId === session.id
-                          ? "bg-blue-500/15 text-blue-400"
-                          : "bg-white/[0.035] text-gray-600 group-hover:text-gray-400"
+                          ? "bg-[var(--accent-subtle)] text-[var(--primary)]"
+                          : "bg-[var(--surface)] text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
                       }
                     `}
                   >
@@ -171,8 +169,8 @@ const ChatHistory = ({
                         truncate text-[13px] font-medium
                         ${
                           currentSessionId === session.id
-                            ? "text-gray-100"
-                            : "text-gray-300"
+                            ? "text-[var(--text-primary)]"
+                            : "text-[var(--text-primary)]"
                         }
                       `}
                     >
@@ -185,8 +183,8 @@ const ChatHistory = ({
                         text-[10px]
                         ${
                           currentSessionId === session.id
-                            ? "text-blue-300/70"
-                            : "text-gray-600 group-hover:text-gray-500"
+                            ? "text-[var(--text-secondary)]"
+                            : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
                         }
                       `}
                     >
@@ -214,7 +212,7 @@ const ChatHistory = ({
                       ${
                         showDeleteConfirm === session.id
                           ? "bg-red-500/15 text-red-400 opacity-100 hover:bg-red-500/20"
-                          : "text-gray-600 opacity-0 hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
+                          : "text-[var(--text-secondary)] opacity-0 hover:bg-red-500/10 hover:text-red-400 group-hover:opacity-100"
                       }
                     `}
                   >
@@ -228,7 +226,7 @@ const ChatHistory = ({
 
                 {/* Active indicator */}
                 {currentSessionId === session.id && (
-                  <div className="absolute bottom-2.5 left-0 h-4 w-0.5 rounded-r-full bg-blue-400" />
+                  <div className="absolute bottom-2.5 left-0 h-4 w-0.5 rounded-r-full bg-[var(--primary)]" />
                 )}
               </div>
             ))}

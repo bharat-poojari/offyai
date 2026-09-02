@@ -70,6 +70,7 @@
   },
   "ui": {
     "fontSize": 13,
+    "sidebarWidth": 230,
     "compactMode": false,
     "showTimestamps": true,
     "smoothScrolling": true,
@@ -86,7 +87,6 @@
     "highlightColor": "#3b82f6",
     "backgroundType": "solid",
     "customBackground": "",
-    "sidebarWidth": 230,
     "panelOpacity": 95,
     "hoverEffects": true,
     "focusRing": true,

@@ -1197,6 +1197,7 @@ export const useChat = () => {
     [
       chatSessions,
       isLoading,
+      profile,
       updateMessages,
       updateSession,
     ]
