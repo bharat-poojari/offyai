@@ -967,6 +967,46 @@ const HelpPage = () => {
           </div>
         </section>
 
+        <section
+          className={`
+            mt-4
+            rounded-2xl
+            border
+            ${surface}
+            p-6
+          `}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
+              <ShieldCheck className="h-4 w-4 text-blue-400" />
+            </div>
+
+            <div>
+              <h2 className={`text-sm font-semibold ${heading}`}>
+                Privacy and AI content
+              </h2>
+
+              <p className={`mt-0.5 text-xs ${muted}`}>
+                Important information about data, model sources, and generated output.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-2.5">
+            {[
+              "Local prompts, responses, settings, and attached files stay on this device unless you use an external model catalog or configure another service.",
+              "Model search and downloads can contact Hugging Face or ModelScope. Review the selected model's license, source, and contents before using it.",
+              "OffyAI produces live generative AI content. Generated text can be incorrect, unsafe, or unsuitable; verify important output before relying on it.",
+              "Report inappropriate or harmful generated content through the project's support or issue-reporting channel listed with the Store product.",
+            ].map((text) => (
+              <div key={text} className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-blue-400" />
+                <p className={`text-xs leading-5 ${muted}`}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ================================================================ */}
         {/* FOOTER                                                           */}
         {/* ================================================================ */}

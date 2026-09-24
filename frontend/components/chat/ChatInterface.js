@@ -561,6 +561,15 @@ const ChatInterface = ({
                   message={
                     message
                   }
+                  relatedUserMessage={
+                    message.role === "assistant"
+                      ? messages
+                          .slice(0, index)
+                          .reverse()
+                          .find((item) => item.role === "user")
+                      : null
+                  }
+                  sessionTitle={currentChat?.title || "Chat report"}
                 />
               )
             )}

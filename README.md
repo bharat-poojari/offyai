@@ -1,62 +1,117 @@
-<p align="center">
-  <img
-    src="https://raw.githubusercontent.com/bharat-poojari/offyai/main/offyai.png"
-    alt="OffyAI"
-    width="600"
-  />
-</p>
+<div align="center">
+<img src="https://raw.githubusercontent.com/bharat-poojari/offyai/main/offyai.png" alt="OffyAI" width="120" />
 
-<h1 align="center">OffyAI</h1>
-
-<p align="center">
-  <strong>Private. Fast. Local. Yours.</strong>
-</p>
-
-<p align="center">
-  A modern local-first AI desktop application for running and interacting with local Large Language Models.
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/AI-Local-blue" alt="Local AI">
-  <img src="https://img.shields.io/badge/Platform-Windows-lightgrey" alt="Windows">
-  <img src="https://img.shields.io/badge/Status-Active%20Development-orange" alt="Active Development">
-</p>
-
----
 # OffyAI
 
-> **Private. Fast. Local. Yours.**
+### Private. Fast. Local. Yours.
 
-OffyAI is a modern **local-first AI desktop application** that brings a ChatGPT-like experience to your computer while keeping your AI workloads close to you.
+A modern local-first AI desktop application for running and interacting with local Large Language Models.
 
-It is designed for users who want to **run, manage, and interact with local Large Language Models (LLMs)** through a clean desktop interface without depending entirely on cloud-based AI services.
+<p>
+<img alt="Latest Release" src="https://img.shields.io/github/v/release/bharat-poojari/offyai?display_name=tag&sort=semver&style=flat-square&label=release&color=56E1C9&labelColor=15181D">
+<img alt="License" src="https://img.shields.io/github/license/bharat-poojari/offyai?style=flat-square&label=license&color=56E1C9&labelColor=15181D">
+<img alt="Local AI" src="https://img.shields.io/badge/AI-Local-15181D?style=flat-square&labelColor=15181D&color=56E1C9">
+<img alt="Platform" src="https://img.shields.io/badge/platform-Windows-15181D?style=flat-square&labelColor=15181D&color=56E1C9">
+<img alt="Status" src="https://img.shields.io/badge/status-Active%20Development-15181D?style=flat-square&labelColor=15181D&color=E8A23D">
+</p>
 
----
+<p>
+<a href="#-getting-started"><strong>Get Started</strong></a> ·
+<a href="https://github.com/bharat-poojari/offyai/releases"><strong>Releases</strong></a> ·
+<a href="https://github.com/bharat-poojari/offyai/issues"><strong>Report a Bug</strong></a> ·
+<a href="#-roadmap"><strong>Roadmap</strong></a>
+</p>
+</div>
+
+<br>
+
+> OffyAI brings a ChatGPT-like experience to your computer while keeping your AI workloads close to you — designed for people who want to **run, manage, and interact with local LLMs** through a clean desktop interface, without depending entirely on cloud-based AI services.
+
+<br>
+
+<table align="center">
+<tr>
+<td align="center" width="115">🖥️<br><b>Desktop UI</b></td>
+<td align="center" width="115">🔒<br><b>Local-first</b></td>
+<td align="center" width="115">🤖<br><b>Local LLMs</b></td>
+<td align="center" width="115">📦<br><b>Model mgmt</b></td>
+<td align="center" width="115">💬<br><b>Chat</b></td>
+<td align="center" width="115">⚡<br><b>Perf monitor</b></td>
+</tr>
+</table>
+
+<br>
+
+## Contents
+
+<table>
+<tr>
+<td valign="top" width="33%">
+
+- [Highlights](#-highlights)
+- [Why OffyAI?](#-why-offyai)
+- [Local AI](#-local-ai)
+- [Getting Started](#-getting-started)
+- [Windows Store Package](#-windows-store-package)
+- [Selecting a Model](#-selecting-a-model)
+
+</td>
+<td valign="top" width="33%">
+
+- [System Requirements](#-system-requirements)
+- [Performance](#-performance)
+- [Architecture](#-architecture)
+- [Model Management](#-model-management)
+- [Chat](#-chat)
+- [Configuration](#-configuration)
+
+</td>
+<td valign="top" width="33%">
+
+- [Privacy](#-privacy)
+- [Internet Connectivity](#-internet-connectivity)
+- [Local Data](#-local-data)
+- [Troubleshooting](#-troubleshooting)
+- [Development & Building](#-development)
+- [Contributing / Security / License](#-contributing)
+
+</td>
+</tr>
+</table>
+
+<br>
 
 ## ✨ Highlights
 
-- 🖥️ **Modern desktop AI interface**
-- 🔒 **Local-first AI experience**
-- 🤖 **Local LLM support**
-- 📦 **Model management**
-- 💬 **ChatGPT-like conversations**
-- ⚡ **Performance monitoring**
-- 🧠 **Configurable inference settings**
-- 💾 **Local conversation/application data**
-- 🧩 **Designed for extensibility**
-- 🚀 **Standalone Windows application support**
-- 🛠️ **Developer-friendly architecture**
+<table>
+<tr><td width="50%">
 
----
+- 🖥️ Modern desktop AI interface
+- 🔒 Local-first AI experience
+- 🤖 Local LLM support
+- 📦 Model management
+- 💬 ChatGPT-like conversations
+- ⚡ Performance monitoring
+
+</td><td width="50%">
+
+- 🧠 Configurable inference settings
+- 💾 Local conversation/application data
+- 🧩 Designed for extensibility
+- 🚀 Standalone Windows application support
+- 🛠️ Developer-friendly architecture
+
+</td></tr>
+</table>
+
+<br>
 
 ## 🎯 Why OffyAI?
 
-Cloud AI is powerful, but it is not always the right solution.
-
-OffyAI focuses on giving users more control over their AI environment:
+Cloud AI is powerful, but it is not always the right solution. OffyAI focuses on giving users more control over their AI environment.
 
 | Feature | OffyAI |
-|---|---|
+| :-- | :--: |
 | Local AI models | ✅ |
 | Cloud-independent inference | ✅ |
 | Local-first workflow | ✅ |
@@ -69,303 +124,238 @@ OffyAI focuses on giving users more control over their AI environment:
 
 > **Your computer. Your models. Your conversations. Your control.**
 
----
+<br>
 
 ## 🧠 Local AI
 
-OffyAI is built around the concept of running AI models locally.
+OffyAI is built around the concept of running AI models locally. Depending on the model and runtime configuration, local inference can provide:
 
-Depending on the model and runtime configuration, local inference can provide:
+`better privacy` · `offline usage` · `lower dependency on external APIs` · `greater control over models` · `predictable local resource usage` · `experimentation with different open models`
 
-- Better privacy
-- Offline usage
-- Lower dependency on external APIs
-- Greater control over models
-- Predictable local resource usage
-- Experimentation with different open models
-
-### Model Selection
+### Model selection
 
 The performance of a local model depends heavily on:
+
+<table>
+<tr><td width="50%">
 
 - CPU
 - GPU
 - VRAM
 - RAM
+
+</td><td width="50%">
+
 - Model architecture
 - Quantization
 - Context length
-- Number of inference threads
-- Runtime configuration
+- Number of inference threads / runtime configuration
 
-For the best experience, use a model appropriate for your system hardware.
+</td></tr>
+</table>
 
----
+> [!TIP]
+> For the best experience, use a model appropriate for your system hardware.
 
-# 🚀 Getting Started
+<br>
 
-## 1. Download OffyAI
+## 🚀 Getting Started
 
-Download the latest release from the project's GitHub Releases page.
+### 1 · Download OffyAI
 
-After downloading the Windows executable:
+Install OffyAI from the **Microsoft Store**, or download the latest **MSIX** release from the project's [release page](https://github.com/bharat-poojari/offyai/releases).
 
-1. Download the latest `.exe`.
-2. Place it in a convenient location.
-3. Launch OffyAI.
-4. Configure your local model/runtime.
-5. Start a conversation.
+```mermaid
+flowchart LR
+    A["Open the .msix<br/>package"] --> B["Install OffyAI when<br/>Windows prompts you"] --> C["Launch OffyAI"] --> D["Configure your<br/>local model / runtime"] --> E["Start a<br/>conversation"]
+```
 
----
+### 2 · First launch
 
-## 2. First Launch
+On the first launch, OffyAI may initialize its local application environment. Depending on the installed version, this can include:
 
-On the first launch, OffyAI may initialize its local application environment.
+`application configuration` · `local storage` · `model configuration` · `conversation data` · `runtime settings` · `performance preferences`
 
-Depending on the installed version, this can include:
+<br>
 
-- Application configuration
-- Local storage
-- Model configuration
-- Conversation data
-- Runtime settings
-- Performance preferences
+## 📦 Windows Store Package
 
----
+The Windows release target is an **x64 AppX package**, using the **MSIX** package format. Build the unsigned Store-ingestion package from Windows with:
 
-## 3. Select a Model
+```powershell
+npm run build:msix
+```
 
-Choose a compatible local model from the model-management interface.
+The package is written to `dist-electron\OffyAI-1.1.1-x64.msix` (the version in the filename follows `package.json`).
 
-When selecting a model, consider:
+> [!IMPORTANT]
+> The package is intentionally **unsigned** for Microsoft Store submission — Microsoft signs the Store-distributed package after ingestion. A locally unsigned MSIX is **not** intended for direct sideload installation.
 
-### RAM
+**AppX identity**
 
+| Field | Value |
+| :-- | :-- |
+| Partner Center product | `BharatPoojari.OffyAI` |
+| Publisher | `CN=C28C265F-0F23-4459-9938-F0376C861E54` |
+| Publisher display name | `Bharat Poojari` |
+
+The package hash can be checked with:
+
+```powershell
+Get-FileHash -Algorithm SHA256
+```
+
+Microsoft applies the Store-trusted signature after certification.
+
+<br>
+
+## 🧬 Selecting a Model
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+**RAM**
 Larger models generally require more system memory.
 
-### VRAM
+</td>
+<td width="33%" valign="top">
 
+**VRAM**
 GPU acceleration can significantly improve inference performance when supported.
 
-### Quantization
+</td>
+<td width="33%" valign="top">
 
-Quantized models reduce memory requirements and can make larger models practical on consumer hardware.
+**Quantization**
+Reduces memory requirements and can make larger models practical on consumer hardware.
 
-Common quantization levels include:
+</td>
+</tr>
+</table>
 
-- `Q2`
-- `Q3`
-- `Q4`
-- `Q5`
-- `Q6`
-- `Q8`
+**Common quantization levels**
 
-The exact performance and quality trade-off depends on the model and runtime.
+<p><code>Q2</code> <code>Q3</code> <code>Q4</code> <code>Q5</code> <code>Q6</code> <code>Q8</code></p>
 
----
+> [!NOTE]
+> The exact performance and quality trade-off depends on the model and runtime.
 
-# 💻 System Requirements
+<br>
+
+## 💻 System Requirements
 
 Actual requirements depend on the model being used.
 
-### Minimum
+| | 🟢 Minimum | 🔵 Recommended |
+| :-- | :-- | :-- |
+| OS | Windows 10 / 11 | Windows 11 |
+| CPU | Modern x64 CPU | Modern multi-core CPU |
+| RAM | 8 GB | 16 GB+ |
+| Storage | Sufficient for models | SSD, 20 GB+ available for multiple models |
+| GPU | — | Dedicated GPU, when supported |
 
-A practical minimum configuration may include:
+> [!IMPORTANT]
+> Model requirements can be substantially higher than application requirements. A model's size, quantization, context length, and runtime determine its actual resource consumption.
 
-- Windows 10/11
-- 8 GB RAM
-- Modern x64 CPU
-- Sufficient storage for models
+<br>
 
-### Recommended
+## ⚙️ Performance
 
-For a smoother local AI experience:
+OffyAI provides performance visibility so users can understand how their local AI workload is behaving. Depending on the version, performance information may include:
 
-- Windows 11
-- 16 GB+ RAM
-- Modern multi-core CPU
-- SSD
-- Dedicated GPU when supported
-- 20 GB+ available storage for multiple models
-
-> **Important:** Model requirements can be substantially higher than application requirements. A model's size, quantization, context length, and runtime determine its actual resource consumption.
-
----
-
-# ⚙️ Performance
-
-OffyAI provides performance visibility so users can understand how their local AI workload is behaving.
-
-Depending on the version, performance information may include:
-
-- CPU utilization
-- RAM utilization
-- GPU utilization
-- VRAM usage
-- Model loading state
-- Generation speed
-- Token throughput
-- Response latency
-- Runtime status
+`CPU utilization` · `RAM utilization` · `GPU utilization` · `VRAM usage` · `model loading state` · `generation speed` · `token throughput` · `response latency` · `runtime status`
 
 Performance varies significantly between hardware configurations.
 
----
+<br>
 
-# 🧩 Architecture
+## 🧩 Architecture
 
 OffyAI is designed around a desktop application architecture with separate concerns for the user interface, application logic, local AI execution, storage, and system monitoring.
 
-A simplified architecture:
+```mermaid
+flowchart TB
+    UI["🖥️ OffyAI UI<br/><sub>Chat · Models · Settings · Performance</sub>"]
+    UI --> APP["Application Layer<br/><sub>Conversation Management · Model Configuration<br/>Runtime Configuration · Application Settings</sub>"]
+    APP --> RT["Local Model Runtime"]
+    APP --> ST["Local Storage"]
+    APP --> PM["Performance Monitoring"]
+    RT --> MODELS["Local AI Models<br/><sub>GGUF / Compatible Models</sub>"]
 
-```text
-┌──────────────────────────────────────────────┐
-│                  OffyAI UI                   │
-│                                              │
-│  Chat │ Models │ Settings │ Performance     │
-└──────────────────────┬───────────────────────┘
-                       │
-                       ▼
-┌──────────────────────────────────────────────┐
-│              Application Layer               │
-│                                              │
-│  Conversation Management                    │
-│  Model Configuration                         │
-│  Runtime Configuration                        │
-│  Application Settings                         │
-└──────────────────────┬───────────────────────┘
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ Local Model  │ │ Local Storage│ │ Performance  │
-│ Runtime      │ │              │ │ Monitoring   │
-└──────────────┘ └──────────────┘ └──────────────┘
-          │
-          ▼
-┌──────────────────────────────────────────────┐
-│              Local AI Models                 │
-│                                              │
-│          GGUF / Compatible Models            │
-└──────────────────────────────────────────────┘
+    style UI fill:#15181D,stroke:#56E1C9,color:#E9EDF1
+    style APP fill:#15181D,stroke:#262B33,color:#E9EDF1
+    style RT fill:#0C0E11,stroke:#262B33,color:#E9EDF1
+    style ST fill:#0C0E11,stroke:#262B33,color:#E9EDF1
+    style PM fill:#0C0E11,stroke:#262B33,color:#E9EDF1
+    style MODELS fill:#15181D,stroke:#56E1C9,color:#E9EDF1
 ```
 
----
+<br>
 
-# 📦 Model Management
+## 📦 Model Management
 
-OffyAI is intended to simplify working with local AI models.
+OffyAI is intended to simplify working with local AI models. Typical model-management operations may include:
 
-Typical model-management operations may include:
+`adding models` · `selecting models` · `removing models` · `switching between models` · `configuring model parameters` · `monitoring model loading` · `managing model storage`
 
-- Adding models
-- Selecting models
-- Removing models
-- Switching between models
-- Configuring model parameters
-- Monitoring model loading
-- Managing model storage
+> [!TIP]
+> **GGUF models** — OffyAI can be used with compatible GGUF-based local models when supported by the configured inference runtime. GGUF is commonly used for efficient local inference because it supports quantized model formats suitable for consumer hardware.
 
-## GGUF Models
+<br>
 
-OffyAI can be used with compatible GGUF-based local models when supported by the configured inference runtime.
+## 💬 Chat
 
-GGUF is commonly used for efficient local inference because it supports quantized model formats suitable for consumer hardware.
-
----
-
-# 💬 Chat
-
-OffyAI provides a conversational interface for interacting with local models.
-
-Typical capabilities include:
+OffyAI provides a conversational interface for interacting with local models. Typical capabilities include:
 
 - New conversations
 - Conversation history
-- User prompts
-- Model responses
+- User prompts & model responses
 - Multi-turn conversations
 - Configurable generation parameters
 - Local conversation persistence
 
 The quality of responses depends primarily on the selected model and inference configuration.
 
----
+<br>
 
-# 🔧 Configuration
+## 🔧 Configuration
 
 Depending on the release, OffyAI may expose settings for:
 
-- Model selection
-- Temperature
-- Context length
-- Maximum output tokens
-- CPU threads
-- GPU layers
-- Sampling parameters
-- System prompts
-- Interface preferences
-- Storage configuration
+`model selection` · `temperature` · `context length` · `maximum output tokens` · `CPU threads` · `GPU layers` · `sampling parameters` · `system prompts` · `interface preferences` · `storage configuration`
 
-### Temperature
+| Setting | What it does |
+| :-- | :-- |
+| **Temperature** | Controls randomness in generated responses. Lower values generally produce more deterministic responses; higher values generally produce more varied responses. |
+| **Context length** | Determines how much conversation/context the model can process. Larger context windows generally require more memory. |
+| **CPU threads** | Controls the amount of CPU parallelism used during inference when supported by the runtime. |
+| **GPU layers** | When GPU acceleration is supported, increasing GPU offload can improve performance but requires sufficient VRAM. |
 
-Controls randomness in generated responses.
+<br>
 
-Lower values generally produce more deterministic responses.
+## 🔐 Privacy
 
-Higher values generally produce more varied responses.
-
-### Context Length
-
-Determines how much conversation/context the model can process.
-
-Larger context windows generally require more memory.
-
-### CPU Threads
-
-Controls the amount of CPU parallelism used during inference when supported by the runtime.
-
-### GPU Layers
-
-When GPU acceleration is supported, increasing GPU offload can improve performance but requires sufficient VRAM.
-
----
-
-# 🔐 Privacy
-
-Privacy is a core design principle of OffyAI.
-
-The local-first architecture is intended to minimize the need to send prompts and conversations to external AI services.
+Privacy is a core design principle of OffyAI. The local-first architecture is intended to minimize the need to send prompts and conversations to external AI services.
 
 When using a fully local model/runtime:
 
-```text
-User
-  │
-  ▼
-OffyAI
-  │
-  ▼
-Local Runtime
-  │
-  ▼
-Local Model
-  │
-  ▼
-Response
+```mermaid
+flowchart LR
+    A[User] --> B[OffyAI] --> C[Local Runtime] --> D[Local Model] --> E[Response]
+    style B fill:#15181D,stroke:#56E1C9,color:#E9EDF1
 ```
 
 No external AI API is inherently required for the local inference path.
 
-> **Important:** Privacy characteristics depend on the specific OffyAI version, enabled integrations, update mechanisms, and any external services configured by the user.
+> [!IMPORTANT]
+> Privacy characteristics depend on the specific OffyAI version, enabled integrations, update mechanisms, and any external services configured by the user.
 
----
+<br>
 
-# 🌐 Internet Connectivity
+## 🌐 Internet Connectivity
 
-OffyAI is designed primarily around local AI workloads.
-
-An internet connection may still be useful or required for features such as:
+OffyAI is designed primarily around local AI workloads. An internet connection may still be useful or required for features such as:
 
 - Downloading the application
 - Downloading models
@@ -376,51 +366,43 @@ An internet connection may still be useful or required for features such as:
 
 Once the required local model and runtime are available, local inference can operate without sending every prompt to a cloud AI provider.
 
----
+<br>
 
-# 🗂️ Local Data
+## 🗂️ Local Data
 
 OffyAI may maintain local application data such as:
 
-- Conversations
-- Preferences
-- Model configuration
-- Runtime settings
-- Application state
-- Cached information
+`conversations` · `preferences` · `model configuration` · `runtime settings` · `application state` · `cached information`
 
 The exact storage location and data structure depend on the application version.
 
----
+### Clearing local application data
 
-# 🧹 Clearing Local Application Data
+If OffyAI provides a reset or clear-data option, use that option when available. For manual troubleshooting, application-local data may need to be removed from the application's configured storage directory.
 
-If OffyAI provides a reset or clear-data option, use that option when available.
+> [!WARNING]
+> Clearing application data can permanently remove local conversations, preferences, cached information, or other stored state. Back up important data before deleting application files.
 
-For manual troubleshooting, application-local data may need to be removed from the application's configured storage directory.
+<br>
 
-> **Warning:** Clearing application data can permanently remove local conversations, preferences, cached information, or other stored state. Back up important data before deleting application files.
+## 🛠️ Troubleshooting
 
----
+<details>
+<summary><b>Application does not start</b></summary>
+<br>
 
-# 🛠️ Troubleshooting
+1. Restart OffyAI
+2. Run the latest release
+3. Check Windows security/antivirus notifications
+4. Verify that required runtime files are present
+5. Check application logs, if available
+6. Reinstall the application if necessary
 
-## Application does not start
+</details>
 
-Try:
-
-1. Restarting OffyAI.
-2. Running the latest release.
-3. Checking Windows security/antivirus notifications.
-4. Verifying that required runtime files are present.
-5. Checking application logs if available.
-6. Reinstalling the application if necessary.
-
----
-
-## Model does not load
-
-Check:
+<details>
+<summary><b>Model does not load</b></summary>
+<br>
 
 - Model file integrity
 - Available RAM
@@ -433,12 +415,13 @@ Check:
 
 Large models can fail to load when insufficient system memory is available.
 
----
+</details>
 
-## Generation is slow
+<details>
+<summary><b>Generation is slow</b></summary>
+<br>
 
-Possible causes include:
-
+Possible causes:
 - CPU-only inference
 - Insufficient GPU acceleration
 - Large model size
@@ -448,16 +431,16 @@ Possible causes include:
 - Insufficient RAM/VRAM
 - Model quantization
 
-Try a smaller or more aggressively quantized model if hardware resources are limited.
+> [!TIP]
+> Try a smaller or more aggressively quantized model if hardware resources are limited.
 
----
+</details>
 
-## High memory usage
+<details>
+<summary><b>High memory usage</b></summary>
+<br>
 
-Large language models can consume substantial amounts of RAM and VRAM.
-
-Consider:
-
+Large language models can consume substantial amounts of RAM and VRAM. Consider:
 - Using a smaller model
 - Using a lower quantization
 - Reducing context length
@@ -465,89 +448,75 @@ Consider:
 - Closing unnecessary applications
 - Using GPU offloading where supported
 
----
+</details>
 
-# 🧪 Development
+<br>
 
-If you want to contribute to OffyAI, clone the repository and follow the project's development instructions.
+## 🧪 Development
 
 ```bash
-git clone <YOUR_REPOSITORY_URL>
+git clone https://github.com/bharat-poojari/offyai.git
 cd OffyAI
 ```
 
-Install the project's dependencies according to the technology stack used by the current release.
+Install the project's dependencies according to the technology stack used by the current release, then start the development environment using the project's configured development command.
 
-Then start the development environment using the project's configured development command.
-
+> [!NOTE]
 > Development commands may change between releases. Refer to the repository configuration and project documentation for the current commands.
 
----
+### Building OffyAI
 
-# 🏗️ Building OffyAI
-
-The release process generally consists of:
-
-```text
-Source Code
-     │
-     ▼
-Dependency Installation
-     │
-     ▼
-Application Build
-     │
-     ▼
-Packaging
-     │
-     ▼
-Windows Executable
-     │
-     ▼
-GitHub Release
+```mermaid
+flowchart LR
+    A[Source Code] --> B[Dependency<br/>Installation] --> C[Application<br/>Build] --> D[Packaging] --> E[Windows<br/>Executable] --> F[GitHub Release]
 ```
 
 Before publishing a release, verify:
+
+<table>
+<tr><td width="50%">
 
 - Application starts correctly
 - Models load correctly
 - Chat functionality works
 - Settings persist correctly
 - Local storage works
+
+</td><td width="50%">
+
 - Performance monitoring works
 - No development-only files are included
 - Required runtime files are packaged
 - Windows executable launches on a clean system
 
----
+</td></tr>
+</table>
 
-# 📋 Release Checklist
+<details>
+<summary><b>📋 Release checklist</b></summary>
+<br>
 
-Use this checklist before publishing a new OffyAI release:
+- [ ] Update application version
+- [ ] Test application startup
+- [ ] Test model loading
+- [ ] Test chat generation
+- [ ] Test conversation persistence
+- [ ] Test settings
+- [ ] Test model management
+- [ ] Test performance monitoring
+- [ ] Test application reset/clear-data behavior
+- [ ] Build production executable
+- [ ] Test executable on a clean Windows environment
+- [ ] Update release notes
+- [ ] Create GitHub release
+- [ ] Upload executable
+- [ ] Verify download
 
-```text
-[ ] Update application version
-[ ] Test application startup
-[ ] Test model loading
-[ ] Test chat generation
-[ ] Test conversation persistence
-[ ] Test settings
-[ ] Test model management
-[ ] Test performance monitoring
-[ ] Test application reset/clear-data behavior
-[ ] Build production executable
-[ ] Test executable on a clean Windows environment
-[ ] Update release notes
-[ ] Create GitHub release
-[ ] Upload executable
-[ ] Verify download
-```
+</details>
 
----
+<br>
 
-# 🗺️ Roadmap
-
-Potential future improvements include:
+## 🗺️ Roadmap
 
 - [ ] Improved model discovery
 - [ ] One-click model installation
@@ -564,25 +533,22 @@ Potential future improvements include:
 - [ ] Automatic update support
 - [ ] Cross-platform support
 
+> [!NOTE]
 > The roadmap is subject to change based on development priorities.
 
----
+<br>
 
-# 🤝 Contributing
+## 🤝 Contributing
 
-Contributions are welcome.
+Contributions are welcome. Before submitting a pull request:
 
-Before submitting a pull request:
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Make your changes.
-4. Test the changes locally.
-5. Keep commits focused.
-6. Update documentation where necessary.
-7. Submit a pull request.
-
-Example:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test the changes locally
+5. Keep commits focused
+6. Update documentation where necessary
+7. Submit a pull request
 
 ```bash
 git checkout -b feature/my-feature
@@ -593,86 +559,87 @@ git push origin feature/my-feature
 
 Then open a pull request against the main development branch.
 
----
+<br>
 
-# 🐛 Bug Reports
+## 🐛 Bug Reports
 
-When reporting a bug, include as much useful information as possible.
+When [reporting a bug](https://github.com/bharat-poojari/offyai/issues), include as much useful information as possible:
 
-### Recommended information
+<table>
+<tr><td width="33%">
 
 - OffyAI version
 - Windows version
-- CPU
-- GPU
-- RAM
+- CPU / GPU / RAM
+
+</td><td width="33%">
+
 - Model name
 - Model quantization
 - Runtime configuration
+
+</td><td width="33%">
+
 - Steps to reproduce
-- Expected behavior
-- Actual behavior
-- Error message
-- Relevant logs/screenshots
+- Expected vs. actual behavior
+- Error message, logs, screenshots
+
+</td></tr>
+</table>
 
 A good bug report makes the issue easier to reproduce and resolve.
 
----
+<br>
 
-# 🔒 Security
+## 🔒 Security
 
-If you discover a security vulnerability, avoid publicly posting sensitive exploit details before the issue can be assessed.
+> [!CAUTION]
+> If you discover a security vulnerability, avoid publicly posting sensitive exploit details before the issue can be assessed. Report security issues through the project's designated security contact or GitHub Security Advisory process.
 
-Report security issues through the project's designated security contact or GitHub Security Advisory process.
+<br>
 
----
+## 📄 License
 
-# 📄 License
+This project is distributed under the license specified in the repository. See the [`LICENSE`](https://github.com/bharat-poojari/offyai/blob/main/LICENSE) file for the complete license terms.
 
-This project is distributed under the license specified in the repository.
+<br>
 
-See the [`LICENSE`](LICENSE) file for the complete license terms.
+## 👨‍💻 Author
 
----
+**OffyAI** — a local-first AI desktop application focused on:
 
-# 👨‍💻 Author
+> **Privacy · Performance · Control · Simplicity**
 
-**OffyAI**
+<br>
 
-A local-first AI desktop application focused on:
-
-> **Privacy • Performance • Control • Simplicity**
-
----
-
-# ⭐ Support the Project
+## ⭐ Support the Project
 
 If you find OffyAI useful:
 
-- ⭐ Star the repository
-- 🐛 Report bugs
-- 💡 Suggest features
-- 🔧 Contribute improvements
-- 📢 Share the project
+<div align="center">
+
+**[⭐ Star the repository](https://github.com/bharat-poojari/offyai)** · 🐛 Report bugs · 💡 Suggest features · 🔧 Contribute improvements · 📢 Share the project
+
+</div>
 
 Every contribution helps improve the project.
 
----
+<br>
 
-# 📌 Project Status
+## 📌 Project Status
 
-**Status:** Active Development
+**Status:** 🟠 Active Development
 
-OffyAI is continuously evolving. Features, interfaces, model compatibility, and system requirements may change between releases.
+OffyAI is continuously evolving. Features, interfaces, model compatibility, and system requirements may change between releases. For the latest information, always refer to the current [GitHub repository](https://github.com/bharat-poojari/offyai) and [release notes](https://github.com/bharat-poojari/offyai/releases).
 
-For the latest information, always refer to the current GitHub repository and release notes.
+<br>
 
----
+<div align="center">
 
 ## OffyAI
 
 **Local AI. Simplified.**
 
-> Run AI locally.  
-> Keep control locally.  
-> Build without unnecessary cloud dependency.
+<sub>Run AI locally.<br>Keep control locally.<br>Build without unnecessary cloud dependency.</sub>
+
+</div>

@@ -27,7 +27,7 @@
       "uploadedAt": "2026-08-29T13:04:51.200Z"
     }
   ],
-  "theme": "system",
+  "theme": "light",
   "defaultsInitialized": true,
   "performance": {
     "lowMemoryMode": false,

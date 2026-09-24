@@ -13,7 +13,8 @@
     "dev": "npm run electron:dev",
     "build:frontend": "npm run frontend:build",
     "build:electron": "npm run build:frontend && electron-builder",
-    "build:win": "npm run build:frontend && electron-builder --win",
+    "build:win": "npm run build:frontend && electron-builder --win appx",
+    "build:msix": "npm run build:frontend && electron-builder --win appx --publish never",
     "build:mac": "npm run build:frontend && electron-builder --mac",
     "build:linux": "npm run build:frontend && electron-builder --linux",
     "pack": "npm run build:frontend && electron-builder --dir",
@@ -81,13 +82,13 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
+          "target": "appx",
           "arch": [
             "x64"
           ]
         }
       ],
-      "icon": "frontend/public/images/offyai.png",
+      "icon": "build/icon.ico",
       "extraResources": [
         {
           "from": "llama",
@@ -113,22 +114,30 @@
         "preload.js"
       ]
     },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "perMachine": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "OffyAI",
-      "license": "LICENSE.txt"
+    "appx": {
+      "artifactName": "OffyAI-${version}-${arch}.msix",
+      "identityName": "BharatPoojari.OffyAI",
+      "applicationId": "OffyAI",
+      "displayName": "OffyAI",
+      "publisher": "CN=C28C265F-0F23-4459-9938-F0376C861E54",
+      "publisherDisplayName": "Bharat Poojari",
+      "languages": [
+        "en-US"
+      ],
+      "backgroundColor": "#101820",
+      "minVersion": "10.0.17763.0",
+      "maxVersionTested": "10.0.26100.0",
+      "capabilities": [
+        "runFullTrust"
+      ]
     },
     "mac": {
       "target": "dmg",
-      "icon": "frontend/public/images/offyai.png"
+      "icon": "offyai.png"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "frontend/public/images/offyai.png",
+      "icon": "offyai.png",
       "category": "Utility"
     }
   }

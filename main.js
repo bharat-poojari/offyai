@@ -31,6 +31,63 @@ const {
 const { setupMetricsHandlers } = require("./src/ipc/metricsHandlers");
 const { setupModelsHandlers } = require("./src/ipc/modelsHandlers");
 
+function getWindowsRegistryValue(key, valueName = "/ve") {
+  if (process.platform !== "win32") {
+    return "";
+  }
+
+  try {
+    const output = execFileSync(
+      "reg.exe",
+      ["query", key, valueName],
+      {
+        encoding: "utf8",
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "ignore"],
+      }
+    );
+    const lines = output.split(/\r?\n/).map((line) => line.trim());
+    const valueLine = lines.find((line) =>
+      valueName === "/ve"
+        ? /^\(Default\)\s+REG_/i.test(line)
+        : new RegExp(`^${valueName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+REG_`, "i").test(line)
+    );
+
+    if (!valueLine) {
+      return "";
+    }
+
+    return valueLine.replace(/^\S+\s+REG_\S+\s+/i, "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function hasDesktopMailClientForEml() {
+  if (process.platform !== "win32") {
+    return true;
+  }
+
+  const userChoice = getWindowsRegistryValue(
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.eml\\UserChoice",
+    "ProgId"
+  );
+  const emlProgId =
+    userChoice ||
+    getWindowsRegistryValue("HKCR\\.eml");
+
+  if (!emlProgId) {
+    return false;
+  }
+
+  const openCommand = getWindowsRegistryValue(
+    `HKCR\\${emlProgId}\\shell\\open\\command`
+  );
+  const browserPattern = /chrome|msedge|microsoftedge|firefox|internet explorer/i;
+
+  return Boolean(openCommand) && !browserPattern.test(openCommand);
+}
+
 let mainWindow = null;
 let splashWindow = null;
 
@@ -1708,6 +1765,19 @@ function createMainWindow() {
 
   mainWindow.setMenuBarVisibility(
     false
+  );
+
+  mainWindow.webContents.setWindowOpenHandler(
+    () => ({ action: "deny" })
+  );
+
+  mainWindow.webContents.on(
+    "will-navigate",
+    (event, url) => {
+      if (!url.startsWith("file://")) {
+        event.preventDefault();
+      }
+    }
   );
 
   mainWindow.webContents.on(
@@ -3658,6 +3728,108 @@ function setupApplicationIPC() {
           error:
             error.message ||
             String(error)
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    "report-chat",
+    async (_event, payload = {}) => {
+      try {
+        const report = {
+          title: typeof payload.title === "string" ? payload.title : "Chat report",
+          reportedMessage: payload.reportedMessage || null,
+          userMessage: payload.userMessage || null,
+          messages: Array.isArray(payload.messages) ? payload.messages : [],
+          createdAt: new Date().toISOString(),
+        };
+        const reportBody = JSON.stringify(report, null, 2);
+        const reportPath = path.join(
+          app.getPath("temp"),
+          `offyai-chat-report-${Date.now()}.txt`
+        );
+
+        fs.writeFileSync(reportPath, reportBody, "utf8");
+
+        const subject = "Report regarding the chat response";
+        const emailBody = [
+          "Please describe the issue with this chat response below.",
+          "",
+          "The chat report is attached to this email as a text file.",
+        ].join("\n");
+        const attachmentName = path.basename(reportPath);
+        const boundary = `----=_OffyAI_Report_${Date.now()}`;
+        const attachment = fs.readFileSync(reportPath).toString("base64");
+        const emlBody = [
+          `To: bharatp0316@gmail.com`,
+          `Subject: ${subject}`,
+          "MIME-Version: 1.0",
+          `Content-Type: multipart/mixed; boundary="${boundary}"`,
+          "",
+          `--${boundary}`,
+          "Content-Type: text/plain; charset=utf-8",
+          "Content-Transfer-Encoding: 8bit",
+          "",
+          emailBody,
+          "",
+          `--${boundary}`,
+          "Content-Type: text/plain; name=\"offyai-chat-report.txt\"",
+          "Content-Transfer-Encoding: base64",
+          `Content-Disposition: attachment; filename=\"${attachmentName}\"`,
+          "",
+          attachment.match(/.{1,76}/g)?.join("\r\n") || "",
+          `--${boundary}--`,
+          "",
+        ].join("\r\n");
+        const emlPath = path.join(
+          app.getPath("temp"),
+          `offyai-chat-report-${Date.now()}.eml`
+        );
+
+        fs.writeFileSync(emlPath, emlBody, "utf8");
+
+        let emailResult = "No desktop email application is registered for .eml files.";
+
+        if (hasDesktopMailClientForEml()) {
+          emailResult = await shell.openPath(emlPath);
+        }
+
+        if (!emailResult) {
+          return {
+            success: true,
+            reportPath,
+            emlPath,
+            client: "email",
+          };
+        }
+
+        const body = [
+          "Please describe the issue with this chat response below.",
+          "",
+          "The report file was created here for manual attachment:",
+          reportPath,
+        ].join("\n");
+        const gmailUrl = `https://mail.google.com/mail/u/0/?${new URLSearchParams({
+          view: "cm",
+          fs: "1",
+          to: "bharatp0316@gmail.com",
+          su: subject,
+          body,
+        }).toString()}`;
+
+        await shell.openExternal(gmailUrl);
+        return {
+          success: true,
+          reportPath,
+          emlPath,
+          client: "gmail",
+          emailError: emailResult,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          error: error.message || "Could not open the report email.",
         };
       }
     }

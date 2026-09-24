@@ -13,14 +13,21 @@ import {
   Video,
   Mic,
   Download,
+  Flag,
 } from "lucide-react";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useProfile } from "../../contexts/ProfileContext";
 import { resolveImagePath, getDefaultAvatar } from "../../utils/imageResolver";
+import { reportChat } from "../../utils/report";
 
-const Message = ({ message }) => {
+const Message = ({
+  message,
+  relatedUserMessage = null,
+  sessionTitle = "Chat report",
+}) => {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
+  const [copiedCodeBlock, setCopiedCodeBlock] = useState(null);
   const { resolvedTheme } = useTheme();
   const { profile } = useProfile();
 
@@ -53,6 +60,29 @@ const Message = ({ message }) => {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Copy failed:", err);
+    }
+  };
+
+  const handleCodeCopy = async (code, index) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCodeBlock(index);
+      setTimeout(() => setCopiedCodeBlock(null), 2000);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    }
+  };
+
+  const handleReport = async () => {
+    try {
+      await reportChat({
+        title: sessionTitle,
+        messages: [relatedUserMessage, message].filter(Boolean),
+        reportedMessage: message,
+        userMessage: relatedUserMessage,
+      });
+    } catch (error) {
+      console.error("Failed to report chat response:", error);
     }
   };
 
@@ -149,9 +179,8 @@ const Message = ({ message }) => {
                 </div>
 
                 <button
-                  onClick={() =>
-                    navigator.clipboard.writeText(code)
-                  }
+                  type="button"
+                  onClick={() => handleCodeCopy(code, index)}
                   className={`
                     flex items-center gap-1.5
                     rounded-lg
@@ -170,8 +199,17 @@ const Message = ({ message }) => {
                   `}
                   aria-label="Copy code"
                 >
-                  <Copy className="h-3 w-3" />
-                  Copy
+                  {copiedCodeBlock === index ? (
+                    <>
+                      <Check className="h-3 w-3 text-emerald-400" />
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-3 w-3" />
+                      Copy
+                    </>
+                  )}
                 </button>
               </div>
             )}
@@ -578,10 +616,10 @@ const Message = ({ message }) => {
 
           {/* Actions */}
 
-          {message.content &&
-            !isUser && (
+          {message.content && (
               <div className="mt-2 flex items-center">
                 <button
+                  type="button"
                   onClick={handleCopy}
                   className={`
                     flex items-center gap-1.5
@@ -617,6 +655,21 @@ const Message = ({ message }) => {
                     </>
                   )}
                 </button>
+                {!isUser && (
+                  <button
+                    type="button"
+                    onClick={handleReport}
+                    className={`ml-2 flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-medium transition-all duration-150 ${getBorderColor()} ${getMutedTextColor()} ${
+                      resolvedTheme === "dark"
+                        ? "hover:bg-white/[0.05] hover:text-gray-300"
+                        : "hover:bg-gray-100 hover:text-gray-800"
+                    }`}
+                    aria-label="Report message"
+                  >
+                    <Flag className="h-3 w-3" />
+                    <span>Report</span>
+                  </button>
+                )}
               </div>
             )}
         </div>

@@ -31,10 +31,12 @@ import {
   Check,
   AlertTriangle,
   X,
+  Flag,
 } from "lucide-react";
 
 import { useTheme } from "../../contexts/ThemeContext";
 import { useModel } from "../../contexts/ModelContext";
+import { reportChat } from "../../utils/report";
 
 const Sidebar = memo(function Sidebar({ 
   currentView,
@@ -330,7 +332,7 @@ const Sidebar = memo(function Sidebar({
     const buttonElement = event.currentTarget;
     const buttonRect = buttonElement?.getBoundingClientRect();
     const menuWidth = 176;
-    const menuHeight = 220;
+    const menuHeight = 260;
     const gap = 4;
     const menuPosition = buttonRect
       ? {
@@ -441,6 +443,20 @@ const Sidebar = memo(function Sidebar({
       if (error?.name !== "AbortError") {
         console.error("Failed to share chat:", error);
       }
+    }
+  }, []);
+
+  const handleReportChat = useCallback(async (event, session) => {
+    event.stopPropagation();
+    setOpenMenuId(null);
+
+    try {
+      await reportChat({
+        title: getSessionTitle(session),
+        messages: Array.isArray(session?.messages) ? session.messages : [],
+      });
+    } catch (error) {
+      console.error("Failed to report chat:", error);
     }
   }, []);
 
@@ -1617,6 +1633,24 @@ const Sidebar = memo(function Sidebar({
                               {isPinned
                                 ? "Unpin chat"
                                 : "Pin chat"}
+                            </span>
+                          </button>
+
+                          {/* Report */}
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={(event) =>
+                              handleReportChat(event, session)
+                            }
+                            className="group/menu flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[11px] font-medium text-[var(--text-primary)] transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+                          >
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-amber-500/10 text-amber-500">
+                              <Flag className="h-3.5 w-3.5" />
+                            </span>
+
+                            <span className="min-w-0 flex-1 truncate">
+                              Report chat
                             </span>
                           </button>
 

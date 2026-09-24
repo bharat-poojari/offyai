@@ -410,6 +410,14 @@ const electronAPI = {
       filePath
     ),
 
+  reportChat: (
+    payload
+  ) =>
+    invoke(
+      "report-chat",
+      payload
+    ),
+
   getModelsPath: () =>
     invoke(
       "get-models-path"
