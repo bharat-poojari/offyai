@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+<title id="title">OffyAI — Local Intelligence, Unleashed</title>
+<desc id="desc">Animated neon AI core surrounded by local model, private chat, and performance panels.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080d14"/><stop offset=".55" stop-color="#0b101b"/><stop offset="1" stop-color="#100b20"/></linearGradient>
+  <linearGradient id="titleGrad"><stop stop-color="#eaffff"/><stop offset=".48" stop-color="#65f4df"/><stop offset="1" stop-color="#9a8bff"/></linearGradient>
+  <linearGradient id="cyan"><stop stop-color="#9efff3"/><stop offset="1" stop-color="#19cbb7"/></linearGradient>
+  <linearGradient id="violet"><stop stop-color="#c3aaff"/><stop offset="1" stop-color="#7356ff"/></linearGradient>
+  <radialGradient id="core"><stop stop-color="#cafff8" stop-opacity=".95"/><stop offset=".18" stop-color="#55f1d7" stop-opacity=".72"/><stop offset=".5" stop-color="#18bcae" stop-opacity=".18"/><stop offset="1" stop-color="#18bcae" stop-opacity="0"/></radialGradient>
+  <radialGradient id="glow"><stop stop-color="#3fffe1" stop-opacity=".28"/><stop offset="1" stop-color="#3fffe1" stop-opacity="0"/></radialGradient>
+  <filter id="blur24" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="24"/></filter>
+  <filter id="neon" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feColorMatrix in="b" type="matrix" values="0 0 0 0 0.15 0 0 0 0 1 0 0 0 0 0.83 0 0 0 1 0" result="c"/><feMerge><feMergeNode in="c"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0V42" fill="none" stroke="#8beee0" stroke-opacity=".075"/></pattern>
+  <clipPath id="clip"><rect x="1" y="1" width="1198" height="658" rx="28"/></clipPath>
+  <style>
+    text{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+    .muted{fill:#82939f}.white{fill:#effffc}
+    .panel{fill:#0c1720;fill-opacity:.88;stroke:#4cebd5;stroke-opacity:.3;stroke-width:1.2}
+    .panel2{fill:#111326;fill-opacity:.88;stroke:#9c83ff;stroke-opacity:.36;stroke-width:1.2}
+    .pulse{animation:pulse 3.4s ease-in-out infinite}.pulse2{animation:pulse 4.2s ease-in-out infinite reverse}
+    .orbit{transform-origin:600px 350px;animation:spin 22s linear infinite}
+    .orbitBack{transform-origin:600px 350px;animation:spin 30s linear infinite reverse}
+    .dash{stroke-dasharray:8 14;animation:dash 12s linear infinite}
+    .floatA{animation:float 5s ease-in-out infinite}.floatB{animation:float 6s ease-in-out infinite reverse}
+    .sweep{animation:sweep 5.8s ease-in-out infinite}.blink{animation:blink 1.8s steps(2,end) infinite}
+    @keyframes pulse{0%,100%{opacity:.42}50%{opacity:1}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes dash{to{stroke-dashoffset:-220}}
+    @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+    @keyframes sweep{0%{transform:translateX(-280px);opacity:0}18%{opacity:.8}75%{opacity:.5}100%{transform:translateX(620px);opacity:0}}
+    @keyframes blink{50%{opacity:.25}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important}}
+  </style>
+</defs>
+<g clip-path="url(#clip)">
+<rect width="1200" height="660" rx="28" fill="url(#bg)"/><rect width="1200" height="660" fill="url(#grid)"/>
+<ellipse cx="600" cy="345" rx="380" ry="270" fill="url(#glow)" filter="url(#blur24)"/><circle cx="600" cy="345" r="210" fill="#2fffe0" opacity=".08" filter="url(#blur24)"/>
+<circle cx="1000" cy="170" r="130" fill="#805dff" opacity=".12" filter="url(#blur24)"/><circle cx="130" cy="510" r="150" fill="#1dcbb9" opacity=".08" filter="url(#blur24)"/>
+<path d="M0 120H1200M0 560H1200" stroke="#b2fff4" stroke-opacity=".08"/>
+<g fill="#a7fff1" opacity=".6"><circle cx="92" cy="180" r="1.4"/><circle cx="260" cy="100" r="1"/><circle cx="1040" cy="95" r="1.5"/><circle cx="1110" cy="430" r="1.2"/><circle cx="180" cy="430" r="1"/><circle cx="940" cy="560" r="1.4"/><circle cx="730" cy="120" r="1"/></g>
+<g opacity=".55" stroke="#4debd4" stroke-width="1" fill="none"><path class="dash" d="M160 330C300 230 360 260 455 320S780 430 1040 300"/><path class="dash" d="M180 390C330 480 410 450 500 390S810 230 1020 365" stroke="#9b83ff"/></g>
+<g transform="translate(64 54)"><rect width="34" height="34" rx="11" fill="#102c31" stroke="#55f0d8" stroke-opacity=".8"/><path d="M9 18h16M17 9v18M11 11l12 14M23 11L11 25" stroke="#7effe8" stroke-width="1.7" stroke-linecap="round"/><text x="48" y="25" font-size="23" font-weight="750" letter-spacing="-.7" class="white">Offy<tspan fill="#66f2dc">AI</tspan></text><text x="0" y="62" font-size="10" letter-spacing="3.2" fill="#7b9a9c">YOUR PRIVATE AI WORKSPACE</text></g>
+<g transform="translate(900 64)"><rect width="230" height="32" rx="16" fill="#10231f" stroke="#4ee9d1" stroke-opacity=".35"/><circle cx="17" cy="16" r="4" fill="#65f3d9" class="pulse"/><text x="30" y="20" font-size="10" letter-spacing="1.7" fill="#a8f9e9">LOCAL-FIRST · PRIVATE BY DESIGN</text></g>
+<g text-anchor="middle"><text x="600" y="174" font-size="48" font-weight="800" letter-spacing="-2.2" fill="url(#titleGrad)">Intelligence, Unleashed.</text><text x="600" y="205" font-size="14" letter-spacing="2.8" fill="#9aabb8">POWERFUL AI. RUNNING RIGHT HERE.</text></g>
+<g class="orbitBack" fill="none"><ellipse cx="600" cy="350" rx="205" ry="83" stroke="#a38aff" stroke-opacity=".35" stroke-width="1.4" transform="rotate(-34 600 350)"/><ellipse cx="600" cy="350" rx="235" ry="105" stroke="#60eedd" stroke-opacity=".22" stroke-dasharray="2 12" transform="rotate(36 600 350)"/><circle cx="600" cy="350" r="150" stroke="#5cebd6" stroke-opacity=".16" stroke-dasharray="3 10"/></g>
+<g class="orbit" fill="none"><ellipse cx="600" cy="350" rx="190" ry="72" stroke="#5af3dc" stroke-opacity=".62" stroke-width="1.4" transform="rotate(27 600 350)"/><ellipse cx="600" cy="350" rx="222" ry="92" stroke="#9a83ff" stroke-opacity=".42" stroke-width="1.1" stroke-dasharray="3 9" transform="rotate(-28 600 350)"/><circle cx="600" cy="278" r="4" fill="#9b8aff" stroke="none" filter="url(#neon)"/><circle cx="790" cy="350" r="4" fill="#6effe3" stroke="none" filter="url(#neon)"/><circle cx="430" cy="315" r="3" fill="#6effe3" stroke="none" filter="url(#neon)"/></g>
+<circle cx="600" cy="350" r="108" fill="url(#core)" class="pulse"/><circle cx="600" cy="350" r="76" fill="#0b1e23" stroke="#62f5df" stroke-opacity=".55" stroke-width="1.5"/><circle cx="600" cy="350" r="66" fill="none" stroke="#b4fff4" stroke-opacity=".2"/><circle cx="600" cy="350" r="57" fill="none" stroke="#5bf1da" stroke-width="1.4" stroke-dasharray="42 13 8 13" class="orbit"/><circle cx="600" cy="350" r="43" fill="#12353a" stroke="#71f9e4" stroke-opacity=".55"/><circle cx="600" cy="350" r="34" fill="url(#core)"/>
+<path d="M600 319l8 22 22 9-22 8-8 23-8-23-22-8 22-9z" fill="#bafff4" filter="url(#neon)"/><circle cx="600" cy="350" r="4" fill="#fff"/>
+<g fill="#70f5df"><circle cx="540" cy="304" r="2" class="pulse"/><circle cx="658" cy="385" r="2" class="pulse2"/><circle cx="638" cy="292" r="1.8" class="pulse"/></g>
+<g fill="none" stroke-width="1.4"><path d="M455 335L500 335L540 350" stroke="#5debd6" stroke-opacity=".65"/><path d="M745 335L700 335L660 350" stroke="#9d86ff" stroke-opacity=".65"/><path d="M600 442L600 465" stroke="#5debd6" stroke-opacity=".65"/></g>
+<g class="floatA"><rect x="70" y="270" width="250" height="142" rx="17" class="panel"/><circle cx="94" cy="297" r="5" fill="#63f4df" class="pulse"/><text x="108" y="301" font-size="10" letter-spacing="1.8" fill="#8ceee0">MODEL ENGINE</text><text x="92" y="339" font-size="19" font-weight="700" class="white">Your models.</text><text x="92" y="361" font-size="19" font-weight="700" class="white">Your machine.</text><rect x="92" y="381" width="112" height="16" rx="8" fill="#123b3a"/><text x="102" y="392" font-size="8" letter-spacing="1.2" fill="#7df8e2">GGUF · LOCAL LLM</text><path d="M278 294v91" stroke="#4debd5" stroke-opacity=".15"/><path d="M230 365l9-12 8 6 10-18 10 9" stroke="#69f6df" stroke-width="1.8" fill="none" filter="url(#neon)"/></g>
+<g class="floatB"><rect x="880" y="270" width="250" height="142" rx="17" class="panel2"/><circle cx="904" cy="297" r="5" fill="#a58cff" class="pulse2"/><text x="918" y="301" font-size="10" letter-spacing="1.8" fill="#c2b4ff">PRIVACY SHIELD</text><path d="M918 330l18-8 18 8v15c0 13-9 22-18 27-9-5-18-14-18-27z" fill="#242047" stroke="#a58cff" stroke-width="1.4"/><path d="M929 347l5 5 10-12" fill="none" stroke="#c8baff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="970" y="342" font-size="17" font-weight="700" class="white">Private by</text><text x="970" y="363" font-size="17" font-weight="700" class="white">default.</text><text x="918" y="392" font-size="9" letter-spacing="1.2" fill="#a89bd8">YOUR DATA STAYS YOURS</text></g>
+<g class="floatA"><rect x="390" y="470" width="420" height="105" rx="17" class="panel"/><text x="414" y="495" font-size="9" letter-spacing="2" fill="#8ceee0">LIVE SYSTEM PULSE</text><g transform="translate(414 512)"><text y="0" font-size="9" fill="#8b9ca8">CPU</text><text y="25" font-size="15" font-weight="700" class="white">MONITOR</text><rect y="36" width="95" height="3" rx="2" fill="#20343b"/><rect y="36" width="62" height="3" rx="2" fill="url(#cyan)" class="pulse"/></g><path d="M530 508v48M664 508v48" stroke="#6ef2df" stroke-opacity=".15"/><g transform="translate(552 512)"><text y="0" font-size="9" fill="#8b9ca8">MEMORY</text><text y="25" font-size="15" font-weight="700" class="white">IN CONTROL</text><rect y="36" width="90" height="3" rx="2" fill="#20343b"/><rect y="36" width="48" height="3" rx="2" fill="url(#violet)" class="pulse2"/></g><g transform="translate(686 512)"><text y="0" font-size="9" fill="#8b9ca8">INFERENCE</text><text y="25" font-size="15" font-weight="700" class="white">ON DEVICE</text><circle cx="91" cy="-4" r="4" fill="#6af5df" class="blink"/></g></g>
+<g class="sweep" opacity=".5"><path d="M0 0L170 0L-100 660H-270Z" fill="#9ffff2" opacity=".07"/></g>
+<path d="M0 630C220 600 330 660 550 630S930 610 1200 635" fill="none" stroke="#5debd6" stroke-opacity=".22"/>
+<text x="600" y="622" font-size="10" text-anchor="middle" letter-spacing="3.5" fill="#7c969b">PRIVATE · FAST · LOCAL · YOURS</text>
+<rect x="1" y="1" width="1198" height="658" rx="28" fill="none" stroke="#75f5e0" stroke-opacity=".25"/>
+</g></svg>
